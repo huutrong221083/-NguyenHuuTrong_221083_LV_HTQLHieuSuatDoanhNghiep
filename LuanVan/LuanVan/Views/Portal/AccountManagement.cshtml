@@ -1,0 +1,974 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+}
+
+<section class="page-head">
+    <div>
+        <h2>Quản lý tài khoản</h2>
+        <p class="text-muted mb-0">Quản lý tài khoản đăng nhập, phân quyền và liên kết nhân viên.</p>
+    </div>
+    <div class="badge role-badge">Vai trò: @role.ToUpperInvariant()</div>
+</section>
+
+<nav class="crumb">Trang chủ / Quản lý tài khoản</nav>
+
+<section class="panel mt-3 accountx-toolbar-panel">
+    <div class="accountx-toolbar">
+        <input id="accountKeyword" class="form-control accountx-pill" placeholder="Tìm theo username hoặc email..." />
+
+        <select id="accountRoleFilter" class="form-select accountx-pill" title="Vai trò">
+            <option value="">Tất cả vai trò</option>
+        </select>
+
+        <select id="accountStatusFilter" class="form-select accountx-pill" title="Trạng thái">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="lock">Đã khóa</option>
+        </select>
+
+        <button id="btnAddAccount" class="btn btn-primary accountx-pill-btn"><i class="bi bi-plus-circle"></i> Thêm tài khoản</button>
+        <button id="btnResetAccountFilter" class="btn btn-light accountx-pill-btn">Đặt lại bộ lọc</button>
+    </div>
+</section>
+
+<section class="accountx-layout mt-3">
+    <article class="panel">
+        <header class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h4 class="mb-0">Danh sách tài khoản</h4>
+            <small id="accountSummary" class="text-muted"></small>
+        </header>
+
+        <div class="table-responsive mt-2">
+            <table class="table align-middle accountx-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Ảnh</th>
+                        <th>Tên đăng nhập</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Nhân viên</th>
+                        <th>Trạng thái</th>
+                        <th>Hoạt động cuối</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="accountTableBody">
+                    <tr><td colspan="8" class="text-muted">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <aside id="accountDetailPanel" class="panel accountx-detail-panel">
+        <header class="d-flex justify-content-between align-items-center gap-2">
+            <h4 class="mb-0">Chi tiết tài khoản</h4>
+            <span id="accountDetailHint" class="small text-muted">Chọn tài khoản để xem chi tiết</span>
+        </header>
+
+        <div class="accountx-tabs mt-3" id="accountDetailTabs">
+            <button type="button" class="active" data-tab="info">Thông tin</button>
+            <button type="button" data-tab="role">Phân quyền</button>
+            <button type="button" data-tab="employee">Liên kết NV</button>
+            <button type="button" data-tab="activity">Hoạt động</button>
+        </div>
+
+        <div id="accountDetailContent" class="accountx-detail-content mt-3">
+            <div class="text-muted">Chưa có tài khoản được chọn.</div>
+        </div>
+    </aside>
+</section>
+
+<div class="modal fade" id="accountFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="accountFormTitle" class="modal-title">Thêm tài khoản</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="accountForm" class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label">Tên đăng nhập</label>
+                        <input id="formUserName" class="form-control" required />
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Email</label>
+                        <input id="formEmail" type="email" class="form-control" required />
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Mật khẩu</label>
+                        <input id="formPassword" type="password" class="form-control" minlength="8" />
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Xác nhận mật khẩu</label>
+                        <input id="formConfirmPassword" type="password" class="form-control" minlength="8" />
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Vai trò</label>
+                        <select id="formRole" class="form-select"></select>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Nhân viên</label>
+                        <select id="formEmployee" class="form-select">
+                            <option value="">Chọn nhân viên</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Số điện thoại</label>
+                        <input id="formPhone" class="form-control" placeholder="SĐT nhân viên liên kết" />
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select id="formStatus" class="form-select">
+                            <option value="active" selected>Đang hoạt động</option>
+                            <option value="lock">Đã khóa</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="accountx-form-note">
+                            Mật khẩu mạnh: ít nhất 8 ký tự, có chữ hoa, chữ thường và số.
+                        </div>
+                    </div>
+                </form>
+                <div id="accountFormResult" class="small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveAccount">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Đặt lại mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="small text-muted mb-2" id="resetPasswordFor">-</div>
+                <div class="mb-2">
+                    <label class="form-label">Mật khẩu mới</label>
+                    <input id="resetPassword" type="password" class="form-control" minlength="8" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Xác nhận mật khẩu</label>
+                    <input id="resetPasswordConfirm" type="password" class="form-control" minlength="8" />
+                </div>
+                <div id="resetPasswordResult" class="small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmResetPassword">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const accountKeyword = document.getElementById('accountKeyword');
+        const accountRoleFilter = document.getElementById('accountRoleFilter');
+        const accountStatusFilter = document.getElementById('accountStatusFilter');
+        const btnAddAccount = document.getElementById('btnAddAccount');
+        const btnResetAccountFilter = document.getElementById('btnResetAccountFilter');
+
+        const accountTableBody = document.getElementById('accountTableBody');
+        const accountSummary = document.getElementById('accountSummary');
+        const accountDetailHint = document.getElementById('accountDetailHint');
+        const accountDetailContent = document.getElementById('accountDetailContent');
+        const accountDetailTabs = document.getElementById('accountDetailTabs');
+
+        const accountFormModal = new bootstrap.Modal(document.getElementById('accountFormModal'));
+        const accountFormTitle = document.getElementById('accountFormTitle');
+        const formUserName = document.getElementById('formUserName');
+        const formEmail = document.getElementById('formEmail');
+        const formPassword = document.getElementById('formPassword');
+        const formConfirmPassword = document.getElementById('formConfirmPassword');
+        const formRole = document.getElementById('formRole');
+        const formEmployee = document.getElementById('formEmployee');
+        const formPhone = document.getElementById('formPhone');
+        const formStatus = document.getElementById('formStatus');
+        const accountFormResult = document.getElementById('accountFormResult');
+        const btnSaveAccount = document.getElementById('btnSaveAccount');
+
+        const resetPasswordModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+        const resetPasswordFor = document.getElementById('resetPasswordFor');
+        const resetPassword = document.getElementById('resetPassword');
+        const resetPasswordConfirm = document.getElementById('resetPasswordConfirm');
+        const resetPasswordResult = document.getElementById('resetPasswordResult');
+        const btnConfirmResetPassword = document.getElementById('btnConfirmResetPassword');
+
+        const roleDescriptions = {
+            Admin: 'Toàn quyền hệ thống, bao gồm tạo/sửa/xóa tài khoản.',
+            Manager: 'Quản lý nhóm, không được quản lý tài khoản.',
+            Employee: 'Thực hiện công việc được giao và cập nhật tiến độ.'
+        };
+
+        const state = {
+            accounts: [],
+            employees: [],
+            availableRoles: ['Admin', 'Manager', 'Employee'],
+            selectedUserId: null,
+            selectedDetail: null,
+            activeTab: 'info',
+            editModeUserId: null,
+            editSnapshot: null,
+            resetTargetUserId: null
+        };
+
+        const preferredRoleOrder = ['Admin', 'Manager', 'Employee'];
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        const formatDateTime = (value) => {
+            if (!value) return '-';
+            const d = new Date(value);
+            return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString('vi-VN');
+        };
+
+        const initials = (name) => {
+            const text = (name || '?').trim();
+            if (!text) return '?';
+            const parts = text.split(/\s+/).slice(0, 2);
+            return parts.map(x => x[0]?.toUpperCase() || '').join('') || '?';
+        };
+
+        const isStrongPassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password || '');
+
+        function normalizeRoleList(roleNames) {
+            const distinctRoles = Array.from(new Set((roleNames || [])
+                .map(x => String(x || '').trim())
+                .filter(Boolean)));
+
+            distinctRoles.sort((a, b) => {
+                const aIndex = preferredRoleOrder.indexOf(a);
+                const bIndex = preferredRoleOrder.indexOf(b);
+                if (aIndex >= 0 && bIndex >= 0) return aIndex - bIndex;
+                if (aIndex >= 0) return -1;
+                if (bIndex >= 0) return 1;
+                return a.localeCompare(b);
+            });
+
+            return distinctRoles;
+        }
+
+        function ensureRoleInAvailableRoles(roleName) {
+            const name = String(roleName || '').trim();
+            if (!name) return;
+            if (state.availableRoles.some(x => x.toLowerCase() === name.toLowerCase())) {
+                return;
+            }
+
+            state.availableRoles = normalizeRoleList(state.availableRoles.concat(name));
+        }
+
+        function getDefaultRole() {
+            if (state.availableRoles.includes('Employee')) {
+                return 'Employee';
+            }
+
+            return state.availableRoles[0] || '';
+        }
+
+        function renderRoleSelectOptions() {
+            const filterCurrent = accountRoleFilter.value;
+            accountRoleFilter.innerHTML = '<option value="">Tất cả vai trò</option>' +
+                state.availableRoles.map(role => `<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join('');
+            if (filterCurrent && state.availableRoles.includes(filterCurrent)) {
+                accountRoleFilter.value = filterCurrent;
+            }
+
+            const formCurrent = formRole.value;
+            formRole.innerHTML = state.availableRoles.map(role => `<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join('');
+            const formTargetRole = formCurrent && state.availableRoles.includes(formCurrent)
+                ? formCurrent
+                : getDefaultRole();
+            if (formTargetRole) {
+                formRole.value = formTargetRole;
+            }
+        }
+
+        async function loadRoleOptions() {
+            const result = await fetchJson('/system/roles');
+            if (!result.success) {
+                renderRoleSelectOptions();
+                return;
+            }
+
+            const roleNames = (result.data || []).map(x => x?.name).filter(Boolean);
+            const normalized = normalizeRoleList(roleNames);
+            if (normalized.length > 0) {
+                state.availableRoles = normalized;
+            }
+
+            renderRoleSelectOptions();
+        }
+
+        async function fetchJson(url, options, apiName) {
+            const label = apiName || url;
+            try {
+                const response = await fetch(url, options);
+                const raw = await response.text();
+                const contentType = response.headers.get('content-type') || '';
+                const isJsonResponse = contentType.includes('application/json') || contentType.includes('application/problem+json');
+                let payload = {};
+                if (raw && isJsonResponse) payload = JSON.parse(raw);
+                if (!response.ok) {
+                    const fallbackMessage = raw && !isJsonResponse
+                        ? `API ${label} lỗi (${response.status}).`
+                        : `API ${label} lỗi.`;
+                    return { success: false, message: payload?.message || fallbackMessage };
+                }
+                if (raw && !isJsonResponse) {
+                    return { success: true, data: raw };
+                }
+                if (payload && typeof payload.success === 'boolean') return payload;
+                return { success: true, data: payload };
+            } catch (error) {
+                console.error('[ACCOUNTX]', label, error);
+                return { success: false, message: `Không thể kết nối API ${label}.` };
+            }
+        }
+
+        function notify(message, type = 'info') {
+            if (window.UiToast && typeof window.UiToast.show === 'function') {
+                window.UiToast.show({ message, type });
+                return;
+            }
+
+            window.alert(type === 'error' ? `Lỗi: ${message}` : message);
+        }
+
+        function roleBadge(roleName) {
+            const role = roleName || 'Employee';
+            const css = role === 'Admin' ? 'role-admin' : (role === 'Manager' ? 'role-manager' : 'role-employee');
+            const tooltip = roleDescriptions[role] || '';
+            return `<span class="role-tag ${css}" title="${escapeHtml(tooltip)}">${escapeHtml(role)}</span>`;
+        }
+
+        function statusBadge(account) {
+            if (account.isDisabled) return '<span class="status-tag status-disabled">Vô hiệu hóa</span>';
+            if (account.isLocked) return '<span class="status-tag status-locked">Đã khóa</span>';
+            return '<span class="status-tag status-active">Đang hoạt động</span>';
+        }
+
+        function employeeBadge(linked) {
+            if (!linked) return '<span class="pill warning">Chưa liên kết</span>';
+            return `<span>${escapeHtml(linked.hoTen || `NV ${linked.maNhanVien}`)}</span>`;
+        }
+
+        function employeeDetailLine(linked) {
+            if (!linked) return '<div class="text-muted">Tài khoản chưa liên kết nhân viên.</div>';
+            return `
+                <div><strong>Họ tên:</strong> ${escapeHtml(linked.hoTen || '-')}</div>
+                <div><strong>Phòng ban:</strong> ${escapeHtml(linked.tenPhongBan || '-')}</div>
+                <div><strong>Chức vụ:</strong> ${escapeHtml(linked.chucVu || 'Nhân viên')}</div>
+            `;
+        }
+
+        function renderTable() {
+            if (!state.accounts.length) {
+                accountTableBody.innerHTML = '<tr><td colspan="8" class="text-muted">Không có tài khoản phù hợp với bộ lọc.</td></tr>';
+                accountSummary.textContent = 'Hiển thị 0 tài khoản';
+                return;
+            }
+
+            accountTableBody.innerHTML = state.accounts.map(item => {
+                const danger = Number(item.accessFailedCount || 0) >= 3;
+                return `
+                    <tr class="${danger ? 'accountx-danger-row' : ''}">
+                        <td>
+                            <div class="accountx-avatar" title="${escapeHtml(item.userName || 'Không rõ')}">${escapeHtml(initials(item.userName || item.email || '?'))}</div>
+                        </td>
+                        <td>${escapeHtml(item.userName || '-')}</td>
+                        <td>${escapeHtml(item.email || '-')}</td>
+                        <td>${roleBadge(item.role)}</td>
+                        <td>${employeeBadge(item.linkedNhanVien)}</td>
+                        <td>${statusBadge(item)}</td>
+                        <td>${formatDateTime(item.lastActivity)}</td>
+                        <td class="text-end">
+                            <div class="accountx-actions">
+                                <button class="btn btn-sm btn-light" data-action="view" data-id="${item.userId}" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" data-action="edit" data-id="${item.userId}" title="Sửa"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary" data-action="lock" data-id="${item.userId}" data-locked="${item.isLocked}" title="Khóa/Mở khóa"><i class="bi bi-lock"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" data-action="resetpass" data-id="${item.userId}" data-user="${escapeHtml(item.userName || '')}" title="Đặt lại mật khẩu"><i class="bi bi-key"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${item.userId}" title="Xóa"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            accountSummary.textContent = `Hiển thị ${state.accounts.length} tài khoản`;
+        }
+
+        async function loadEmployees(includeLinked = true) {
+            const result = await fetchJson(`/account-management/employees?includeLinked=${includeLinked}`);
+            state.employees = result.success ? (result.data || []) : [];
+            formEmployee.innerHTML = '<option value="">Chọn nhân viên</option>' +
+                state.employees.map(x => `<option value="${x.maNhanVien}">${escapeHtml(x.hoTen || `NV ${x.maNhanVien}`)} - ${escapeHtml(x.tenPhongBan || 'Chưa có phòng ban')}</option>`).join('');
+        }
+
+        async function loadAccounts() {
+            accountTableBody.innerHTML = '<tr><td colspan="8" class="text-muted">Đang tải dữ liệu...</td></tr>';
+            const query = new URLSearchParams();
+            if (accountKeyword.value.trim()) query.set('keyword', accountKeyword.value.trim());
+            if (accountRoleFilter.value) query.set('role', accountRoleFilter.value);
+            if (accountStatusFilter.value) query.set('status', accountStatusFilter.value);
+
+            const result = await fetchJson(`/account-management/accounts?${query.toString()}`);
+            if (!result.success) {
+                accountTableBody.innerHTML = `<tr><td colspan="8" class="text-danger">${escapeHtml(result.message || 'Không tải được dữ liệu')}</td></tr>`;
+                accountSummary.textContent = '';
+                return;
+            }
+
+            state.accounts = result.data || [];
+            renderTable();
+
+            if (!state.selectedUserId && state.accounts.length) {
+                await viewAccountDetail(state.accounts[0].userId);
+            } else if (state.selectedUserId) {
+                const found = state.accounts.find(x => x.userId === state.selectedUserId);
+                if (!found) {
+                    state.selectedUserId = null;
+                    state.selectedDetail = null;
+                    accountDetailHint.textContent = 'Chọn tài khoản để xem chi tiết';
+                    accountDetailContent.innerHTML = '<div class="text-muted">Chưa có tài khoản được chọn.</div>';
+                }
+            }
+        }
+
+        async function viewAccountDetail(userId) {
+            state.selectedUserId = userId;
+            accountDetailHint.textContent = `ID: ${userId}`;
+            accountDetailContent.innerHTML = '<div class="text-muted">Đang tải chi tiết...</div>';
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}`);
+            if (!result.success) {
+                accountDetailContent.innerHTML = `<div class="text-danger">${escapeHtml(result.message || 'Không tải được chi tiết.')}</div>`;
+                return;
+            }
+
+            state.selectedDetail = result.data;
+            renderActiveTab();
+        }
+
+        function renderInfoTab() {
+            const d = state.selectedDetail;
+            if (!d) return '<div class="text-muted">Không có dữ liệu.</div>';
+
+            return `
+                <div class="accountx-info-grid">
+                    <div><span>Tên đăng nhập</span><strong>${escapeHtml(d.userName || '-')}</strong></div>
+                    <div><span>Email</span><strong>${escapeHtml(d.email || '-')}</strong></div>
+                    <div><span>Số điện thoại</span><strong>${escapeHtml(d.linkedNhanVien?.sdt || '-')}</strong></div>
+                    <div><span>Ngày tạo</span><strong>-</strong></div>
+                    <div><span>Trạng thái</span><strong>${statusBadge(d)}</strong></div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button class="btn btn-outline-primary btn-sm" id="btnChangeEmail">Đổi email</button>
+                    <button class="btn btn-primary btn-sm" id="btnOpenResetFromPanel">Đặt lại mật khẩu</button>
+                </div>
+                <div id="changeEmailBox" class="accountx-inline-form d-none mt-2">
+                    <input id="newEmailInput" type="email" class="form-control form-control-sm" placeholder="Nhập email mới..." value="${escapeHtml(d.email || '')}" />
+                    <button class="btn btn-sm btn-outline-primary" id="btnSaveEmail">Lưu</button>
+                </div>
+            `;
+        }
+
+        function renderRoleTab() {
+            const d = state.selectedDetail;
+            if (!d) return '<div class="text-muted">Không có dữ liệu.</div>';
+
+            ensureRoleInAvailableRoles(d.role);
+            const roleOptions = state.availableRoles
+                .map(role => `<option value="${escapeHtml(role)}" ${d.role === role ? 'selected' : ''}>${escapeHtml(role)}</option>`)
+                .join('');
+
+            return `
+                <div class="accountx-inline-form">
+                    <select id="detailRoleSelect" class="form-select form-select-sm">
+                        ${roleOptions}
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" id="btnSaveRole">Cập nhật vai trò</button>
+                </div>
+                <small class="text-muted d-block mt-2">Hệ thống đang sử dụng cơ chế phân quyền theo vai trò của ASP.NET Identity.</small>
+            `;
+        }
+
+        function renderEmployeeTab() {
+            const d = state.selectedDetail;
+            if (!d) return '<div class="text-muted">Không có dữ liệu.</div>';
+
+            const options = ['<option value="">Chọn nhân viên</option>'].concat(
+                state.employees.map(x => `<option value="${x.maNhanVien}" ${d.linkedNhanVien?.maNhanVien === x.maNhanVien ? 'selected' : ''}>${escapeHtml(x.hoTen || `NV ${x.maNhanVien}`)} - ${escapeHtml(x.tenPhongBan || 'Chưa có phòng ban')}</option>`)
+            ).join('');
+
+            return `
+                <div class="mb-2">${employeeDetailLine(d.linkedNhanVien)}</div>
+                <div class="accountx-inline-form">
+                    <select id="detailEmployeeSelect" class="form-select form-select-sm">${options}</select>
+                    <button class="btn btn-sm btn-outline-primary" id="btnSaveEmployeeLink">Cập nhật liên kết</button>
+                </div>
+                <small class="text-muted d-block mt-2">Một nhân viên chỉ được liên kết với tối đa một tài khoản.</small>
+            `;
+        }
+
+        function renderActivityTab() {
+            const d = state.selectedDetail;
+            if (!d) return '<div class="text-muted">Không có dữ liệu.</div>';
+
+            const rows = [];
+            rows.push({
+                icon: 'bi-clock-history',
+                title: 'Lần hoạt động gần nhất',
+                time: formatDateTime(d.lastActivity)
+            });
+            rows.push({
+                icon: 'bi-shield-lock',
+                title: d.isLocked ? 'Tài khoản đang bị khóa' : 'Tài khoản đang hoạt động',
+                time: '-'
+            });
+            rows.push({
+                icon: 'bi-exclamation-triangle',
+                title: `Số lần đăng nhập thất bại: ${d.accessFailedCount || 0}`,
+                time: (d.accessFailedCount || 0) >= 3 ? 'Cảnh báo bảo mật' : 'Bình thường'
+            });
+
+            return `<div class="accountx-timeline">${rows.map(x => `
+                <div class="accountx-timeline-item">
+                    <i class="bi ${x.icon}"></i>
+                    <div>
+                        <strong>${escapeHtml(x.title)}</strong>
+                        <div class="small text-muted">${escapeHtml(x.time)}</div>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function renderActiveTab() {
+            if (!state.selectedDetail) {
+                accountDetailContent.innerHTML = '<div class="text-muted">Chưa có tài khoản được chọn.</div>';
+                return;
+            }
+
+            if (state.activeTab === 'info') accountDetailContent.innerHTML = renderInfoTab();
+            if (state.activeTab === 'role') accountDetailContent.innerHTML = renderRoleTab();
+            if (state.activeTab === 'employee') accountDetailContent.innerHTML = renderEmployeeTab();
+            if (state.activeTab === 'activity') accountDetailContent.innerHTML = renderActivityTab();
+
+            bindPanelTabActions();
+        }
+
+        async function saveRoleFromPanel() {
+            const select = document.getElementById('detailRoleSelect');
+            if (!select || !state.selectedUserId) return;
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(state.selectedUserId)}/role`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: select.value })
+            });
+
+            if (!result.success) {
+                notify(result.message || 'Cập nhật vai trò thất bại.', 'error');
+                return;
+            }
+
+            await loadAccounts();
+            await viewAccountDetail(state.selectedUserId);
+        }
+
+        async function saveEmailFromPanel() {
+            const input = document.getElementById('newEmailInput');
+            if (!input || !state.selectedUserId) return;
+            const email = input.value.trim();
+            if (!email) return;
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(state.selectedUserId)}/email`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            if (!result.success) {
+                notify(result.message || 'Cập nhật email thất bại.', 'error');
+                return;
+            }
+
+            await loadAccounts();
+            await viewAccountDetail(state.selectedUserId);
+        }
+
+        async function saveEmployeeLinkFromPanel() {
+            const select = document.getElementById('detailEmployeeSelect');
+            if (!select || !state.selectedUserId) return;
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(state.selectedUserId)}/link-employee`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maNhanVien: select.value ? Number(select.value) : null })
+            });
+
+            if (!result.success) {
+                notify(result.message || 'Cập nhật liên kết thất bại.', 'error');
+                return;
+            }
+
+            await loadAccounts();
+            await loadEmployees(true);
+            await viewAccountDetail(state.selectedUserId);
+        }
+
+        function openAccountFormForCreate() {
+            state.editModeUserId = null;
+            state.editSnapshot = null;
+            accountFormTitle.textContent = 'Thêm tài khoản';
+            accountFormResult.textContent = '';
+            accountFormResult.className = 'small mt-2';
+            formUserName.value = '';
+            formEmail.value = '';
+            formPassword.value = '';
+            formConfirmPassword.value = '';
+            formRole.value = getDefaultRole();
+            formEmployee.value = '';
+            formPhone.value = '';
+            formStatus.value = 'active';
+            formUserName.disabled = false;
+            formPassword.disabled = false;
+            formConfirmPassword.disabled = false;
+            formPassword.required = true;
+            formConfirmPassword.required = true;
+            accountFormModal.show();
+        }
+
+        async function openAccountFormForEdit(userId) {
+            const detailRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}`);
+            if (!detailRes.success) {
+                notify(detailRes.message || 'Không thể tải chi tiết để sửa.', 'error');
+                return;
+            }
+
+            const d = detailRes.data;
+            state.editModeUserId = userId;
+            state.editSnapshot = d;
+            accountFormTitle.textContent = 'Sửa tài khoản';
+            accountFormResult.textContent = '';
+            accountFormResult.className = 'small mt-2';
+
+            formUserName.value = d.userName || '';
+            formEmail.value = d.email || '';
+            formPassword.value = '';
+            formConfirmPassword.value = '';
+            ensureRoleInAvailableRoles(d.role);
+            renderRoleSelectOptions();
+            formRole.value = d.role || 'Employee';
+            formEmployee.value = String(d.linkedNhanVien?.maNhanVien || '');
+            formPhone.value = d.linkedNhanVien?.sdt || '';
+            formStatus.value = d.isLocked ? 'lock' : 'active';
+
+            formUserName.disabled = false;
+            formPassword.disabled = true;
+            formConfirmPassword.disabled = true;
+            formPassword.required = false;
+            formConfirmPassword.required = false;
+            accountFormModal.show();
+        }
+
+        async function saveAccountForm() {
+            accountFormResult.className = 'small mt-2';
+            accountFormResult.textContent = '';
+
+            if (!state.editModeUserId) {
+                if (!formPassword.value || !formConfirmPassword.value) {
+                    accountFormResult.className = 'small mt-2 text-danger';
+                    accountFormResult.textContent = 'Vui lòng nhập mật khẩu và xác nhận mật khẩu.';
+                    return;
+                }
+                if (!isStrongPassword(formPassword.value)) {
+                    accountFormResult.className = 'small mt-2 text-danger';
+                    accountFormResult.textContent = 'Mật khẩu chưa đủ mạnh.';
+                    return;
+                }
+
+                const payload = {
+                    userName: formUserName.value.trim(),
+                    email: formEmail.value.trim(),
+                    password: formPassword.value,
+                    confirmPassword: formConfirmPassword.value,
+                    role: formRole.value,
+                    maNhanVien: formEmployee.value ? Number(formEmployee.value) : null
+                };
+
+                const createRes = await fetchJson('/account-management/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!createRes.success) {
+                    accountFormResult.className = 'small mt-2 text-danger';
+                    accountFormResult.textContent = createRes.message || 'Tạo tài khoản thất bại.';
+                    return;
+                }
+
+                if (formStatus.value === 'lock') {
+                    await fetchJson(`/account-management/accounts/${encodeURIComponent(createRes.data.userId)}/lock`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ isLocked: true })
+                    });
+                }
+
+                if (formEmployee.value) {
+                    await fetchJson(`/account-management/accounts/${encodeURIComponent(createRes.data.userId)}/phone`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phoneNumber: formPhone.value.trim() || null })
+                    });
+                }
+
+                accountFormModal.hide();
+                await loadEmployees(true);
+                await loadAccounts();
+                return;
+            }
+
+            const userId = state.editModeUserId;
+            const detail = state.editSnapshot;
+
+            if ((detail?.userName || '').trim() !== formUserName.value.trim()) {
+                const userNameRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/username`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userName: formUserName.value.trim() })
+                });
+                if (!userNameRes.success) {
+                    accountFormResult.className = 'small mt-2 text-danger';
+                    accountFormResult.textContent = userNameRes.message || 'Cập nhật tên đăng nhập thất bại.';
+                    return;
+                }
+            }
+
+            const roleRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/role`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: formRole.value })
+            });
+            if (!roleRes.success) {
+                accountFormResult.className = 'small mt-2 text-danger';
+                accountFormResult.textContent = roleRes.message || 'Cập nhật vai trò thất bại.';
+                return;
+            }
+
+            const emailRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/email`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formEmail.value.trim() })
+            });
+            if (!emailRes.success) {
+                accountFormResult.className = 'small mt-2 text-danger';
+                accountFormResult.textContent = emailRes.message || 'Cập nhật email thất bại.';
+                return;
+            }
+
+            const linkRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/link-employee`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maNhanVien: formEmployee.value ? Number(formEmployee.value) : null })
+            });
+            if (!linkRes.success) {
+                accountFormResult.className = 'small mt-2 text-danger';
+                accountFormResult.textContent = linkRes.message || 'Cập nhật liên kết nhân viên thất bại.';
+                return;
+            }
+
+            if (formEmployee.value) {
+                const phoneRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/phone`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber: formPhone.value.trim() || null })
+                });
+                if (!phoneRes.success) {
+                    accountFormResult.className = 'small mt-2 text-danger';
+                    accountFormResult.textContent = phoneRes.message || 'Cập nhật số điện thoại thất bại.';
+                    return;
+                }
+            }
+
+            const lockRes = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/lock`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isLocked: formStatus.value === 'lock' })
+            });
+            if (!lockRes.success) {
+                accountFormResult.className = 'small mt-2 text-danger';
+                accountFormResult.textContent = lockRes.message || 'Cập nhật trạng thái thất bại.';
+                return;
+            }
+
+            accountFormModal.hide();
+            await loadEmployees(true);
+            await loadAccounts();
+            await viewAccountDetail(userId);
+        }
+
+        async function toggleLock(userId, isLocked) {
+            const actionLabel = isLocked ? 'mở khóa' : 'khóa';
+            if (!confirm(`Bạn có chắc muốn ${actionLabel} tài khoản này?`)) return;
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}/lock`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isLocked: !isLocked })
+            });
+
+            if (!result.success) {
+                notify(result.message || 'Cập nhật trạng thái thất bại.', 'error');
+                return;
+            }
+
+            await loadAccounts();
+            if (state.selectedUserId === userId) await viewAccountDetail(userId);
+        }
+
+        async function deleteAccount(userId) {
+            if (!confirm('Hành động không thể hoàn tác. Bạn chắc chắn muốn xóa tài khoản này?')) return;
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(userId)}`, {
+                method: 'DELETE'
+            });
+
+            if (!result.success) {
+                notify(result.message || 'Xóa tài khoản thất bại.', 'error');
+                return;
+            }
+
+            if (state.selectedUserId === userId) {
+                state.selectedUserId = null;
+                state.selectedDetail = null;
+            }
+
+            await loadEmployees(true);
+            await loadAccounts();
+        }
+
+        function openResetPassword(userId, userName) {
+            state.resetTargetUserId = userId;
+            resetPasswordFor.textContent = `Tài khoản: ${userName || userId}`;
+            resetPassword.value = '';
+            resetPasswordConfirm.value = '';
+            resetPasswordResult.textContent = '';
+            resetPasswordResult.className = 'small';
+            resetPasswordModal.show();
+        }
+
+        async function confirmResetPassword() {
+            if (!state.resetTargetUserId) return;
+            if (!isStrongPassword(resetPassword.value)) {
+                resetPasswordResult.className = 'small text-danger';
+                resetPasswordResult.textContent = 'Mật khẩu mới chưa đạt độ mạnh.';
+                return;
+            }
+
+            const result = await fetchJson(`/account-management/accounts/${encodeURIComponent(state.resetTargetUserId)}/reset-password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newPassword: resetPassword.value, confirmPassword: resetPasswordConfirm.value })
+            });
+
+            resetPasswordResult.className = `small ${result.success ? 'text-success' : 'text-danger'}`;
+            resetPasswordResult.textContent = result.message || (result.success ? 'Thành công.' : 'Thất bại.');
+            if (result.success) {
+                setTimeout(() => resetPasswordModal.hide(), 600);
+            }
+        }
+
+        function bindPanelTabActions() {
+            const btnSaveRole = document.getElementById('btnSaveRole');
+            const btnSaveEmail = document.getElementById('btnSaveEmail');
+            const btnSaveEmployeeLink = document.getElementById('btnSaveEmployeeLink');
+            const btnChangeEmail = document.getElementById('btnChangeEmail');
+            const btnOpenResetFromPanel = document.getElementById('btnOpenResetFromPanel');
+            const changeEmailBox = document.getElementById('changeEmailBox');
+
+            if (btnSaveRole) btnSaveRole.addEventListener('click', saveRoleFromPanel);
+            if (btnSaveEmail) btnSaveEmail.addEventListener('click', saveEmailFromPanel);
+            if (btnSaveEmployeeLink) btnSaveEmployeeLink.addEventListener('click', saveEmployeeLinkFromPanel);
+
+            if (btnChangeEmail && changeEmailBox) {
+                btnChangeEmail.addEventListener('click', () => changeEmailBox.classList.toggle('d-none'));
+            }
+
+            if (btnOpenResetFromPanel && state.selectedDetail) {
+                btnOpenResetFromPanel.addEventListener('click', () => openResetPassword(state.selectedDetail.userId, state.selectedDetail.userName || ''));
+            }
+        }
+
+        function debounce(fn, delay = 300) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        const onSearchChange = debounce(() => loadAccounts(), 250);
+
+        accountKeyword.addEventListener('input', onSearchChange);
+        accountRoleFilter.addEventListener('change', loadAccounts);
+        accountStatusFilter.addEventListener('change', loadAccounts);
+
+        btnResetAccountFilter.addEventListener('click', () => {
+            accountKeyword.value = '';
+            accountRoleFilter.value = '';
+            accountStatusFilter.value = '';
+            loadAccounts();
+        });
+
+        btnAddAccount.addEventListener('click', openAccountFormForCreate);
+        btnSaveAccount.addEventListener('click', saveAccountForm);
+        btnConfirmResetPassword.addEventListener('click', confirmResetPassword);
+
+        accountDetailTabs.querySelectorAll('button[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                accountDetailTabs.querySelectorAll('button[data-tab]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.activeTab = btn.getAttribute('data-tab');
+                renderActiveTab();
+            });
+        });
+
+        accountTableBody.addEventListener('click', async (e) => {
+            const target = e.target.closest('button[data-action]');
+            if (!target) return;
+
+            const action = target.getAttribute('data-action');
+            const id = target.getAttribute('data-id');
+            if (!id) return;
+
+            if (action === 'view') await viewAccountDetail(id);
+            if (action === 'edit') await openAccountFormForEdit(id);
+            if (action === 'lock') await toggleLock(id, target.getAttribute('data-locked') === 'true');
+            if (action === 'resetpass') openResetPassword(id, target.getAttribute('data-user') || '');
+            if (action === 'delete') await deleteAccount(id);
+        });
+
+        Promise.all([loadRoleOptions(), loadEmployees(true), loadAccounts()]);
+    </script>
+}
+
+
+
+
+
+

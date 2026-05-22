@@ -1,0 +1,2092 @@
+@{
+    var currentRole = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+}
+
+<!-- Breadcrumb removed -->
+
+@if (currentRole == "employee")
+{
+    <section class="panel mt-3">
+        <h4>Không có quyền truy cập</h4>
+        <p class="text-muted mb-0">Vai trò Employee không được phép truy cập module Quản lý nhân sự.</p>
+    </section>
+}
+else
+{
+    <section class="panel mt-3 hr-panel-modern">
+        <div class="hr-toolbar mb-3">
+            <div class="hr-toolbar-left">
+                <div class="input-group hr-search-box">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="keyword" class="form-control" placeholder="Tìm kiếm nhân viên..." />
+                </div>
+                <select id="phongBan" class="form-select">
+                    <option value="">Phòng ban</option>
+                </select>
+                <select id="chucVu" class="form-select">
+                    <option value="">Chức vụ</option>
+                </select>
+                <select id="trangThai" class="form-select">
+                    <option value="">Trạng thái</option>
+                    <option value="1">Đang làm việc</option>
+                    <option value="0">Nghỉ việc</option>
+                </select>
+                <select id="sortBy" class="form-select">
+                    <option value="name:asc">Tên A-Z</option>
+                    <option value="name:desc">Tên Z-A</option>
+                    <option value="department:asc">Phòng ban A-Z</option>
+                    <option value="department:desc">Phòng ban Z-A</option>
+                </select>
+                <div class="dropdown">
+                    <button id="btnAdvancedFilter" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" type="button">
+                        <i class="bi bi-funnel"></i> Bộ lọc nâng cao
+                    </button>
+                    <div class="dropdown-menu p-3 hr-advanced-filter">
+                        <label class="form-label form-label-sm">Kỹ năng</label>
+                        <select id="skillFilter" class="form-select form-select-sm mb-2">
+                            <option value="">Tất cả kỹ năng</option>
+                        </select>
+
+                        <label class="form-label form-label-sm">Mức KPI</label>
+                        <select id="kpiBandFilter" class="form-select form-select-sm mb-2">
+                            <option value="">Tất cả</option>
+                            <option value="high">>= 80</option>
+                            <option value="mid">50 - 79</option>
+                            <option value="low">&lt; 50</option>
+                        </select>
+
+                        <label class="form-label form-label-sm">Kinh nghiệm tối thiểu (năm)</label>
+                        <input id="experienceFilter" class="form-control form-control-sm mb-2" type="number" min="0" max="50" placeholder="VD: 2" />
+
+                        <label class="form-label form-label-sm">Ngày vào làm từ</label>
+                        <input id="joinDateFrom" class="form-control form-control-sm mb-2" type="date" />
+
+                        <label class="form-label form-label-sm">Ngày vào làm đến</label>
+                        <input id="joinDateTo" class="form-control form-control-sm mb-2" type="date" />
+
+                        <div class="d-flex gap-2">
+                            <button id="btnApplyAdvancedFilter" class="btn btn-primary btn-sm flex-grow-1" type="button">Áp dụng</button>
+                            <button id="btnResetAdvancedFilter" class="btn btn-light btn-sm" type="button">Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="btnSearch" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> Làm mới</button>
+            </div>
+            <div class="hr-toolbar-right">
+                <button id="btnAddEmployee" class="btn btn-primary btn-hr-add"><i class="bi bi-plus-circle"></i> Thêm nhân viên</button>
+                <button id="btnExport" class="btn btn-success"><i class="bi bi-file-earmark-arrow-down"></i> Xuất</button>
+                <button id="btnOpenChucVuManager" class="btn btn-outline-secondary"><i class="bi bi-diagram-3"></i> Chức vụ</button>
+                <button id="btnOpenCatalogManager" class="btn btn-outline-dark"><i class="bi bi-gear"></i> Danh mục kỹ năng</button>
+            </div>
+        </div>
+
+        <div class="hr-kpi-mini-grid mb-3">
+            <article class="hr-kpi-mini-card total">
+                <div class="hr-kpi-mini-icon"><i class="bi bi-people"></i></div>
+                <div>
+                    <p class="hr-kpi-mini-label">Tổng nhân sự</p>
+                    <div id="kpiTotalEmployees" class="hr-kpi-mini-value">0</div>
+                </div>
+            </article>
+            <article class="hr-kpi-mini-card active">
+                <div class="hr-kpi-mini-icon"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <p class="hr-kpi-mini-label">Đang làm việc</p>
+                    <div id="kpiActiveEmployees" class="hr-kpi-mini-value">0</div>
+                </div>
+            </article>
+            <article class="hr-kpi-mini-card inactive">
+                <div class="hr-kpi-mini-icon"><i class="bi bi-x-circle"></i></div>
+                <div>
+                    <p class="hr-kpi-mini-label">Nghỉ việc / Tạm nghỉ</p>
+                    <div id="kpiInactiveEmployees" class="hr-kpi-mini-value">0</div>
+                </div>
+            </article>
+            <article class="hr-kpi-mini-card avg">
+                <div class="hr-kpi-mini-icon"><i class="bi bi-star"></i></div>
+                <div>
+                    <p class="hr-kpi-mini-label">KPI trung bình</p>
+                    <div id="kpiAverage" class="hr-kpi-mini-value">0%</div>
+                </div>
+            </article>
+        </div>
+
+        <div class="table-responsive mt-2">
+            <table class="table table-hover align-middle hr-table">
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Họ tên</th>
+                        <th>Phòng ban</th>
+                        <th>Chức vụ</th>
+                        <th>KPI</th>
+                        <th>Kỹ năng</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeBody">
+                    <tr><td colspan="8" class="text-muted">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="hr-footer">
+            <small id="employeeSummary" class="text-muted"></small>
+            <div class="d-flex align-items-center gap-2">
+                <label class="text-muted">Số dòng:</label>
+                <select id="pageSize" class="form-select form-select-sm hr-pagesize">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <button id="btnPrevPage" class="btn btn-sm btn-light">Trước</button>
+                <span id="pageInfo" class="text-muted">1/1</span>
+                <button id="btnNextPage" class="btn btn-sm btn-light">Sau</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel mt-3 hr-analysis-panel">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <h4 class="mb-0">Phân tích năng lực</h4>
+            <small class="text-muted">AI gợi ý dựa trên dữ liệu kỹ năng hiện có</small>
+        </div>
+        <div class="hr-analysis-grid">
+            <article class="hr-analysis-card">
+                <h6>Skill phổ biến nhất</h6>
+                <div id="popularSkillName" class="hr-analysis-value">--</div>
+                <p id="popularSkillCount" class="text-muted mb-0">Chưa có dữ liệu</p>
+                <div id="popularSkillBars" class="hr-skill-bars text-muted">--</div>
+            </article>
+            <article class="hr-analysis-card">
+                <h6>Cảnh báo thiếu kỹ năng</h6>
+                <div id="missingSkillAlert" class="hr-alert-line text-muted">Chưa có dữ liệu</div>
+                <div id="missingSkillList" class="hr-analysis-list text-muted mt-2">Chưa có dữ liệu</div>
+            </article>
+            <article class="hr-analysis-card">
+                <h6>Nhân viên nổi bật (Top KPI)</h6>
+                <div id="topKpiEmployees" class="hr-top-kpi-list text-muted">Chưa có dữ liệu</div>
+            </article>
+        </div>
+    </section>
+
+    <div class="offcanvas offcanvas-end hr-drawer" tabindex="-1" id="employeeDrawer" aria-labelledby="employeeDrawerLabel">
+        <div class="offcanvas-header">
+            <h5 id="employeeDrawerLabel" class="offcanvas-title">Chi tiết nhân viên</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav nav-tabs" id="employeeDetailTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPersonal" type="button">Thông tin</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTasks" type="button">Công việc</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabKpi" type="button">KPI</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSkills" type="button">Kỹ năng</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabHistory" type="button">Lịch sử</button></li>
+            </ul>
+
+            <div class="tab-content pt-3">
+                <div class="tab-pane fade show active" id="tabPersonal">
+                    <form id="personalForm" class="row g-2">
+                        <div class="col-12"><label class="form-label">Họ tên</label><input id="detailHoTen" class="form-control" placeholder="Nhập họ tên" required /></div>
+                        <div class="col-6"><label class="form-label">Ngày sinh</label><input id="detailNgaySinh" type="date" class="form-control" required /></div>
+                        <div class="col-6"><label class="form-label">Giới tính</label><select id="detailGioiTinh" class="form-select"><option value="">Chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option></select></div>
+                        <div class="col-6"><label class="form-label">SDT</label><input id="detailSdt" class="form-control" placeholder="Nhập số điện thoại" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required /></div>
+                        <div class="col-6"><label class="form-label">Email</label><input id="detailEmail" type="email" class="form-control" required /></div>
+                        <div class="col-12"><label class="form-label">Địa chỉ</label><input id="detailDiaChi" class="form-control" placeholder="Nhập địa chỉ" /></div>
+                        <div class="col-6"><label class="form-label">Phòng ban</label><select id="detailPhongBan" class="form-select" required></select></div>
+                        <div class="col-6"><label class="form-label">Chức vụ</label><select id="detailChucVu" class="form-select" required></select></div>
+                        <div class="col-6"><label class="form-label">Phòng ban phụ (nếu có)</label><input id="detailPhongBanPhuText" class="form-control" readonly /></div>
+                        <div class="col-6"><label class="form-label">Tài khoản liên kết</label><select id="detailAspNetUserId" class="form-select"><option value="">Không liên kết</option></select></div>
+                        <div class="col-6"><label class="form-label">CCCD (không sửa)</label><input id="detailCccd" class="form-control" disabled /></div>
+                        <div class="col-6"><label class="form-label">Ngày vào làm</label><input id="detailNgayVaoLam" type="date" class="form-control" required /></div>
+                        <div class="col-12 d-flex justify-content-end"><button type="button" id="btnSavePersonal" class="btn btn-primary btn-sm">Lưu thay đổi</button></div>
+                    </form>
+                </div>
+
+                <div class="tab-pane fade" id="tabTasks">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Tên công việc</th><th>Dự án</th><th>Deadline</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead>
+                            <tbody id="taskBody"><tr><td colspan="5" class="text-muted">Chưa có dữ liệu công việc</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tabKpi">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Tháng/Năm</th><th>Điểm</th><th>Xếp loại</th></tr></thead>
+                            <tbody id="kpiBody"><tr><td colspan="3" class="text-muted">Chưa có dữ liệu KPI</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tabSkills">
+                    <div class="hr-skill-section mb-3">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <h6 class="mb-0">Kỹ năng hiện có</h6>
+                            <div class="d-flex gap-2">
+                                <input id="skillKeyword" class="form-control form-control-sm" placeholder="Search skill nhanh..." />
+                                <button type="button" id="btnOpenAddSkill" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Thêm kỹ năng</button>
+                            </div>
+                        </div>
+                        <div id="currentSkillTags" class="hr-skill-tag-wrap mb-2"></div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Tên kỹ năng</th><th>Mức độ</th><th>Kinh nghiệm</th><th class="text-end">Thao tác</th></tr></thead>
+                                <tbody id="skillBody"><tr><td colspan="4" class="text-muted">Chưa có dữ liệu</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="hr-ai-suggestion" id="aiSkillSuggestion">Chọn nhân viên để xem gợi ý kỹ năng AI.</div>
+                </div>
+
+                <div class="tab-pane fade" id="tabHistory">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Thời gian</th><th>Hành động</th></tr></thead>
+                            <tbody id="historyBody"><tr><td colspan="2" class="text-muted">Chưa có nhật ký hoạt động</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="employeeFormModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalTitle">Thêm nhân viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="employeeForm" class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Họ tên</label><input id="formHoTen" class="form-control" placeholder="Nhập họ tên" required /></div>
+                        <div class="col-md-6"><label class="form-label">CCCD</label><input id="formCccd" class="form-control" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" required /></div>
+                        <div class="col-md-6"><label class="form-label">Ngày sinh</label><input id="formNgaySinh" type="date" class="form-control" required /></div>
+                        <div class="col-md-6"><label class="form-label">Giới tính</label><select id="formGioiTinh" class="form-select"><option value="">Chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option></select></div>
+                        <div class="col-md-6"><label class="form-label">SDT</label><input id="formSdt" class="form-control" placeholder="Nhập số điện thoại" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required /></div>
+                        <div class="col-md-6"><label class="form-label">Email</label><input id="formEmail" type="email" class="form-control" required /></div>
+                        <div class="col-md-6"><label class="form-label">Ngày vào làm</label><input id="formNgayVaoLam" type="date" class="form-control" required /></div>
+                        <div class="col-md-6"><label class="form-label">Địa chỉ</label><input id="formDiaChi" class="form-control" placeholder="Nhập địa chỉ" /></div>
+                        <div class="col-md-6"><label class="form-label">Phòng ban</label><select id="formPhongBan" class="form-select" required></select></div>
+                        <div class="col-md-6"><label class="form-label">Chức vụ</label><select id="formChucVu" class="form-select" required></select></div>
+                        <div class="col-md-6"><label class="form-label">Tài khoản liên kết</label><select id="formAspNetUserId" class="form-select"><option value="">Không liên kết</option></select></div>
+                    </form>
+                    <div id="employeeFormResult" class="small mt-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveEmployee">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="skillFormModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="skillModalTitle">Thêm kỹ năng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Kỹ năng</label>
+                        <select id="employeeSkillSelect" class="form-select">
+                            <option value="">Chọn kỹ năng</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Mức độ</label>
+                        <select id="employeeSkillLevel" class="form-select">
+                            <option value="1">Beginner</option>
+                            <option value="2">Intermediate</option>
+                            <option value="3">Advanced</option>
+                            <option value="4">Expert</option>
+                            <option value="5">Expert+</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Kinh nghiệm (năm)</label>
+                        <input id="employeeSkillExperience" type="number" min="0" max="50" class="form-control" value="1" />
+                    </div>
+                    <div id="skillFormMessage" class="small"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" id="btnSaveEmployeeSkill" class="btn btn-primary">Lưu kỹ năng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end hr-catalog-drawer" tabindex="-1" id="catalogDrawer" aria-labelledby="catalogDrawerLabel">
+        <div class="offcanvas-header">
+            <h5 id="catalogDrawerLabel" class="offcanvas-title">Danh mục kỹ năng</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3">
+            <div>
+                <label class="form-label mb-1">Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="catalogSkillKeyword" class="form-control hr-catalog-search" placeholder="Tìm kỹ năng nhanh..." />
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0">Danh sách kỹ năng</h6>
+                <button id="btnShowInlineCatalogForm" class="btn btn-outline-primary btn-sm" type="button"><i class="bi bi-plus-circle"></i> Thêm kỹ năng</button>
+            </div>
+
+            <div id="catalogInlineForm" class="hr-inline-catalog-form d-none">
+                <h6 class="mb-2">+ Thêm kỹ năng</h6>
+                <div class="mb-2">
+                    <label class="form-label form-label-sm">Tên kỹ năng</label>
+                    <input id="inlineCatalogSkillName" class="form-control form-control-sm" placeholder="VD: React" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label form-label-sm">Mô tả</label>
+                    <textarea id="inlineCatalogSkillDesc" class="form-control form-control-sm" rows="2" placeholder="Mô tả ngắn kỹ năng"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="btnSaveInlineCatalog" class="btn btn-primary btn-sm" type="button">Lưu</button>
+                    <button id="btnCancelInlineCatalog" class="btn btn-light btn-sm" type="button">Hủy</button>
+                </div>
+            </div>
+
+            <div id="catalogSkillMessage" class="small"></div>
+
+            <div class="table-responsive flex-grow-1 hr-catalog-table-wrap">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tên kỹ năng</th>
+                            <th>Mô tả</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogSkillBody">
+                        <tr><td colspan="3" class="text-muted">Đang tải danh mục kỹ năng...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="chucVuModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quản lý chức vụ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-9">
+                            <input id="chucVuInput" class="form-control" placeholder="Nhập tên chức vụ" />
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button id="btnSaveChucVu" class="btn btn-primary" type="button">Lưu chức vụ</button>
+                        </div>
+                    </div>
+                    <div id="chucVuMessage" class="small mb-2"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã chức vụ</th>
+                                    <th>Tên chức vụ</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chucVuBody">
+                                <tr><td colspan="3" class="text-muted">Đang tải danh sách chức vụ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const role = '@currentRole';
+        if (role !== 'employee') {
+            const employeeBody = document.getElementById('employeeBody');
+            const employeeSummary = document.getElementById('employeeSummary');
+            const keywordInput = document.getElementById('keyword');
+            const phongBanSelect = document.getElementById('phongBan');
+            const chucVuSelect = document.getElementById('chucVu');
+            const trangThaiSelect = document.getElementById('trangThai');
+            const sortBySelect = document.getElementById('sortBy');
+            const skillFilter = document.getElementById('skillFilter');
+            const kpiBandFilter = document.getElementById('kpiBandFilter');
+            const experienceFilter = document.getElementById('experienceFilter');
+            const joinDateFrom = document.getElementById('joinDateFrom');
+            const joinDateTo = document.getElementById('joinDateTo');
+            const searchButton = document.getElementById('btnSearch');
+            const applyAdvancedFilterBtn = document.getElementById('btnApplyAdvancedFilter');
+            const resetAdvancedFilterBtn = document.getElementById('btnResetAdvancedFilter');
+            const btnAdvancedFilter = document.getElementById('btnAdvancedFilter');
+            const pageSizeSelect = document.getElementById('pageSize');
+            const btnPrevPage = document.getElementById('btnPrevPage');
+            const btnNextPage = document.getElementById('btnNextPage');
+            const pageInfo = document.getElementById('pageInfo');
+
+            const btnAddEmployee = document.getElementById('btnAddEmployee');
+            const btnExport = document.getElementById('btnExport');
+            const btnOpenChucVuManager = document.getElementById('btnOpenChucVuManager');
+            const btnOpenCatalogManager = document.getElementById('btnOpenCatalogManager');
+
+            const kpiTotalEmployees = document.getElementById('kpiTotalEmployees');
+            const kpiActiveEmployees = document.getElementById('kpiActiveEmployees');
+            const kpiInactiveEmployees = document.getElementById('kpiInactiveEmployees');
+            const kpiAverage = document.getElementById('kpiAverage');
+
+            const catalogSkillBody = document.getElementById('catalogSkillBody');
+            const catalogSkillKeyword = document.getElementById('catalogSkillKeyword');
+            const catalogInlineForm = document.getElementById('catalogInlineForm');
+            const btnShowInlineCatalogForm = document.getElementById('btnShowInlineCatalogForm');
+            const btnSaveInlineCatalog = document.getElementById('btnSaveInlineCatalog');
+            const btnCancelInlineCatalog = document.getElementById('btnCancelInlineCatalog');
+            const inlineCatalogSkillName = document.getElementById('inlineCatalogSkillName');
+            const inlineCatalogSkillDesc = document.getElementById('inlineCatalogSkillDesc');
+            const catalogSkillMessage = document.getElementById('catalogSkillMessage');
+
+            const employeeDrawer = new bootstrap.Offcanvas(document.getElementById('employeeDrawer'));
+            const employeeFormModal = new bootstrap.Modal(document.getElementById('employeeFormModal'));
+            const skillFormModal = new bootstrap.Modal(document.getElementById('skillFormModal'));
+            const catalogDrawer = new bootstrap.Offcanvas(document.getElementById('catalogDrawer'));
+            const chucVuModal = new bootstrap.Modal(document.getElementById('chucVuModal'));
+
+            const chucVuBody = document.getElementById('chucVuBody');
+            const chucVuInput = document.getElementById('chucVuInput');
+            const btnSaveChucVu = document.getElementById('btnSaveChucVu');
+            const chucVuMessage = document.getElementById('chucVuMessage');
+
+            const detailHoTen = document.getElementById('detailHoTen');
+            const detailNgaySinh = document.getElementById('detailNgaySinh');
+            const detailGioiTinh = document.getElementById('detailGioiTinh');
+            const detailSdt = document.getElementById('detailSdt');
+            const detailEmail = document.getElementById('detailEmail');
+            const detailDiaChi = document.getElementById('detailDiaChi');
+            const detailPhongBan = document.getElementById('detailPhongBan');
+            const detailChucVu = document.getElementById('detailChucVu');
+            const detailPhongBanPhuText = document.getElementById('detailPhongBanPhuText');
+            const detailAspNetUserId = document.getElementById('detailAspNetUserId');
+            const detailCccd = document.getElementById('detailCccd');
+            const detailNgayVaoLam = document.getElementById('detailNgayVaoLam');
+            const btnSavePersonal = document.getElementById('btnSavePersonal');
+
+            const skillKeyword = document.getElementById('skillKeyword');
+            const currentSkillTags = document.getElementById('currentSkillTags');
+            const btnOpenAddSkill = document.getElementById('btnOpenAddSkill');
+            const skillBody = document.getElementById('skillBody');
+            const aiSkillSuggestion = document.getElementById('aiSkillSuggestion');
+
+            const skillModalTitle = document.getElementById('skillModalTitle');
+            const employeeSkillSelect = document.getElementById('employeeSkillSelect');
+            const employeeSkillLevel = document.getElementById('employeeSkillLevel');
+            const employeeSkillExperience = document.getElementById('employeeSkillExperience');
+            const skillFormMessage = document.getElementById('skillFormMessage');
+            const btnSaveEmployeeSkill = document.getElementById('btnSaveEmployeeSkill');
+
+            const historyBody = document.getElementById('historyBody');
+            const kpiBody = document.getElementById('kpiBody');
+            const taskBody = document.getElementById('taskBody');
+
+            const popularSkillName = document.getElementById('popularSkillName');
+            const popularSkillCount = document.getElementById('popularSkillCount');
+            const popularSkillBars = document.getElementById('popularSkillBars');
+            const missingSkillAlert = document.getElementById('missingSkillAlert');
+            const missingSkillList = document.getElementById('missingSkillList');
+            const topKpiEmployees = document.getElementById('topKpiEmployees');
+
+            const employeeModalTitle = document.getElementById('employeeModalTitle');
+            const employeeFormResult = document.getElementById('employeeFormResult');
+            const btnSaveEmployee = document.getElementById('btnSaveEmployee');
+
+            const formHoTen = document.getElementById('formHoTen');
+            const formCccd = document.getElementById('formCccd');
+            const formNgaySinh = document.getElementById('formNgaySinh');
+            const formGioiTinh = document.getElementById('formGioiTinh');
+            const formSdt = document.getElementById('formSdt');
+            const formEmail = document.getElementById('formEmail');
+            const formNgayVaoLam = document.getElementById('formNgayVaoLam');
+            const formDiaChi = document.getElementById('formDiaChi');
+            const formPhongBan = document.getElementById('formPhongBan');
+            const formChucVu = document.getElementById('formChucVu');
+            const formAspNetUserId = document.getElementById('formAspNetUserId');
+
+            const state = {
+                page: 1,
+                size: 10,
+                totalPages: 1,
+                totalItems: 0,
+                items: [],
+                selectedEmployeeId: null,
+                selectedEmployeeDetail: null,
+                editingEmployeeId: null,
+                editingEmployeeSkillId: null,
+                editingCatalogSkillId: null,
+                editingChucVuId: null,
+                departments: [],
+                chucVus: [],
+                accounts: [],
+                accountMap: new Map(),
+                skillCatalog: [],
+                recentCatalogSkillId: null,
+                catalogInlineMode: null,
+                employeeDetailMap: new Map(),
+                employeeKpiMap: new Map(),
+                sharedRequestKey: 'reportx.shared.requests'
+            };
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            const toDateInput = (value) => {
+                if (!value) return '';
+                const d = new Date(value);
+                if (Number.isNaN(d.getTime())) return '';
+                return d.toISOString().slice(0, 10);
+            };
+
+            const avatarText = (fullName) => {
+                const words = String(fullName || 'NV').trim().split(' ').filter(Boolean);
+                return (words[0]?.[0] || 'N') + (words[words.length - 1]?.[0] || 'V');
+            };
+
+            const toTime = (value) => {
+                if (!value) return Number.NaN;
+                const d = new Date(value);
+                return Number.isNaN(d.getTime()) ? Number.NaN : d.getTime();
+            };
+
+            const levelMeta = (value) => {
+                const v = Number(value || 1);
+                if (v <= 1) return { text: 'Beginner', css: 'lv-beginner' };
+                if (v === 2) return { text: 'Intermediate', css: 'lv-intermediate' };
+                if (v === 3) return { text: 'Advanced', css: 'lv-advanced' };
+                return { text: 'Expert', css: 'lv-expert' };
+            };
+
+            const kpiMeta = (value) => {
+                const v = Number(value || 0);
+                if (v >= 80) return { css: 'kpi-high', label: 'Tốt' };
+                if (v >= 50) return { css: 'kpi-mid', label: 'Cần theo dõi' };
+                return { css: 'kpi-low', label: 'Cần cải thiện' };
+            };
+
+            const getEmployeeStatus = (value) => {
+                if (Number(value) === 1) return { text: 'Đang làm việc', css: 'dot-active' };
+                if (Number(value) === 2) return { text: 'Tạm nghỉ', css: 'dot-pause' };
+                return { text: 'Nghỉ việc', css: 'dot-inactive' };
+            };
+
+            const statusBadge = (status) => {
+                const meta = getEmployeeStatus(status);
+                return `<span class="hr-status"><span class="hr-status-dot ${meta.css}"></span>${meta.text}</span>`;
+            };
+
+            const roleBadge = (roleName) => {
+                if (!roleName) return '<span class="text-muted">-</span>';
+                const normalized = String(roleName).toLowerCase();
+                const css = normalized.includes('admin')
+                    ? 'role-admin'
+                    : (normalized.includes('manager') ? 'role-manager' : 'role-employee');
+                return `<span class="role-tag ${css}">${escapeHtml(roleName)}</span>`;
+            };
+
+            function debounce(fn, delay = 350) {
+                let timer;
+                return (...args) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn(...args), delay);
+                };
+            }
+
+            async function fetchJson(url, options) {
+                try {
+                    const res = await fetch(url, options);
+                    const raw = await res.text();
+                    let payload = null;
+
+                    if (raw) {
+                        try {
+                            payload = JSON.parse(raw);
+                        } catch {
+                            payload = null;
+                        }
+                    }
+
+                    if (!res.ok) {
+                        if (payload && typeof payload.success === 'boolean') {
+                            return payload;
+                        }
+
+                        return {
+                            success: false,
+                            message: payload?.message || `API ${url} lỗi (HTTP ${res.status}). ${raw ? raw.slice(0, 180) : ''}`
+                        };
+                    }
+
+                    if (payload && typeof payload.success === 'boolean') {
+                        return payload;
+                    }
+
+                    return { success: true, data: payload };
+                } catch (error) {
+                    console.error('Employees API error', { url, options }, error);
+                    return {
+                        success: false,
+                        message: `Không thể kết nối ${url}.`
+                    };
+                }
+            }
+
+            async function loadDepartments() {
+                const result = await fetchJson('/phongban');
+                if (!result.success) return;
+
+                state.departments = result.data || [];
+                phongBanSelect.innerHTML = '<option value="">Phòng ban</option>';
+                detailPhongBan.innerHTML = '';
+                formPhongBan.innerHTML = '';
+                for (const pb of state.departments) {
+                    const text = pb.tenPhongBan || `phong ${pb.maPhongBan}`;
+                    phongBanSelect.insertAdjacentHTML('beforeend', `<option value="${pb.maPhongBan}">${escapeHtml(text)}</option>`);
+                    detailPhongBan.insertAdjacentHTML('beforeend', `<option value="${pb.maPhongBan}">${escapeHtml(text)}</option>`);
+                    formPhongBan.insertAdjacentHTML('beforeend', `<option value="${pb.maPhongBan}">${escapeHtml(text)}</option>`);
+                }
+
+                if (role === 'manager' && state.departments.length > 0) {
+                    phongBanSelect.value = String(state.departments[0].maPhongBan);
+                    phongBanSelect.disabled = true;
+                }
+            }
+
+            async function loadChucVus() {
+                const result = await fetchJson('/chucvu');
+                if (!result.success) {
+                    state.chucVus = [];
+                    renderChucVuTable();
+                    return;
+                }
+
+                state.chucVus = result.data || [];
+                chucVuSelect.innerHTML = '<option value="">Chức vụ</option>';
+                detailChucVu.innerHTML = '';
+                formChucVu.innerHTML = '';
+
+                for (const cv of state.chucVus) {
+                    const text = cv.tenChucVu || `Chức vụ ${cv.maChucVu}`;
+                    chucVuSelect.insertAdjacentHTML('beforeend', `<option value="${cv.maChucVu}">${escapeHtml(text)}</option>`);
+                    detailChucVu.insertAdjacentHTML('beforeend', `<option value="${cv.maChucVu}">${escapeHtml(text)}</option>`);
+                    formChucVu.insertAdjacentHTML('beforeend', `<option value="${cv.maChucVu}">${escapeHtml(text)}</option>`);
+                }
+
+                renderChucVuTable();
+            }
+
+            function setChucVuMessage(message, success = false) {
+                chucVuMessage.className = `small mb-2 ${success ? 'text-success' : 'text-danger'}`;
+                chucVuMessage.textContent = message || '';
+            }
+
+            function renderChucVuTable() {
+                const rows = [...state.chucVus].sort((a, b) => String(a.tenChucVu || '').localeCompare(String(b.tenChucVu || ''), 'vi', { sensitivity: 'base' }));
+                if (!rows.length) {
+                    chucVuBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chưa có chức vụ nào.</td></tr>';
+                    return;
+                }
+
+                chucVuBody.innerHTML = rows.map(item => `
+                    <tr>
+                        <td>${item.maChucVu}</td>
+                        <td>${escapeHtml(item.tenChucVu || '-')}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary" onclick="window.editChucVu(${item.maChucVu})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="window.deleteChucVu(${item.maChucVu})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function editChucVu(id) {
+                const item = state.chucVus.find(x => Number(x.maChucVu) === Number(id));
+                if (!item) return;
+                state.editingChucVuId = id;
+                chucVuInput.value = item.tenChucVu || '';
+                setChucVuMessage('Đang sửa chức vụ, nhấn Lưu chức vụ để cập nhật.');
+            }
+
+            async function saveChucVu() {
+                const tenChucVu = chucVuInput.value.trim();
+                if (!tenChucVu) {
+                    setChucVuMessage('Tên chức vụ là bắt buộc.');
+                    return;
+                }
+
+                const isEdit = Number.isInteger(state.editingChucVuId);
+                const result = await fetchJson(isEdit ? `/chucvu/${state.editingChucVuId}` : '/chucvu', {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenChucVu })
+                });
+
+                if (!result.success) {
+                    setChucVuMessage(result.message || 'Không thể lưu chức vụ.');
+                    return;
+                }
+
+                setChucVuMessage(isEdit ? 'Cập nhật chức vụ thành công.' : 'Thêm chức vụ thành công.', true);
+                state.editingChucVuId = null;
+                chucVuInput.value = '';
+                await loadChucVus();
+            }
+
+            async function deleteChucVu(id) {
+                if (!confirm('Bạn có chắc muốn xóa chức vụ này?')) return;
+
+                const triggerButton = document.activeElement && document.activeElement.matches('button')
+                    ? document.activeElement
+                    : null;
+
+                const result = await (window.UiButtonLoading?.run
+                    ? window.UiButtonLoading.run(triggerButton, () => fetchJson(`/chucvu/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                    : fetchJson(`/chucvu/${id}`, { method: 'DELETE' }));
+                if (!result.success) {
+                    setChucVuMessage(result.message || 'Không thể xóa chức vụ.');
+                    return;
+                }
+
+                if (Number(state.editingChucVuId) === Number(id)) {
+                    state.editingChucVuId = null;
+                    chucVuInput.value = '';
+                }
+
+                setChucVuMessage('Xóa chức vụ thành công.', true);
+                await loadChucVus();
+            }
+
+            function renderAccountOptions(selectedEmployeeId, currentUserId) {
+                const options = ['<option value="">Không liên kết</option>'];
+                for (const acc of state.accounts) {
+                    const linkedId = acc.linkedNhanVien?.maNhanVien || null;
+                    if (linkedId && Number(linkedId) !== Number(selectedEmployeeId)) {
+                        continue;
+                    }
+
+                    const label = `${acc.userName || acc.email || acc.userId} (${acc.role || 'Employee'})`;
+                    options.push(`<option value="${acc.userId}">${escapeHtml(label)}</option>`);
+                }
+
+                const html = options.join('');
+                formAspNetUserId.innerHTML = html;
+                detailAspNetUserId.innerHTML = html;
+
+                formAspNetUserId.value = currentUserId || '';
+                detailAspNetUserId.value = currentUserId || '';
+            }
+
+            async function loadAccountMap() {
+                if (role !== 'admin') {
+                    state.accountMap.clear();
+                    state.accounts = [];
+                    renderAccountOptions(null, null);
+                    return;
+                }
+
+                const result = await fetchJson('/account-management/accounts');
+                state.accountMap.clear();
+                state.accounts = result.success ? (result.data || []) : [];
+                if (!result.success) {
+                    renderAccountOptions(null, null);
+                    return;
+                }
+
+                for (const account of state.accounts) {
+                    const linked = account.linkedNhanVien;
+                    if (linked?.maNhanVien) {
+                        state.accountMap.set(linked.maNhanVien, account);
+                    }
+                }
+
+                renderAccountOptions(null, null);
+            }
+
+            async function ensureAccountMapLoaded() {
+                if (role !== 'admin' || state.accounts.length > 0) {
+                    return;
+                }
+
+                await loadAccountMap();
+            }
+
+            function renderSkillOptions() {
+                const options = '<option value="">Chọn kỹ năng</option>' + state.skillCatalog
+                    .map(s => `<option value="${s.maKyNang}">${escapeHtml(s.tenKyNang || '')}</option>`)
+                    .join('');
+
+                employeeSkillSelect.innerHTML = options;
+                skillFilter.innerHTML = '<option value="">Kỹ năng</option>' + state.skillCatalog
+                    .map(s => `<option value="${s.maKyNang}">${escapeHtml(s.tenKyNang || '')}</option>`)
+                    .join('');
+            }
+
+            async function loadEmployeeKpi(employeeId) {
+                if (state.employeeKpiMap.has(employeeId)) {
+                    return state.employeeKpiMap.get(employeeId);
+                }
+
+                const result = await fetchJson(`/kpi/nhanvien/${employeeId}`);
+                if (!result.success) {
+                    const fallback = { avg: 0, latest: 0, history: [] };
+                    state.employeeKpiMap.set(employeeId, fallback);
+                    return fallback;
+                }
+
+                const history = result.data?.kpiTheoThang || result.data?.KpiTheoThang || [];
+                const sorted = [...history].sort((a, b) => {
+                    const ay = Number(a.nam || 0);
+                    const by = Number(b.nam || 0);
+                    const am = Number(a.thang || 0);
+                    const bm = Number(b.thang || 0);
+                    return (by * 100 + bm) - (ay * 100 + am);
+                });
+
+                const scores = history.map(x => Number(x.diem || 0)).filter(x => Number.isFinite(x));
+                const avg = scores.length ? (scores.reduce((sum, x) => sum + x, 0) / scores.length) : 0;
+                const latest = sorted.length ? Number(sorted[0].diem || 0) : avg;
+
+                const computed = { avg, latest, history };
+                state.employeeKpiMap.set(employeeId, computed);
+                return computed;
+            }
+
+            function renderKpiProgress(value) {
+                const val = Math.max(0, Math.min(100, Number(value || 0)));
+                const meta = kpiMeta(val);
+                return `
+                    <div class="hr-kpi-progress-wrap" title="${meta.label}: ${val.toFixed(0)}%">
+                        <div class="progress hr-kpi-progress" role="progressbar" aria-valuenow="${val.toFixed(0)}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar ${meta.css}" style="width:${val.toFixed(0)}%"></div>
+                        </div>
+                        <span class="hr-kpi-percent">${val.toFixed(0)}%</span>
+                    </div>
+                `;
+            }
+
+            function renderAvatar(item) {
+                if (item?.anhDaiDien) {
+                    return `<img src="${escapeHtml(item.anhDaiDien)}" alt="avatar" class="hr-avatar-img" />`;
+                }
+                return `<span class="avatar hr-avatar">${escapeHtml(avatarText(item?.hoTen))}</span>`;
+            }
+
+            function normalizeStatusFilter(statusValue) {
+                if (statusValue === '1' || statusValue === '0') return statusValue;
+                return '';
+            }
+
+            function applyAdvancedClientFilters(items) {
+                const selectedSkillId = Number(skillFilter.value || 0);
+                const selectedBand = kpiBandFilter.value;
+                const minExperience = Number(experienceFilter.value || 0);
+                const fromTime = toTime(joinDateFrom.value);
+                const toTimeValue = toTime(joinDateTo.value);
+                const statusRaw = trangThaiSelect.value;
+
+                return items.filter(item => {
+                    const detail = state.employeeDetailMap.get(item.maNhanVien);
+                    const kpi = state.employeeKpiMap.get(item.maNhanVien)?.latest || 0;
+
+                    if (statusRaw === '2' && Number(item.trangThai) !== 2) {
+                        return false;
+                    }
+
+                    if (selectedSkillId) {
+                        const hasSkill = (detail?.skills || []).some(s => Number(s.maKyNang) === selectedSkillId);
+                        if (!hasSkill) return false;
+                    }
+
+                    if (selectedBand === 'high' && kpi < 80) return false;
+                    if (selectedBand === 'mid' && (kpi < 50 || kpi >= 80)) return false;
+                    if (selectedBand === 'low' && kpi >= 50) return false;
+
+                    if (minExperience > 0) {
+                        const maxExp = Math.max(0, ...(detail?.skills || []).map(s => Number(s.soDuAnDaDung || 0)));
+                        if (maxExp < minExperience) return false;
+                    }
+
+                    const joinTime = toTime(detail?.ngayVaoLam || item.ngayVaoLam);
+                    if (Number.isFinite(fromTime) && (!Number.isFinite(joinTime) || joinTime < fromTime)) return false;
+                    if (Number.isFinite(toTimeValue) && (!Number.isFinite(joinTime) || joinTime > toTimeValue + 86399999)) return false;
+
+                    return true;
+                });
+            }
+
+            function renderMiniDashboard(items) {
+                const total = items.length;
+                const active = items.filter(x => Number(x.trangThai) === 1).length;
+                const inactive = items.filter(x => Number(x.trangThai) !== 1).length;
+                const kpiScores = items
+                    .map(x => Number(state.employeeKpiMap.get(x.maNhanVien)?.latest || 0))
+                    .filter(v => Number.isFinite(v));
+                const avg = kpiScores.length ? (kpiScores.reduce((sum, x) => sum + x, 0) / kpiScores.length) : 0;
+
+                kpiTotalEmployees.textContent = String(total);
+                kpiActiveEmployees.textContent = String(active);
+                kpiInactiveEmployees.textContent = String(inactive);
+                kpiAverage.textContent = `${avg.toFixed(1)}%`;
+            }
+
+            async function loadSkillCatalog() {
+                const result = await fetchJson('/kynang');
+                if (!result.success) {
+                    state.skillCatalog = [];
+                    renderSkillOptions();
+                    catalogSkillBody.innerHTML = '<tr><td colspan="3" class="text-danger">Không tải được danh mục kỹ năng.</td></tr>';
+                    return;
+                }
+
+                state.skillCatalog = result.data || [];
+                renderSkillOptions();
+                renderCatalogSkillTable();
+            }
+
+            function renderSkillPreviewTags(detail) {
+                const skills = detail?.skills || [];
+                if (!skills.length) return '<span class="text-muted">Chưa có kỹ năng</span>';
+
+                const top = skills.slice(0, 3);
+                const more = skills.length - top.length;
+                const tooltip = skills.map(s => `${s.tenKyNang || ''} (${levelMeta(s.capDo).text})`).join(', ');
+                return `
+                    <div class="hr-skill-tag-wrap" title="${escapeHtml(tooltip)}">
+                        ${top.map(s => {
+                            const lv = levelMeta(s.capDo);
+                            return `<span class="hr-skill-tag ${lv.css}">${escapeHtml(s.tenKyNang || '')}</span>`;
+                        }).join('')}
+                        ${more > 0 ? `<span class="hr-skill-more">+${more}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            async function loadNhanVien() {
+                employeeBody.innerHTML = '<tr><td colspan="8" class="text-muted">Đang tải dữ liệu...</td></tr>';
+
+                const query = new URLSearchParams({ page: String(state.page), size: String(state.size) });
+                if (keywordInput.value.trim()) query.set('keyword', keywordInput.value.trim());
+                if (phongBanSelect.value) query.set('phongban', phongBanSelect.value);
+                if (chucVuSelect.value) query.set('chucvu', chucVuSelect.value);
+                const statusQuery = normalizeStatusFilter(trangThaiSelect.value);
+                if (statusQuery) query.set('trangthai', statusQuery);
+                const [sortBy, sortDir] = String(sortBySelect.value || 'name:asc').split(':');
+                query.set('sortBy', sortBy || 'name');
+                query.set('sortDir', sortDir || 'asc');
+
+                const result = await fetchJson(`/nhanvien?${query.toString()}`);
+                if (!result.success) {
+                    employeeBody.innerHTML = `<tr><td colspan="8" class="text-danger">${escapeHtml(result.message || 'Không tải được dữ liệu')}</td></tr>`;
+                    return;
+                }
+
+                let items = result.data?.items || [];
+                state.totalItems = result.data?.totalItems || items.length;
+                state.totalPages = Math.max(1, result.data?.totalPages || 1);
+
+                // Batch-load KPI scores for the current page using dedicated scores endpoint
+                const ids = items.map(i => i.maNhanVien).filter(Boolean).join(',');
+                const kpiMap = new Map();
+                if (ids) {
+                    const kpiListRes = await fetchJson(`/kpi/scores?ids=${encodeURIComponent(ids)}`);
+                    if (kpiListRes.success) {
+                        const obj = kpiListRes.data?.items || kpiListRes.data || {};
+                        for (const [key, val] of Object.entries(obj)) {
+                            const id = Number(key);
+                            const score = Number(val || 0);
+                            if (!Number.isNaN(id)) kpiMap.set(id, score);
+                        }
+                    }
+                }
+
+                const details = await Promise.all(items.map(async (item) => {
+                    const detailRes = await fetchJson(`/nhanvien/${item.maNhanVien}`);
+                    const kpiCached = kpiMap.has(item.maNhanVien) ? { avg: kpiMap.get(item.maNhanVien), latest: kpiMap.get(item.maNhanVien), history: [] } : await loadEmployeeKpi(item.maNhanVien);
+
+                    return {
+                        id: item.maNhanVien,
+                        detail: detailRes.success ? detailRes.data : null,
+                        kpi: kpiCached
+                    };
+                }));
+
+                state.employeeDetailMap = new Map(details.map(x => [x.id, x.detail]));
+                for (const row of details) {
+                    state.employeeKpiMap.set(row.id, row.kpi || { avg: 0, latest: 0, history: [] });
+                }
+
+                items = applyAdvancedClientFilters(items);
+                renderMiniDashboard(items);
+
+                if (items.length === 0) {
+                    employeeBody.innerHTML = '<tr><td colspan="8" class="text-muted">Không có nhân viên phù hợp.</td></tr>';
+                    employeeSummary.textContent = `Tổng số nhân viên: ${state.totalItems}`;
+                    pageInfo.textContent = `${state.page}/${state.totalPages}`;
+                    renderSkillAnalysis([]);
+                    return;
+                }
+
+                employeeBody.innerHTML = items.map(item => {
+                    const detail = state.employeeDetailMap.get(item.maNhanVien);
+                    const chucVu = item.tenChucVu || detail?.tenChucVu || '-';
+                    const kpi = state.employeeKpiMap.get(item.maNhanVien)?.latest || 0;
+
+                    return `
+                        <tr data-row-id="${item.maNhanVien}" class="hr-row-clickable">
+                            <td>${renderAvatar(item)}</td>
+                            <td>
+                                <button class="btn btn-link p-0 hr-name-link" data-open-drawer="${item.maNhanVien}" type="button">${escapeHtml(item.hoTen || '-')}</button>
+                                <div class="small text-muted">${escapeHtml(item.email || '-')}</div>
+                            </td>
+                            <td>${escapeHtml(item.tenPhongBan || '-')}</td>
+                            <td>${roleBadge(chucVu)}</td>
+                            <td>${renderKpiProgress(kpi)}</td>
+                            <td>${renderSkillPreviewTags(detail)}</td>
+                            <td>${statusBadge(item.trangThai)}</td>
+                            <td class="text-end">
+                                ${role !== 'employee' ? `<button class="btn btn-sm btn-outline-warning" title="Yêu cầu báo cáo" onclick="window.requestEmployeeReport(${item.maNhanVien}, '${escapeHtml(item.hoTen || 'Nhân viên')}')"><i class="bi bi-send"></i></button>` : ''}
+                                <button class="btn btn-sm btn-light" title="Xem chi tiết" onclick="window.openEmployeeDrawer(${item.maNhanVien})"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" title="Sửa" onclick="window.openEditEmployee(${item.maNhanVien})"><i class="bi bi-pencil"></i></button>
+                                ${role !== 'employee' ? (Number(item.trangThai) === 1
+                                    ? `<button class="btn btn-sm btn-outline-warning" title="Chuyển sang nghỉ việc" onclick="window.toggleEmployeeStatus(${item.maNhanVien}, ${Number(item.trangThai || 0)})"><i class="bi bi-person-dash"></i></button>`
+                                    : `<button class="btn btn-sm btn-outline-success" title="Kích hoạt nhân viên" onclick="window.toggleEmployeeStatus(${item.maNhanVien}, ${Number(item.trangThai || 0)})"><i class="bi bi-person-check"></i></button>`)
+                                : ''}
+                                ${role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="window.deleteEmployee(${item.maNhanVien})"><i class="bi bi-trash"></i></button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                employeeSummary.textContent = `Hiển thị ${items.length}/${state.totalItems} nhân viên`;
+                pageInfo.textContent = `${state.page}/${state.totalPages}`;
+                state.items = items;
+                renderSkillAnalysis(items);
+            }
+
+            function setCatalogMessage(text, css = 'text-muted') {
+                catalogSkillMessage.className = `small ${css}`;
+                catalogSkillMessage.textContent = text || '';
+            }
+
+            function normalizeSkillName(value) {
+                return String(value || '').trim().toLowerCase();
+            }
+
+            function isDuplicateSkillName(name, exceptId = null) {
+                const key = normalizeSkillName(name);
+                if (!key) return false;
+                return state.skillCatalog.some(s => normalizeSkillName(s.tenKyNang) === key && Number(s.maKyNang) !== Number(exceptId));
+            }
+
+            function showInlineCatalogForm() {
+                state.catalogInlineMode = 'add';
+                state.editingCatalogSkillId = null;
+                catalogInlineForm.classList.remove('d-none');
+                inlineCatalogSkillName.value = '';
+                inlineCatalogSkillDesc.value = '';
+                setCatalogMessage('');
+                inlineCatalogSkillName.focus();
+                renderCatalogSkillTable();
+            }
+
+            function hideInlineCatalogForm() {
+                state.catalogInlineMode = null;
+                catalogInlineForm.classList.add('d-none');
+                inlineCatalogSkillName.value = '';
+                inlineCatalogSkillDesc.value = '';
+                setCatalogMessage('');
+            }
+
+            function renderCatalogSkillTable() {
+                const keyword = (catalogSkillKeyword.value || '').trim().toLowerCase();
+                const rows = [...state.skillCatalog]
+                    .sort((a, b) => String(a.tenKyNang || '').localeCompare(String(b.tenKyNang || ''), 'vi', { sensitivity: 'base' }))
+                    .filter(s => {
+                        if (!keyword) return true;
+                        const name = (s.tenKyNang || '').toLowerCase();
+                        const desc = (s.moTa || '').toLowerCase();
+                        return name.includes(keyword) || desc.includes(keyword);
+                    });
+
+                if (!rows.length) {
+                    catalogSkillBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có kỹ năng phù hợp.</td></tr>';
+                    return;
+                }
+
+                catalogSkillBody.innerHTML = rows.map(s => {
+                    const isEditing = state.catalogInlineMode === 'edit-row' && Number(state.editingCatalogSkillId) === Number(s.maKyNang);
+                    const isFresh = Number(state.recentCatalogSkillId) === Number(s.maKyNang);
+
+                    if (isEditing) {
+                        return `
+                            <tr class="hr-catalog-row-edit">
+                                <td><input id="editCatalogName-${s.maKyNang}" class="form-control form-control-sm" value="${escapeHtml(s.tenKyNang || '')}" /></td>
+                                <td><input id="editCatalogDesc-${s.maKyNang}" class="form-control form-control-sm" value="${escapeHtml(s.moTa || '')}" /></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary" onclick="window.saveInlineCatalogEdit(${s.maKyNang})">Lưu</button>
+                                    <button class="btn btn-sm btn-light" onclick="window.cancelInlineCatalogEdit()">Hủy</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+
+                    return `
+                        <tr class="${isFresh ? 'hr-fresh-skill' : ''}">
+                            <td>${escapeHtml(s.tenKyNang || '')}</td>
+                            <td>${escapeHtml(s.moTa || '-')}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" title="Sửa" onclick="window.openEditCatalogSkill(${s.maKyNang})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" title="Xóa" onclick="window.deleteCatalogSkill(${s.maKyNang})"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function renderSkillAnalysis(items = []) {
+                const detailMap = new Map(items.map(item => [item.maNhanVien, state.employeeDetailMap.get(item.maNhanVien)]));
+                const details = [...detailMap.values()].filter(Boolean);
+                if (!details.length) {
+                    popularSkillName.textContent = '--';
+                    popularSkillCount.textContent = 'Chưa có dữ liệu';
+                    popularSkillBars.textContent = '--';
+                    missingSkillAlert.textContent = 'Chưa có dữ liệu';
+                    missingSkillList.textContent = 'Chưa có dữ liệu';
+                    topKpiEmployees.textContent = 'Chưa có dữ liệu';
+                    return;
+                }
+
+                const freq = new Map();
+                for (const d of details) {
+                    for (const s of d.skills || []) {
+                        const key = s.maKyNang;
+                        if (!freq.has(key)) {
+                            freq.set(key, { count: 0, tenKyNang: s.tenKyNang || '' });
+                        }
+                        freq.get(key).count += 1;
+                    }
+                }
+
+                if (!freq.size) {
+                    popularSkillName.textContent = 'Chưa có kỹ năng';
+                    popularSkillCount.textContent = 'Chưa có dữ liệu';
+                    popularSkillBars.textContent = '--';
+                    missingSkillAlert.textContent = 'Chưa có dữ liệu';
+                    missingSkillList.textContent = 'Chưa có dữ liệu';
+                    topKpiEmployees.textContent = 'Chưa có dữ liệu';
+                    return;
+                }
+
+                const sortedSkill = [...freq.entries()].sort((a, b) => b[1].count - a[1].count);
+                const topEntry = sortedSkill[0];
+                const topSkillId = topEntry[0];
+                const top = topEntry[1];
+
+                popularSkillName.textContent = top.tenKyNang;
+                popularSkillCount.textContent = `${top.count} nhân viên đang sở hữu`;
+                const maxSkillCount = sortedSkill[0][1].count || 1;
+                popularSkillBars.innerHTML = sortedSkill.slice(0, 5).map(([, value]) => {
+                    const width = Math.max(8, Math.round((value.count / maxSkillCount) * 100));
+                    return `
+                        <div class="hr-skill-bar-item" title="${escapeHtml(value.tenKyNang)}: ${value.count}">
+                            <span>${escapeHtml(value.tenKyNang)}</span>
+                            <div class="hr-skill-bar-track"><div class="hr-skill-bar-fill" style="width:${width}%"></div></div>
+                        </div>
+                    `;
+                }).join('');
+
+                const missing = details
+                    .filter(d => d.trangThai === 1)
+                    .filter(d => !(d.skills || []).some(s => s.maKyNang === topSkillId))
+                    .slice(0, 6)
+                    .map(d => d.hoTen || `NV ${d.maNhanVien}`);
+
+                const missingByDepartment = new Map();
+                for (const d of details.filter(x => x.trangThai === 1)) {
+                    const hasTopSkill = (d.skills || []).some(s => s.maKyNang === topSkillId);
+                    if (hasTopSkill) continue;
+
+                    const deptName = d.tenPhongBan || `Phòng ${d.maPhongBan || '-'}`;
+                    if (!missingByDepartment.has(deptName)) missingByDepartment.set(deptName, 0);
+                    missingByDepartment.set(deptName, missingByDepartment.get(deptName) + 1);
+                }
+
+                const severeDept = [...missingByDepartment.entries()].sort((a, b) => b[1] - a[1])[0];
+                if (!severeDept) {
+                    missingSkillAlert.innerHTML = `<span class="text-success">Không có cảnh báo thiếu kỹ năng trong bộ lọc hiện tại.</span>`;
+                } else {
+                    missingSkillAlert.textContent = `${severeDept[0]} thiếu ${severeDept[1]} nhân viên có kỹ năng ${top.tenKyNang}.`;
+                }
+
+                if (!missing.length) {
+                    missingSkillList.innerHTML = `<span class="text-success">Tất cả nhân viên đang có ${escapeHtml(top.tenKyNang)}.</span>`;
+                } else {
+                    missingSkillList.innerHTML = missing.map(x => `<span class="hr-missing-item">${escapeHtml(x)}</span>`).join('');
+                }
+
+                const topKpis = items
+                    .map(item => ({
+                        name: item.hoTen || `NV ${item.maNhanVien}`,
+                        score: Number(state.employeeKpiMap.get(item.maNhanVien)?.latest || 0)
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 5);
+
+                if (!topKpis.length) {
+                    topKpiEmployees.innerHTML = '<span class="text-muted">Chưa có dữ liệu KPI.</span>';
+                } else {
+                    topKpiEmployees.innerHTML = topKpis.map((x, idx) => `
+                        <div class="hr-top-kpi-item">
+                            <span class="hr-top-rank">#${idx + 1}</span>
+                            <span class="hr-top-name">${escapeHtml(x.name)}</span>
+                            <span class="hr-top-score">${x.score.toFixed(0)}%</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            function renderHistoryTab(detail) {
+                const rows = detail?.lichSuHoatDong || detail?.LichSuHoatDong || [];
+                if (!rows.length) {
+                    historyBody.innerHTML = '<tr><td colspan="2" class="text-muted">Chưa có nhật ký hoạt động</td></tr>';
+                    return;
+                }
+
+                historyBody.innerHTML = rows.map(item => `
+                    <tr>
+                        <td>${item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : '-'}</td>
+                        <td>${escapeHtml(item.hanhDong || item.HanhDong || '-')}</td>
+                    </tr>
+                `).join('');
+            }
+
+            function renderSkillsTab(detail) {
+                const rows = detail?.skills || [];
+                const keyword = (skillKeyword.value || '').trim().toLowerCase();
+                const filtered = rows.filter(s => !keyword || (s.tenKyNang || '').toLowerCase().includes(keyword));
+
+                if (!rows.length) {
+                    currentSkillTags.innerHTML = '<span class="text-muted">Nhân viên chưa có kỹ năng.</span>';
+                } else {
+                    currentSkillTags.innerHTML = rows.map(skill => {
+                        const lv = levelMeta(skill.capDo);
+                        return `<span class="hr-skill-tag ${lv.css}" title="${lv.text}">${escapeHtml(skill.tenKyNang || '')}</span>`;
+                    }).join('');
+                }
+
+                if (!filtered.length) {
+                    skillBody.innerHTML = '<tr><td colspan="4" class="text-muted">Không có kỹ năng phù hợp.</td></tr>';
+                } else {
+                    skillBody.innerHTML = filtered.map(skill => {
+                        const lv = levelMeta(skill.capDo);
+                        return `
+                            <tr>
+                                <td>${escapeHtml(skill.tenKyNang || '')}</td>
+                                <td><span class="hr-level-badge ${lv.css}">${lv.text}</span></td>
+                                <td>${Number(skill.soDuAnDaDung || 0)} nam</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="window.openEditEmployeeSkill(${skill.maKyNang})"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="window.removeSkill(${state.selectedEmployeeId}, ${skill.maKyNang})"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                renderAiSuggestion(detail);
+            }
+
+            function renderAiSuggestion(detail) {
+                if (!detail) {
+                    aiSkillSuggestion.textContent = 'Chọn nhân viên để xem gợi ý kỹ năng AI.';
+                    return;
+                }
+
+                const currentSkillIds = new Set((detail.skills || []).map(s => s.maKyNang));
+                const sameDepartment = [...state.employeeDetailMap.values()]
+                    .filter(Boolean)
+                    .filter(x => x.maPhongBan === detail.maPhongBan);
+
+                const freq = new Map();
+                for (const emp of sameDepartment) {
+                    for (const s of emp.skills || []) {
+                        if (!freq.has(s.maKyNang)) {
+                            freq.set(s.maKyNang, { tenKyNang: s.tenKyNang || '', count: 0 });
+                        }
+                        freq.get(s.maKyNang).count += 1;
+                    }
+                }
+
+                const suggest = [...freq.entries()]
+                    .filter(([id]) => !currentSkillIds.has(id))
+                    .map(([, value]) => value)
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3);
+
+                if (!suggest.length) {
+                    aiSkillSuggestion.innerHTML = '<strong>AI Suggestion:</strong> Hồ sơ kỹ năng đã khá đầy đủ cho vị trí hiện tại.';
+                    return;
+                }
+
+                const text = suggest.map(s => s.tenKyNang).filter(Boolean).join(', ');
+                aiSkillSuggestion.innerHTML = `<strong>AI Suggestion:</strong> Nên học thêm ${escapeHtml(text)} để tăng năng lực liên phòng ban.`;
+            }
+
+            async function openEmployeeDrawer(id) {
+                state.selectedEmployeeId = id;
+                employeeDrawer.show();
+
+                await ensureAccountMapLoaded();
+
+                const result = await fetchJson(`/nhanvien/${id}`);
+                if (!result.success) return;
+                const data = result.data;
+                state.selectedEmployeeDetail = data;
+                renderAccountOptions(id, data.aspNetUserId || null);
+
+                detailHoTen.value = data.hoTen || '';
+                detailNgaySinh.value = toDateInput(data.ngaySinh);
+                detailGioiTinh.value = data.gioiTinh || '';
+                detailSdt.value = data.sdt || '';
+                detailEmail.value = data.email || '';
+                detailDiaChi.value = data.diaChi || '';
+                detailPhongBan.value = data.maPhongBan || '';
+                detailChucVu.value = data.maChucVu || '';
+                const maPhongBanPhu = Number(data.phoMaPhongBan || 0);
+                const phongBanPhu = maPhongBanPhu > 0
+                    ? state.departments.find(x => Number(x.maPhongBan) === maPhongBanPhu)
+                    : null;
+                detailPhongBanPhuText.value = phongBanPhu?.tenPhongBan || '';
+                detailAspNetUserId.value = data.aspNetUserId || '';
+                detailCccd.value = data.cccd || '';
+                detailNgayVaoLam.value = toDateInput(data.ngayVaoLam);
+
+                renderSkillsTab(data);
+                renderHistoryTab(data);
+                await renderKpiTab(id);
+                await renderTasksTab(id);
+            }
+
+            async function renderKpiTab(employeeId) {
+                const result = await fetchJson(`/kpi/nhanvien/${employeeId}`);
+                if (!result.success) {
+                    kpiBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có dữ liệu KPI</td></tr>';
+                    return;
+                }
+
+                const history = result.data?.kpiTheoThang || result.data?.KpiTheoThang || [];
+                if (!history.length) {
+                    kpiBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có dữ liệu KPI</td></tr>';
+                } else {
+                    kpiBody.innerHTML = history.map(x => `
+                        <tr>
+                            <td>${x.thang}/${x.nam}</td>
+                            <td>${x.diem?.toFixed(1) || 0}</td>
+                            <td>${escapeHtml(x.xepLoai || '-')}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            function resolveTaskStatusLabel(row) {
+                const rawName = row.tenTrangThai || row.TenTrangThai;
+                if (rawName && Number.isNaN(Number(rawName))) {
+                    return rawName;
+                }
+
+                const statusValue = Number(row.maTrangThai ?? row.MaTrangThai ?? rawName);
+                if (statusValue === 1) return 'Chưa bắt đầu';
+                if (statusValue === 2) return 'Đang thực hiện';
+                if (statusValue === 3) return 'Hoàn thành';
+                if (statusValue >= 4) return 'Tạm hoãn';
+                return 'Tạm hoãn';
+            }
+
+            async function renderTasksTab(employeeId) {
+                const result = await fetchJson(`/congviec?maNhanVien=${employeeId}&size=50&page=1`);
+                if (!result.success) {
+                    taskBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có dữ liệu công việc</td></tr>';
+                    return;
+                }
+
+                const rows = result.data?.items || [];
+                if (!rows.length) {
+                    taskBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có công việc</td></tr>';
+                    return;
+                }
+
+                taskBody.innerHTML = rows.map(row => {
+                    const deadline = row.hanHoanThanh ? new Date(row.hanHoanThanh) : null;
+                    const daysLeft = deadline ? Math.ceil((deadline - new Date()) / 86400000) : 99;
+                    const deadlineCss = daysLeft <= 2 ? 'text-danger fw-bold' : (daysLeft <= 5 ? 'text-warning fw-semibold' : '');
+                    return `
+                        <tr>
+                            <td>${escapeHtml(row.tenCongViec || '-')}</td>
+                            <td>${escapeHtml(row.tenDuAn || '-')}</td>
+                            <td class="${deadlineCss}">${deadline ? deadline.toLocaleDateString('vi-VN') : '-'}</td>
+                            <td>
+                                <div class="progress" style="height:10px"><div class="progress-bar ${row.tienDoPhanTram >= 70 ? 'good' : (row.tienDoPhanTram >= 40 ? 'warn' : 'bad')}" style="width:${row.tienDoPhanTram || 0}%"></div></div>
+                            </td>
+                            <td>${escapeHtml(resolveTaskStatusLabel(row))}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            async function savePersonalInfo() {
+                if (!state.selectedEmployeeId) return;
+                const normalizedDetailSdt = detailSdt.value.trim();
+                if (normalizedDetailSdt.length !== 10) {
+                    alert('SĐT phải đúng 10 số.');
+                    detailSdt.focus();
+                    return;
+                }
+
+                const payload = {
+                    hoTen: detailHoTen.value.trim(),
+                    ngaySinh: detailNgaySinh.value,
+                    cccd: detailCccd.value,
+                    diaChi: detailDiaChi.value.trim(),
+                    gioiTinh: detailGioiTinh.value,
+                    email: detailEmail.value.trim(),
+                    sdt: normalizedDetailSdt,
+                    ngayVaoLam: detailNgayVaoLam.value,
+                    maPhongBan: Number(detailPhongBan.value),
+                    maChucVu: Number(detailChucVu.value),
+                    aspNetUserId: detailAspNetUserId.value || null
+                };
+
+                const result = await fetchJson(`/nhanvien/${state.selectedEmployeeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!result.success) {
+                    alert(result.message || 'Không thể cập nhật nhân viên.');
+                    return;
+                }
+
+                await loadNhanVien();
+                await openEmployeeDrawer(state.selectedEmployeeId);
+                alert('Đã cập nhật thông tin nhân viên.');
+            }
+
+            function openCreateEmployee() {
+                state.editingEmployeeId = null;
+                employeeModalTitle.textContent = 'Thêm nhân viên';
+                employeeFormResult.textContent = '';
+                employeeFormResult.className = 'small mt-2';
+
+                formHoTen.value = '';
+                formCccd.value = '';
+                formCccd.disabled = false;
+                formNgaySinh.value = '';
+                formGioiTinh.value = '';
+                formSdt.value = '';
+                formEmail.value = '';
+                formNgayVaoLam.value = '';
+                formDiaChi.value = '';
+                formPhongBan.value = '';
+                formChucVu.value = '';
+
+                ensureAccountMapLoaded().finally(() => {
+                    renderAccountOptions(null, null);
+                    employeeFormModal.show();
+                });
+            }
+
+            async function openEditEmployee(id) {
+                state.editingEmployeeId = id;
+                employeeModalTitle.textContent = 'Sửa nhân viên';
+                employeeFormResult.textContent = '';
+                employeeFormResult.className = 'small mt-2';
+
+                await ensureAccountMapLoaded();
+
+                const result = await fetchJson(`/nhanvien/${id}`);
+                if (!result.success) {
+                    alert(result.message || 'Không tải được chi tiết nhân viên.');
+                    return;
+                }
+
+                const d = result.data;
+                formHoTen.value = d.hoTen || '';
+                formCccd.value = d.cccd || '';
+                formCccd.disabled = true;
+                formNgaySinh.value = toDateInput(d.ngaySinh);
+                formGioiTinh.value = d.gioiTinh || '';
+                formSdt.value = d.sdt || '';
+                formEmail.value = d.email || '';
+                formNgayVaoLam.value = toDateInput(d.ngayVaoLam);
+                formDiaChi.value = d.diaChi || '';
+                formPhongBan.value = d.maPhongBan || '';
+                formChucVu.value = d.maChucVu || '';
+                renderAccountOptions(id, d.aspNetUserId || null);
+
+                employeeFormModal.show();
+            }
+
+            async function saveEmployee() {
+                const normalizedCccd = formCccd.value.trim();
+                const normalizedSdt = formSdt.value.trim();
+                if (normalizedCccd.length !== 12) {
+                    employeeFormResult.className = 'small mt-2 text-danger';
+                    employeeFormResult.textContent = 'CCCD phải đúng 12 số.';
+                    formCccd.focus();
+                    return;
+                }
+
+                if (normalizedSdt.length !== 10) {
+                    employeeFormResult.className = 'small mt-2 text-danger';
+                    employeeFormResult.textContent = 'SĐT phải đúng 10 số.';
+                    formSdt.focus();
+                    return;
+                }
+
+                const payload = {
+                    hoTen: formHoTen.value.trim(),
+                    ngaySinh: formNgaySinh.value,
+                    cccd: normalizedCccd,
+                    diaChi: formDiaChi.value.trim(),
+                    gioiTinh: formGioiTinh.value,
+                    email: formEmail.value.trim(),
+                    sdt: normalizedSdt,
+                    ngayVaoLam: formNgayVaoLam.value,
+                    maPhongBan: Number(formPhongBan.value),
+                    maChucVu: Number(formChucVu.value),
+                    aspNetUserId: formAspNetUserId.value || null
+                };
+
+                const isEdit = !!state.editingEmployeeId;
+                const url = isEdit ? `/nhanvien/${state.editingEmployeeId}` : '/nhanvien';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const result = await fetchJson(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                employeeFormResult.className = `small mt-2 ${result.success ? 'text-success' : 'text-danger'}`;
+                employeeFormResult.textContent = result.message;
+                if (!result.success) return;
+
+                employeeFormModal.hide();
+                await loadNhanVien();
+            }
+
+            async function deleteEmployee(id) {
+                if (!confirm('Bạn có chắc chắn muốn chuyển nhân viên sang trạng thái nghỉ việc?')) return;
+
+                const triggerButton = document.activeElement && document.activeElement.matches('button')
+                    ? document.activeElement
+                    : null;
+
+                const result = await (window.UiButtonLoading?.run
+                    ? window.UiButtonLoading.run(triggerButton, () => fetchJson(`/nhanvien/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                    : fetchJson(`/nhanvien/${id}`, { method: 'DELETE' }));
+                if (!result.success) {
+                    alert(result.message || 'Không thể cập nhật trạng thái nhân viên.');
+                    return;
+                }
+
+                await loadNhanVien();
+            }
+
+            async function toggleEmployeeStatus(id, currentStatus) {
+                const nextStatus = Number(currentStatus) === 1 ? 0 : 1;
+                const confirmMessage = nextStatus === 0
+                    ? 'Bạn có chắc chắn muốn chuyển nhân viên sang trạng thái nghỉ việc?'
+                    : 'Bạn có chắc chắn muốn chuyển nhân viên sang trạng thái đang làm việc?';
+
+                if (!confirm(confirmMessage)) return;
+
+                const triggerButton = document.activeElement && document.activeElement.matches('button')
+                    ? document.activeElement
+                    : null;
+
+                const result = await (window.UiButtonLoading?.run
+                    ? window.UiButtonLoading.run(triggerButton, () => fetchJson(`/nhanvien/${id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trangThai: nextStatus })
+                    }), { profile: 'save' })
+                    : fetchJson(`/nhanvien/${id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trangThai: nextStatus })
+                    }));
+
+                if (!result.success) {
+                    alert(result.message || 'Không thể cập nhật trạng thái nhân viên.');
+                    return;
+                }
+
+                await loadNhanVien();
+            }
+
+            function openCreateEmployeeSkill() {
+                if (!state.selectedEmployeeId) return;
+                state.editingEmployeeSkillId = null;
+                skillModalTitle.textContent = 'Thêm kỹ năng';
+                skillFormMessage.textContent = '';
+                skillFormMessage.className = 'small';
+                employeeSkillSelect.disabled = false;
+                employeeSkillSelect.value = '';
+                employeeSkillLevel.value = '2';
+                employeeSkillExperience.value = '1';
+                skillFormModal.show();
+            }
+
+            function openEditEmployeeSkill(skillId) {
+                const row = (state.selectedEmployeeDetail?.skills || []).find(x => x.maKyNang === skillId);
+                if (!row) return;
+
+                state.editingEmployeeSkillId = skillId;
+                skillModalTitle.textContent = 'Sửa kỹ năng';
+                skillFormMessage.textContent = '';
+                skillFormMessage.className = 'small';
+                employeeSkillSelect.value = String(skillId);
+                employeeSkillSelect.disabled = true;
+                employeeSkillLevel.value = String(Math.max(1, Number(row.capDo || 1)));
+                employeeSkillExperience.value = String(Number(row.soDuAnDaDung || 0));
+                skillFormModal.show();
+            }
+
+            async function saveEmployeeSkill() {
+                if (!state.selectedEmployeeId) return;
+                const skillId = Number(employeeSkillSelect.value);
+                const capDo = Number(employeeSkillLevel.value);
+                const years = Math.max(0, Number(employeeSkillExperience.value || 0));
+
+                if (!skillId || Number.isNaN(skillId)) {
+                    skillFormMessage.className = 'small text-danger';
+                    skillFormMessage.textContent = 'Bạn cần chọn kỹ năng.';
+                    return;
+                }
+
+                const existingIds = new Set((state.selectedEmployeeDetail?.skills || []).map(x => x.maKyNang));
+                if (!state.editingEmployeeSkillId && existingIds.has(skillId)) {
+                    skillFormMessage.className = 'small text-danger';
+                    skillFormMessage.textContent = 'Kỹ năng đã tồn tại trên nhân viên.';
+                    return;
+                }
+
+                const payload = {
+                    maKyNang: skillId,
+                    capDo,
+                    soDuAnDaDung: years
+                };
+
+                const url = state.editingEmployeeSkillId
+                    ? `/nhanvien/${state.selectedEmployeeId}/skills/${state.editingEmployeeSkillId}`
+                    : `/nhanvien/${state.selectedEmployeeId}/skills`;
+                const method = state.editingEmployeeSkillId ? 'PUT' : 'POST';
+
+                const result = await fetchJson(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                skillFormMessage.className = `small ${result.success ? 'text-success' : 'text-danger'}`;
+                skillFormMessage.textContent = result.message || (result.success ? 'Thành công' : 'Thất bại');
+                if (!result.success) return;
+
+                skillFormModal.hide();
+                await openEmployeeDrawer(state.selectedEmployeeId);
+                await loadNhanVien();
+            }
+
+            async function removeSkill(employeeId, skillId) {
+                if (!confirm('Bạn có chắc muốn xóa kỹ năng này?')) return;
+                const triggerButton = document.activeElement && document.activeElement.matches('button')
+                    ? document.activeElement
+                    : null;
+
+                const result = await (window.UiButtonLoading?.run
+                    ? window.UiButtonLoading.run(triggerButton, () => fetchJson(`/nhanvien/${employeeId}/skills/${skillId}`, { method: 'DELETE' }), { profile: 'delete' })
+                    : fetchJson(`/nhanvien/${employeeId}/skills/${skillId}`, { method: 'DELETE' }));
+                if (!result.success) {
+                    alert(result.message || 'Không thể xóa kỹ năng.');
+                    return;
+                }
+
+                await openEmployeeDrawer(employeeId);
+                await loadNhanVien();
+            }
+
+            function openEditCatalogSkill(id) {
+                const skill = state.skillCatalog.find(x => x.maKyNang === id);
+                if (!skill) return;
+
+                state.editingCatalogSkillId = id;
+                state.catalogInlineMode = 'edit-row';
+                catalogInlineForm.classList.add('d-none');
+                setCatalogMessage('Đang sửa kỹ năng trong dòng dữ liệu.', 'text-muted');
+                renderCatalogSkillTable();
+            }
+
+            async function saveInlineCatalogCreate() {
+                const tenKyNang = inlineCatalogSkillName.value.trim();
+                const moTa = inlineCatalogSkillDesc.value.trim();
+
+                if (!tenKyNang) {
+                    setCatalogMessage('Tên kỹ năng không được để trống.', 'text-danger');
+                    return;
+                }
+
+                if (isDuplicateSkillName(tenKyNang)) {
+                    setCatalogMessage('Tên kỹ năng đã tồn tại, vui lòng nhập tên khác.', 'text-danger');
+                    return;
+                }
+
+                const result = await fetchJson('/kynang', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenKyNang, moTa })
+                });
+
+                if (!result.success) {
+                    setCatalogMessage(result.message || 'Không thể thêm kỹ năng.', 'text-danger');
+                    return;
+                }
+
+                await loadSkillCatalog();
+                const inserted = state.skillCatalog.find(s => normalizeSkillName(s.tenKyNang) === normalizeSkillName(tenKyNang));
+                state.recentCatalogSkillId = inserted?.maKyNang || null;
+                hideInlineCatalogForm();
+                renderCatalogSkillTable();
+                setCatalogMessage('Đã thêm kỹ năng mới.', 'text-success');
+
+                setTimeout(() => {
+                    state.recentCatalogSkillId = null;
+                    renderCatalogSkillTable();
+                }, 1600);
+
+                await loadNhanVien();
+            }
+
+            function cancelInlineCatalogEdit() {
+                state.catalogInlineMode = null;
+                state.editingCatalogSkillId = null;
+                setCatalogMessage('');
+                renderCatalogSkillTable();
+            }
+
+            async function saveInlineCatalogEdit(id) {
+                const nameInput = document.getElementById(`editCatalogName-${id}`);
+                const descInput = document.getElementById(`editCatalogDesc-${id}`);
+                if (!nameInput || !descInput) return;
+
+                const tenKyNang = nameInput.value.trim();
+                const moTa = descInput.value.trim();
+
+                if (!tenKyNang) {
+                    setCatalogMessage('Tên kỹ năng không được để trống.', 'text-danger');
+                    return;
+                }
+
+                if (isDuplicateSkillName(tenKyNang, id)) {
+                    setCatalogMessage('Tên kỹ năng đã tồn tại, vui lòng nhập tên khác.', 'text-danger');
+                    return;
+                }
+
+                const result = await fetchJson(`/kynang/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenKyNang, moTa })
+                });
+
+                if (!result.success) {
+                    setCatalogMessage(result.message || 'Không thể cập nhật kỹ năng.', 'text-danger');
+                    return;
+                }
+
+                await loadSkillCatalog();
+                state.recentCatalogSkillId = id;
+                cancelInlineCatalogEdit();
+                setCatalogMessage('Đã cập nhật kỹ năng.', 'text-success');
+                renderCatalogSkillTable();
+
+                setTimeout(() => {
+                    state.recentCatalogSkillId = null;
+                    renderCatalogSkillTable();
+                }, 1600);
+
+                await loadNhanVien();
+            }
+
+            async function deleteCatalogSkill(id) {
+                if (!confirm('Bạn có chắc muốn xóa?')) return;
+
+                const triggerButton = document.activeElement && document.activeElement.matches('button')
+                    ? document.activeElement
+                    : null;
+
+                const result = await (window.UiButtonLoading?.run
+                    ? window.UiButtonLoading.run(triggerButton, () => fetchJson(`/kynang/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                    : fetchJson(`/kynang/${id}`, { method: 'DELETE' }));
+                if (!result.success) {
+                    setCatalogMessage(result.message || 'Không thể xóa kỹ năng.', 'text-danger');
+                    return;
+                }
+
+                state.catalogInlineMode = null;
+                state.editingCatalogSkillId = null;
+                await loadSkillCatalog();
+                await loadNhanVien();
+                setCatalogMessage('Đã xóa kỹ năng.', 'text-success');
+            }
+
+            
+            function exportCsv() {
+                if (!state.items.length) return;
+
+                const rows = [
+                    ['Họ tên', 'Email', 'Phòng ban', 'Chức vụ', 'KPI', 'Kỹ năng', 'Trạng thái']
+                ];
+
+                for (const item of state.items) {
+                    const detail = state.employeeDetailMap.get(item.maNhanVien);
+                    const roleName = item.tenChucVu || detail?.tenChucVu || '-';
+                    const kpi = Number(state.employeeKpiMap.get(item.maNhanVien)?.latest || 0).toFixed(1);
+                    const skills = (detail?.skills || [])
+                        .map(s => s.tenKyNang)
+                        .filter(Boolean)
+                        .join(', ');
+
+                    rows.push([
+                        item.hoTen || '',
+                        item.email || '',
+                        item.tenPhongBan || '',
+                        roleName,
+                        kpi,
+                        skills,
+                        getEmployeeStatus(item.trangThai).text
+                    ]);
+                }
+
+                const BOM = '\uFEFF';
+
+                const content = rows
+                    .map(row =>
+                        row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')
+                    )
+                    .join('\r\n');
+
+                const blob = new Blob([BOM + content], {
+                    type: 'text/csv;charset=utf-8;'
+                });
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `nhan-su-page-${state.page}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            const realtimeSearch = debounce(() => {
+                state.page = 1;
+                loadNhanVien();
+            }, 300);
+
+            const bindNumericOnly = (input, maxLength) => {
+                if (!input) return;
+                input.addEventListener('input', () => {
+                    let sanitized = (input.value || '').replace(/\D+/g, '');
+                    if (Number.isFinite(maxLength) && maxLength > 0 && sanitized.length > maxLength) {
+                        sanitized = sanitized.slice(0, maxLength);
+                    }
+                    if (input.value !== sanitized) {
+                        input.value = sanitized;
+                    }
+                });
+            };
+
+            bindNumericOnly(formCccd, 12);
+            bindNumericOnly(formSdt, 10);
+            bindNumericOnly(detailSdt, 10);
+
+            keywordInput.addEventListener('input', realtimeSearch);
+            skillKeyword.addEventListener('input', () => renderSkillsTab(state.selectedEmployeeDetail));
+            catalogSkillKeyword.addEventListener('input', debounce(renderCatalogSkillTable, 180));
+
+            searchButton.addEventListener('click', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            applyAdvancedFilterBtn.addEventListener('click', () => {
+                state.page = 1;
+                loadNhanVien();
+                bootstrap.Dropdown.getOrCreateInstance(btnAdvancedFilter).hide();
+            });
+
+            resetAdvancedFilterBtn.addEventListener('click', () => {
+                skillFilter.value = '';
+                kpiBandFilter.value = '';
+                experienceFilter.value = '';
+                joinDateFrom.value = '';
+                joinDateTo.value = '';
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            phongBanSelect.addEventListener('change', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            chucVuSelect.addEventListener('change', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            sortBySelect.addEventListener('change', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            trangThaiSelect.addEventListener('change', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            skillFilter.addEventListener('change', () => {
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            pageSizeSelect.addEventListener('change', () => {
+                state.size = Number(pageSizeSelect.value);
+                state.page = 1;
+                loadNhanVien();
+            });
+
+            btnPrevPage.addEventListener('click', () => {
+                if (state.page <= 1) return;
+                state.page -= 1;
+                loadNhanVien();
+            });
+
+            btnNextPage.addEventListener('click', () => {
+                if (state.page >= state.totalPages) return;
+                state.page += 1;
+                loadNhanVien();
+            });
+
+            btnAddEmployee.addEventListener('click', openCreateEmployee);
+            window.UiButtonLoading?.bind(btnExport, exportCsv, { profile: 'export' });
+            window.UiButtonLoading?.bind(btnSaveEmployee, saveEmployee, { profile: 'save' });
+            window.UiButtonLoading?.bind(btnSavePersonal, savePersonalInfo, { profile: 'save' });
+            btnOpenCatalogManager.addEventListener('click', () => {
+                setCatalogMessage('');
+                hideInlineCatalogForm();
+                state.catalogInlineMode = null;
+                state.editingCatalogSkillId = null;
+                renderCatalogSkillTable();
+                catalogDrawer.show();
+            });
+            btnOpenChucVuManager.addEventListener('click', () => {
+                state.editingChucVuId = null;
+                chucVuInput.value = '';
+                setChucVuMessage('');
+                renderChucVuTable();
+                chucVuModal.show();
+            });
+            window.UiButtonLoading?.bind(btnSaveChucVu, saveChucVu, { profile: 'save' });
+
+            btnOpenAddSkill.addEventListener('click', openCreateEmployeeSkill);
+            window.UiButtonLoading?.bind(btnSaveEmployeeSkill, saveEmployeeSkill, { profile: 'save' });
+
+            btnShowInlineCatalogForm.addEventListener('click', showInlineCatalogForm);
+            btnCancelInlineCatalog.addEventListener('click', hideInlineCatalogForm);
+            window.UiButtonLoading?.bind(btnSaveInlineCatalog, saveInlineCatalogCreate, { profile: 'save' });
+
+            employeeBody.addEventListener('click', (event) => {
+                const actionButton = event.target.closest('button');
+                if (actionButton && actionButton.closest('td')?.classList.contains('text-end')) {
+                    return;
+                }
+
+                const drawerButton = event.target.closest('[data-open-drawer]');
+                if (drawerButton) {
+                    openEmployeeDrawer(Number(drawerButton.getAttribute('data-open-drawer')));
+                    return;
+                }
+
+                const row = event.target.closest('tr[data-row-id]');
+                if (row) {
+                    openEmployeeDrawer(Number(row.getAttribute('data-row-id')));
+                }
+            });
+
+            window.openEmployeeDrawer = openEmployeeDrawer;
+            window.openEditEmployee = openEditEmployee;
+            window.deleteEmployee = deleteEmployee;
+            window.toggleEmployeeStatus = toggleEmployeeStatus;
+            window.requestEmployeeReport = (maNhanVien, hoTen) => {
+                const managerName = role === 'admin' ? 'Admin' : 'Manager';
+                const rows = JSON.parse(localStorage.getItem(state.sharedRequestKey) || '[]');
+                rows.unshift({
+                    time: new Date().toLocaleString('vi-VN'),
+                    manager: managerName,
+                    employeeId: maNhanVien,
+                    employeeName: hoTen,
+                    message: `Bạn được yêu cầu gửi báo cáo từ ${managerName}`,
+                    status: 'Đã gửi yêu cầu'
+                });
+                localStorage.setItem(state.sharedRequestKey, JSON.stringify(rows.slice(0, 30)));
+                alert(`Đã gửi yêu cầu báo cáo đến ${hoTen}.`);
+            };
+            window.openEditEmployeeSkill = openEditEmployeeSkill;
+            window.removeSkill = removeSkill;
+            window.openEditCatalogSkill = openEditCatalogSkill;
+            window.cancelInlineCatalogEdit = cancelInlineCatalogEdit;
+            window.saveInlineCatalogEdit = saveInlineCatalogEdit;
+            window.deleteCatalogSkill = deleteCatalogSkill;
+            window.editChucVu = editChucVu;
+            window.deleteChucVu = deleteChucVu;
+
+            Promise.allSettled([loadDepartments(), loadChucVus(), loadSkillCatalog()]).then(() => {
+                loadNhanVien();
+            });
+        }
+    </script>
+}
+
+
+
+

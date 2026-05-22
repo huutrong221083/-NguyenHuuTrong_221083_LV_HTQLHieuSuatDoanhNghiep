@@ -1,0 +1,263 @@
+@* Partial: Form rút gọn để tạo công việc từ trang chi tiết dự án *@
+<style>
+/* ===== TASK FORM MODERN UI ===== */
+.task-form-theme {
+    --task-primary: #0c6dfd;
+    --task-gradient: linear-gradient(135deg, #0a1f3d, #1d4e89, #2f7c9f);
+    --task-bg: #f4f8fd;
+    --task-card: #ffffff;
+    --task-border: #e3eaf5;
+    --task-text: #0f2239;
+}
+
+/* Container */
+#projectTaskFormWrap {
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--task-card);
+    border: 1px solid var(--task-border);
+}
+
+/* Header */
+#projectTaskFormWrap .card-body::before {
+    content: "📝 Tạo công việc mới";
+    display: block;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    color: var(--task-text);
+}
+
+/* Grid */
+#projectTaskForm {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.2rem;
+}
+
+/* Full row */
+#projectTaskForm .col-12 {
+    grid-column: 1 / -1;
+}
+
+/* Label */
+#projectTaskForm .form-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #4a5d73;
+    margin-bottom: 0.3rem;
+}
+
+/* Input */
+#projectTaskForm .form-control,
+#projectTaskForm .form-select {
+    border-radius: 0.6rem;
+    border: 1px solid var(--task-border);
+    padding: 0.6rem 0.85rem;
+    transition: all 0.25s ease;
+    font-size: 0.92rem;
+}
+
+#projectTaskForm .form-control:focus,
+#projectTaskForm .form-select:focus {
+    border-color: var(--task-primary);
+    box-shadow: 0 0 0 3px rgba(12,109,253,0.15);
+}
+
+/* TEXTAREA */
+#projectTaskForm textarea {
+    min-height: 80px;
+}
+
+/* Section box */
+.task-section {
+    grid-column: 1 / -1;
+    padding: 0.8rem;
+    border-radius: 0.7rem;
+    background: linear-gradient(135deg, #f8fbff, #eef5ff);
+    border: 1px dashed #dbe6f5;
+}
+
+/* Assign row */
+.assign-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+}
+
+/* Buttons */
+.panel-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.panel-actions .btn {
+    border-radius: 0.6rem;
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+}
+
+#ptfSave {
+    background: var(--task-gradient);
+    border: none;
+}
+
+#ptfSave:hover {
+    opacity: 0.9;
+}
+
+/* Responsive */
+@@media (max-width: 992px) {
+    #projectTaskForm {
+        grid-template-columns: 1fr;
+    }
+
+    .assign-row {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-actions {
+        flex-direction: column-reverse;
+    }
+
+    .panel-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<section id="projectTaskFormWrap" class="card shadow-sm border-0 mt-3 d-none task-form-theme task-panel">
+    <div class="card-body">
+        <form id="projectTaskForm" class="row g-3">
+            <div class="col-12">
+                <label class="form-label">Tên công việc</label>
+                <input id="ptfName" class="form-control" placeholder="Nhập tên công việc..." required />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Mô tả</label>
+                <textarea id="ptfDesc" class="form-control" rows="3" placeholder="Mô tả chi tiết công việc..."></textarea>
+            </div>
+
+            <div class="col-md-4 d-none">
+                <label class="form-label">Dự án</label>
+                <select id="ptfProject" class="form-select"></select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Công việc cha</label>
+                <select id="ptfParent" class="form-select"></select>
+            </div>
+
+            <div class="task-section">
+                <label class="form-label">📅 Thời gian & trạng thái</label>
+
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <select id="ptfStatus" class="form-select">
+                            <option value="1">Chưa làm</option>
+                            <option value="2">Đang làm</option>
+                            <option value="3">Hoàn thành</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <input id="ptfStartDate" type="date" class="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <input id="ptfDeadline" type="date" class="form-control" required />
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-section">
+                <label class="form-label">🎯 Mức độ công việc</label>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <select id="ptfPriority" class="form-select" required>
+                            <option value="1">Ưu tiên thấp</option>
+                            <option value="2" selected>Ưu tiên trung bình</option>
+                            <option value="3">Ưu tiên cao</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="ptfDifficulty" class="form-select" required>
+                            <option value="1">Dễ</option>
+                            <option value="2" selected>Trung bình</option>
+                            <option value="3">Khó</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-section">
+                <label class="form-label">👥 Phân công công việc</label>
+                <div class="assign-row">
+                    <select id="ptfEmployee" class="form-select"><option value="">Chọn nhân viên</option></select>
+                    <select id="ptfTeam" class="form-select"><option value="">Chọn nhóm</option></select>
+                    <select id="ptfDepartment" class="form-select"><option value="">Chọn phòng ban</option></select>
+                </div>
+            </div>
+
+            <div class="panel-actions mt-2">
+                <button id="ptfCancel" type="button" class="btn btn-outline-secondary">Hủy</button>
+                <button id="ptfSave" type="button" class="btn btn-primary">Lưu công việc</button>
+            </div>
+        </form>
+        <div id="ptfResult" class="small mt-2"></div>
+    </div>
+</section>
+
+<script src="~/js/portal-task-form.js" asp-append-version="true"></script>
+<script>
+    let __ptf_currentProjectId = null;
+    let __ptf_editingTaskId = null;
+
+    const __ptf_ids = {
+        wrap: 'projectTaskFormWrap', name: 'ptfName', desc: 'ptfDesc', project: 'ptfProject', parent: 'ptfParent', status: 'ptfStatus',
+        start: 'ptfStartDate', deadline: 'ptfDeadline', employee: 'ptfEmployee', team: 'ptfTeam', department: 'ptfDepartment',
+        priority: 'ptfPriority', difficulty: 'ptfDifficulty',
+        save: 'ptfSave', result: 'ptfResult'
+    };
+
+    window.__PortalTaskFormDefaultIds = __ptf_ids;
+
+    function __ptf_initModule() {
+        if (typeof PortalTaskForm === 'undefined' || typeof PortalTaskForm.init !== 'function') return false;
+        window.__PortalTaskFormOnSaved = function(newTaskId) {
+            try {
+                const pidEl = document.getElementById('ptfProject');
+                const pid = pidEl ? Number(pidEl.value) : null;
+                if (typeof openDetail === 'function' && pid) openDetail(pid);
+            } catch (e) { console.warn(e); }
+        };
+        PortalTaskForm.init({
+            ids: __ptf_ids,
+            onSaved: window.__PortalTaskFormOnSaved
+        });
+        return true;
+    }
+
+    if (!__ptf_initModule()) {
+        document.addEventListener('DOMContentLoaded', __ptf_initModule, { once: true });
+    }
+
+    async function initProjectTaskForm(projectId) {
+        __ptf_currentProjectId = projectId;
+        if (typeof PortalTaskForm !== 'undefined') {
+            __ptf_initModule();
+            await PortalTaskForm.openForProject(projectId);
+        } else {
+            console.warn('PortalTaskForm not available to initialize project task partial.');
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.id === 'ptfCancel') {
+            document.getElementById('projectTaskFormWrap')?.classList.add('d-none');
+        }
+    });
+</script>

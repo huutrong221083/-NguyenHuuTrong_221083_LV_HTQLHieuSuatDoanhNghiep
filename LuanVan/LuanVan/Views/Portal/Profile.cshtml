@@ -1,0 +1,299 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").ToLowerInvariant();
+}
+
+<section class="page-head">
+    <div>
+        <h2>Hồ sơ cá nhân</h2>
+        @if (role == "employee")
+        {
+        }
+        else
+        {
+            <p class="text-muted">Thông tin nhân viên và lich su KPI theo dữ liệu thuc.</p>
+        }
+    </div>
+    <div>
+        <button id="btnProfileQuickExport" class="btn btn-success btn-sm" type="button"><i class="bi bi-file-earmark-arrow-down"></i> Xuất báo cáo hồ sơ</button>
+    </div>
+</section>
+
+<nav class="crumb">Trang chủ / Hồ sơ cá nhân</nav>
+
+<div class="profile-page mt-3">
+    
+
+    @if (role == "employee")
+    {
+        <div class="panel-grid profile-layout two-col mt-3">
+            <section class="panel profile-card profile-main">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Thông tin cá nhân</h4>
+                        <p>Thông tin nhân sự và trạng thái tài khoản.</p>
+                    </div>
+                </header>
+                <div class="profile-summary">
+                    <div class="profile-summary-avatar">NV</div>
+                    <div class="profile-summary-body">
+                        <div class="profile-summary-name" id="empHoTen">Đang tải...</div>
+                        <div class="profile-summary-sub">Hồ sơ của bạn đang được tải từ hệ thống</div>
+                    </div>
+                </div>
+                <div class="row g-3 profile-detail-grid" id="employeeProfileInfo">
+                    <div class="col-12"><strong>Họ tên:</strong> <span id="empHoTenText">-</span></div>
+                    <div class="col-12"><strong>Email:</strong> <span id="empEmail">-</span></div>
+                    <div class="col-12"><strong>Số điện thoại:</strong> <span id="empSdt">-</span></div>
+                    <div class="col-12"><strong>Phòng ban:</strong> <span id="empPhongBan">-</span></div>
+                    <div class="col-12"><strong>Vai trò hiện tại:</strong> <span id="empRole">@(role == "employee" ? "Nhân viên" : "Quản lý / Admin")</span></div>
+                    <div class="col-12"><strong>Ngày vào làm:</strong> <span id="empNgayVaoLam">-</span></div>
+                </div>
+            </section>
+
+            <section class="panel profile-card profile-side">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Kỹ năng</h4>
+                        <p>Tổng hợp kỹ năng gắn với hồ sơ cá nhân.</p>
+                    </div>
+                </header>
+                <ul id="empSkills" class="simple-list profile-skill-list mb-0">
+                    <li>Đang tải...</li>
+                </ul>
+            </section>
+        </div>
+
+        <section class="panel profile-card profile-password mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Đổi mật khẩu</h4>
+                    <p>Thao tác này được thực hiện qua luồng xác thực Identity.</p>
+                </div>
+            </header>
+            <p class="text-muted mb-3">Để đảm bảo bảo mật, đổi mật khẩu được thực hiện qua luồng xác thực Identity có kiểm tra mật khẩu hiện tại và chính sách mật khẩu mới.</p>
+            <a class="btn btn-primary" asp-controller="Account" asp-action="ChangePassword">Mở màn hình đổi mật khẩu</a>
+        </section>
+
+        <section class="panel profile-card mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Cập nhật hồ sơ cá nhân</h4>
+                    <p>Sửa trực tiếp SDT, địa chỉ. Email/họ tên/ngày sinh/CCCD cần gửi yêu cầu duyệt.</p>
+                </div>
+            </header>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Số điện thoại</label>
+                    <input id="profileEditSdt" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Địa chỉ</label>
+                    <input id="profileEditDiaChi" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <button id="btnSaveProfileDirect" class="btn btn-primary" type="button">Lưu cập nhật trực tiếp</button>
+                </div>
+            </div>
+            <hr />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Email (cần duyệt)</label>
+                    <input id="profileReqEmail" class="form-control" type="email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Họ tên (cần duyệt)</label>
+                    <input id="profileReqHoTen" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Ngày sinh (cần duyệt)</label>
+                    <input id="profileReqNgaySinh" class="form-control" type="date" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">CCCD (cần duyệt)</label>
+                    <input id="profileReqCccd" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Lý do gửi</label>
+                    <textarea id="profileReqLyDo" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12">
+                    <button id="btnSubmitProfileRequest" class="btn btn-warning" type="button">Gửi yêu cầu cập nhật</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel profile-card mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Lịch sử yêu cầu cập nhật</h4>
+                </div>
+            </header>
+            <div class="table-responsive profile-table-wrap">
+                <table class="table align-middle profile-table">
+                    <thead>
+                        <tr>
+                            <th>Trạng thái</th>
+                            <th>Trường thay đổi</th>
+                            <th>Dữ liệu cũ</th>
+                            <th>Dữ liệu mới</th>
+                            <th>Lý do gửi</th>
+                            <th>Phản hồi</th>
+                            <th>Ngày gửi</th>
+                            <th>Ngày xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profileChangeRequestBody">
+                        <tr><td colspan="8" class="text-muted">Chưa có dữ liệu.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="panel-grid profile-layout two-col mt-3">
+            <section class="panel profile-card profile-main">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Thông tin cá nhân</h4>
+                        <p>Thông tin nhân sự và trạng thái tài khoản.</p>
+                    </div>
+                </header>
+                <div class="profile-summary">
+                    <div class="profile-summary-avatar">QL</div>
+                    <div class="profile-summary-body">
+                        <div class="profile-summary-name" id="empHoTen">Đang tải...</div>
+                        <div class="profile-summary-sub">Hồ sơ của bạn đang được tải từ hệ thống</div>
+                    </div>
+                </div>
+                <div class="row g-3 profile-detail-grid" id="employeeProfileInfo">
+                    <div class="col-12"><strong>Họ tên:</strong> <span id="empHoTenText">-</span></div>
+                    <div class="col-12"><strong>Email:</strong> <span id="empEmail">-</span></div>
+                    <div class="col-12"><strong>Số điện thoại:</strong> <span id="empSdt">-</span></div>
+                    <div class="col-12"><strong>Phòng ban:</strong> <span id="empPhongBan">-</span></div>
+                    <div class="col-12"><strong>Vai trò hiện tại:</strong> <span id="empRole">@(role == "employee" ? "Nhân viên" : "Quản lý / Admin")</span></div>
+                    <div class="col-12"><strong>Ngày vào làm:</strong> <span id="empNgayVaoLam">-</span></div>
+                </div>
+            </section>
+
+            <section class="panel profile-card profile-side">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Kỹ năng</h4>
+                        <p>Tổng hợp kỹ năng gắn với hồ sơ cá nhân.</p>
+                    </div>
+                </header>
+                <ul id="empSkills" class="simple-list profile-skill-list mb-0">
+                    <li>Đang tải...</li>
+                </ul>
+            </section>
+        </div>
+
+        <section class="panel profile-card mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Lịch sử KPI 12 kỳ gần nhất</h4>
+                    <p>Biểu đồ và bảng dữ liệu KPI theo tháng/năm của bạn.</p>
+                </div>
+            </header>
+            <div class="table-responsive profile-table-wrap">
+                <table class="table align-middle profile-table">
+                    <thead>
+                        <tr>
+                            <th>Tháng/năm</th>
+                            <th>Điểm</th>
+                            <th>Xếp loại</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profileKpiBody">
+                        <tr><td colspan="3" class="text-muted">Chưa có dữ liệu.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <canvas id="profileKpiHistoryChart" height="120"></canvas>
+        </section>
+
+        <section class="panel profile-card profile-password mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Đổi mật khẩu</h4>
+                    <p>Thao tác này được thực hiện qua luồng xác thực Identity.</p>
+                </div>
+            </header>
+            <p class="text-muted mb-3">Để đảm bảo bảo mật, đổi mật khẩu được thực hiện qua luồng xác thực Identity có kiểm tra mật khẩu hiện tại và chính sách mật khẩu mới.</p>
+            <a class="btn btn-primary" asp-controller="Account" asp-action="ChangePassword">Mở màn hình đổi mật khẩu</a>
+        </section>
+
+        <section class="panel profile-card mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Tra cứu hồ sơ nhân viên khác</h4>
+                    <p>Nhập mã nhân viên để xem chi tiết hồ sơ và lịch sử KPI của nhân viên khác.</p>
+                </div>
+            </header>
+            <div class="toolbar profile-toolbar">
+                <input id="profileEmployeeId" class="form-control" type="number" min="1" placeholder="Nhập mã nhân viên" />
+                <button id="btnProfileLoad" class="btn btn-primary">Tải hồ sơ</button>
+            </div>
+        </section>
+
+        <div class="panel-grid two-col profile-layout mt-3">
+            <section class="panel profile-card profile-main">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Thông tin nhân viên tra cứu</h4>
+                        <p>Thông tin cơ bản của hồ sơ đang tra cứu.</p>
+                    </div>
+                </header>
+                <div class="row g-3" id="profileInfo">
+                    <div class="col-12 text-muted">Chưa có dữ liệu.</div>
+                </div>
+            </section>
+
+            <section class="panel profile-card profile-side">
+                <header class="profile-card-head">
+                    <div>
+                        <h4>Kỹ năng tra cứu</h4>
+                        <p>Các kỹ năng được gắn với nhân viên tra cứu.</p>
+                    </div>
+                </header>
+                <ul id="profileSkills" class="simple-list profile-skill-list">
+                    <li>Chưa có dữ liệu.</li>
+                </ul>
+            </section>
+        </div>
+
+        <section class="panel profile-card mt-4">
+            <header class="profile-card-head">
+                <div>
+                    <h4>Lịch sử KPI 12 kỳ gần nhất (tra cứu)</h4>
+                    <p>Biểu đồ và bảng dữ liệu KPI theo tháng/năm.</p>
+                </div>
+            </header>
+            <div class="table-responsive profile-table-wrap">
+                <table class="table align-middle profile-table">
+                    <thead>
+                        <tr>
+                            <th>Tháng/năm</th>
+                            <th>Điểm</th>
+                            <th>Xếp loại</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profileKpiBody">
+                        <tr><td colspan="3" class="text-muted">Chưa có dữ liệu.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <canvas id="profileKpiHistoryChart" height="120"></canvas>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/profile.js" asp-append-version="true"></script>
+}
+
+
+
+
+

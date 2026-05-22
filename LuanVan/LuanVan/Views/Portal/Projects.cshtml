@@ -1,0 +1,1644 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Employee").Trim().ToLowerInvariant();
+    var roleKey = (ViewData["RoleKey"]?.ToString() ?? "employee").Trim().ToLowerInvariant();
+    var canManageProject = ViewData["CanManageProject"] as bool? ?? false;
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #0a1f3d, #1d4e89 56%, #2f7c9f);
+        --brand-ink: #12263f;
+        --surface-soft: #f5f8fc;
+        --border-soft: #dfe7f2;
+        --success-color: #1b8f5a;
+        --warning-color: #b68417;
+        --danger-color: #c33f3f;
+        --muted: #5d6e82;
+    }
+
+    .portal-projects {
+        font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+        color: var(--brand-ink);
+    }
+
+    .portal-projects :is(.btn, .form-control, .form-select, .nav-link, .project-card, .stat-card, .mini-card) {
+        transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .portal-projects :is(.btn, .form-control, .form-select, .nav-link):focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+    }
+
+    .project-page-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
+        gap: 1rem;
+        align-items: stretch;
+        padding: 1.05rem;
+        background: linear-gradient(135deg, #ffffff 0%, #eef4ff 52%, #f5f3ff 100%);
+        border: 1px solid #dbeafe;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        border-radius: 18px;
+    }
+
+    .project-page-hero h2 {
+        margin: 0.3rem 0 0.45rem;
+        letter-spacing: 0.2px;
+        font-weight: 700;
+    }
+
+    .project-hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 0.25rem 0.7rem;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .project-hero-sub {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+    }
+
+    .project-hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.8rem;
+    }
+
+    .project-hero-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .project-hero-summary {
+        height: 100%;
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        border: 1px solid #c7d2fe;
+        background: rgba(255, 255, 255, 0.82);
+        display: grid;
+        align-content: center;
+        gap: 0.3rem;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .project-hero-summary strong {
+        font-size: 1.02rem;
+        color: #0f172a;
+        line-height: 1.45;
+    }
+
+    .portal-projects .page-head h2 {
+        letter-spacing: 0.2px;
+        font-weight: 700;
+    }
+
+    .portal-projects .panel {
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+    }
+
+    .project-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .project-left {
+        min-width: 0;
+    }
+
+    .project-drawer.offcanvas-end {
+        width: min(92vw, 1180px);
+        max-width: min(92vw, 1180px);
+        border-left: 1px solid var(--border-soft);
+        box-shadow: -18px 0 40px rgba(13, 44, 84, 0.14);
+    }
+
+    .project-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+        gap: 0.6rem;
+    }
+
+    .project-resource-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.85rem;
+    }
+
+    .project-drawer .offcanvas-header {
+        padding: 1rem 1.2rem 0.75rem;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .project-drawer .offcanvas-body {
+        padding: 1rem 1.2rem 1.25rem;
+    }
+
+    .project-detail-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .project-detail-top .btn-close {
+        flex: 0 0 auto;
+    }
+
+    .project-card.is-clickable {
+        cursor: pointer;
+    }
+
+    .project-task-row {
+        cursor: pointer;
+    }
+
+    .project-task-row:hover {
+        background: #f7fbff;
+    }
+
+    .task-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.6rem;
+    }
+
+    .task-detail-item {
+        border: 1px solid var(--border-soft);
+        border-radius: 0.75rem;
+        padding: 0.55rem 0.7rem;
+        background: #fff;
+    }
+
+    .task-detail-item .label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 0.2rem;
+    }
+
+    .task-detail-item .value {
+        font-weight: 700;
+        color: var(--brand-ink);
+    }
+
+    .project-card.active {
+        border-color: #0c6dfd;
+        box-shadow: 0 14px 34px rgba(12, 109, 253, 0.16);
+    }
+
+    .project-drawer .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.25rem;
+    }
+
+    .project-drawer .nav-tabs .nav-link {
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .project-drawer.offcanvas-end {
+            width: min(100vw, 920px);
+            max-width: min(100vw, 920px);
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .project-layout {
+            gap: 1rem;
+        }
+
+        .project-drawer.offcanvas-end {
+            width: 100vw;
+            max-width: 100vw;
+        }
+
+        .project-detail-top {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+        }
+
+        .project-detail-top .d-flex {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .project-drawer .offcanvas-body {
+            padding: 0.85rem;
+        }
+
+        .project-drawer .nav-tabs {
+            padding-bottom: 0.2rem;
+            margin-right: -0.25rem;
+            margin-left: -0.25rem;
+        }
+
+        .project-drawer .nav-tabs .nav-link {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .project-drawer .tab-content {
+            margin-top: 0.75rem !important;
+        }
+
+        .project-drawer .mini-card {
+            padding: 0.85rem;
+        }
+
+        .project-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .project-resource-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+    }
+
+    /* Dashboard Summary */
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: #fff;
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 1.2rem;
+        text-align: center;
+        transition: transform 0.22s cubic-bezier(0.2,0,0,1), box-shadow 0.22s cubic-bezier(0.2,0,0,1), border-color 0.22s cubic-bezier(0.2,0,0,1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(12, 109, 253, 0.15);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #071a2f;
+        margin: 0.5rem 0;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Project Grid */
+    .project-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+        gap: 1.5rem; 
+    }
+
+    .project-card { 
+        border: 1px solid var(--border-soft); 
+        border-radius: 1rem; 
+        padding: 1.35rem; 
+        background: #fff; 
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        transition: transform 0.22s cubic-bezier(0.2,0,0,1), box-shadow 0.22s cubic-bezier(0.2,0,0,1), border-color 0.22s cubic-bezier(0.2,0,0,1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .project-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+
+    .project-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+        border-color: rgba(37, 99, 235, 0.35);
+    }
+
+    .project-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+
+    .project-title { 
+        font-weight: 700; 
+        font-size: 1.15rem; 
+        margin: 0;
+        color: #071a2f;
+        flex: 1;
+    }
+
+    .project-meta { 
+        color: var(--muted); 
+        font-size: .85rem;
+        margin-top: 0.3rem;
+    }
+
+    .project-chip { 
+        padding: .35rem .75rem; 
+        border-radius: 999px; 
+        font-size: .75rem; 
+        font-weight: 700;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+
+    .chip-start { background: #fff5dc; color: #8a6510; }
+    .chip-active { background: #e6f4ec; color: #1b7f51; }
+    .chip-done { background: #e8edf4; color: #34465a; }
+    .chip-deleted { background: #fde8e8; color: #a12828; }
+
+    .project-progress {
+        margin-top: 1rem;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 0.4rem;
+    }
+
+    .progress-bar-custom {
+        height: 8px;
+        background: #edf1f7;
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #0c6dfd, #1dcad3);
+        border-radius: 999px;
+        transition: width 0.4s ease;
+        position: relative;
+    }
+
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255,255,255, 0.5);
+    }
+
+    .project-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.8rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #edf1f7;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-item-value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #071a2f;
+    }
+
+    .stat-item-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.2rem;
+    }
+
+    /* Mini Cards */
+    .mini-card { 
+        border: 1px solid var(--border-soft); 
+        border-radius: 14px; 
+        padding: 1rem 1rem 0.9rem; 
+        background: linear-gradient(135deg, #fbfcff, #f2f7fe);
+        transition: transform 0.22s cubic-bezier(0.2,0,0,1), box-shadow 0.22s cubic-bezier(0.2,0,0,1), border-color 0.22s cubic-bezier(0.2,0,0,1);
+    }
+
+    .mini-card:hover {
+        box-shadow: 0 8px 20px rgba(12, 109, 253, 0.1);
+    }
+
+    .panel-title { 
+        font-size: 1.05rem; 
+        font-weight: 700; 
+        margin-bottom: .75rem;
+        color: #071a2f;
+    }
+
+    .list-clean { 
+        list-style: none; 
+        margin: 0; 
+        padding: 0; 
+    }
+
+    .list-clean li { 
+        padding: .55rem 0; 
+        border-bottom: 1px dashed #e3e8f2;
+        transition: all 0.2s ease;
+    }
+
+    .list-clean li:hover {
+        color: #0c6dfd;
+    }
+
+    .list-clean li:last-child { 
+        border-bottom: 0; 
+    }
+
+    .table-wrap { 
+        max-height: 400px; 
+        overflow: auto;
+        border-radius: 0.8rem;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+        background: linear-gradient(135deg, #f8fbff, #f0f6ff);
+        border-radius: 16px;
+        padding: 1.35rem 1.5rem;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .filter-group {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Tabs Upgrade */
+    .nav-tabs {
+        border-bottom: 2px solid var(--border-soft);
+        gap: 0;
+    }
+
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #0c6dfd;
+        border-bottom-color: #0c6dfd;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #0c6dfd;
+        background: transparent;
+        border-bottom-color: #0c6dfd;
+        box-shadow: inset 0 -3px 0 #0c6dfd;
+    }
+
+    /* Animations */
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .project-card {
+        animation: fadeInUp 0.5s ease;
+    }
+
+    .project-card:nth-child(1) { animation-delay: 0.1s; }
+    .project-card:nth-child(2) { animation-delay: 0.2s; }
+    .project-card:nth-child(3) { animation-delay: 0.3s; }
+    .project-card:nth-child(n+4) { animation-delay: 0.4s; }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .project-page-hero { grid-template-columns: 1fr; }
+        .project-grid { grid-template-columns: 1fr; }
+        .dashboard-stats { grid-template-columns: repeat(2, 1fr); }
+        .project-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 576px) {
+        .dashboard-stats { grid-template-columns: 1fr; }
+        .nav-tabs .nav-link { padding: 0.6rem 1rem; font-size: 0.9rem; }
+    }
+</style>
+
+<div class="portal-projects">
+
+<!-- Dashboard Summary -->
+<section class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-label">Tổng dự án</div>
+        <div id="statTotalProject" class="stat-value">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Dự án hoạt động</div>
+        <div id="statActiveProject" class="stat-value">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Đã hoàn thành</div>
+        <div id="statDoneProject" class="stat-value">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Tổng công việc</div>
+        <div id="statTotalTask" class="stat-value">0</div>
+    </div>
+</section>
+
+<style>
+    .project-toolbar {
+        background: #fff;
+        border-radius: 14px;
+        padding: 12px 14px;
+        border: 1px solid #e7eef7;
+        box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+    }
+    .project-toolbar .form-control,
+    .project-toolbar .form-select {
+        height: 38px;
+        border-radius: 999px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .btn-create-project {
+        height: 38px;
+        padding: 0 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .project-toolbar .filter-item {
+        min-width: 150px;
+    }
+
+    .project-toolbar .filter-item.filter-keyword {
+        min-width: 270px;
+    }
+
+    .project-toolbar .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .project-toolbar .create-wrap {
+        margin-left: auto;
+    }
+
+    .project-toolbar .form-label {
+        display: none;
+    }
+
+    @@media (max-width: 767.98px) {
+        .project-toolbar .create-wrap { margin-left: 0; }
+    }
+</style>
+
+<section class="panel mt-4">
+    <div class="project-toolbar">
+        <div class="toolbar-row">
+            <div class="filter-item filter-keyword">
+                <div class="filter-group">
+                    <label for="fKeyword" class="form-label">Từ khóa</label>
+                    <input id="fKeyword" name="fKeyword" class="form-control" placeholder="Tên/Mô tả dự án" />
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <div class="filter-group">
+                    <label for="fStatus" class="form-label">Trạng thái</label>
+                    <select id="fStatus" name="fStatus" class="form-select form-select-sm">
+                        <option value="">Tất cả</option>
+                        <option value="0">Chưa bắt đầu</option>
+                        <option value="1">Đang thực hiện</option>
+                        <option value="2">Hoàn thành</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <div class="filter-group">
+                    <label for="fMonth" class="form-label">Tháng</label>
+                    <select id="fMonth" name="fMonth" class="form-select form-select-sm"></select>
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <div class="filter-group">
+                    <label for="fYear" class="form-label">Năm</label>
+                    <select id="fYear" name="fYear" class="form-select form-select-sm"></select>
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <div class="filter-group">
+                    <label for="fFromDate" class="form-label">Từ ngày</label>
+                    <input id="fFromDate" name="fFromDate" type="date" class="form-control" />
+                </div>
+            </div>
+
+            <div class="filter-item">
+                <div class="filter-group">
+                    <label for="fToDate" class="form-label">Đến ngày</label>
+                    <input id="fToDate" name="fToDate" type="date" class="form-control" />
+                </div>
+            </div>
+            <div class="create-wrap">
+                @if (canManageProject)
+                {
+                    <button id="btnCreateProject" class="btn btn-primary btn-create-project">
+                        <i class="bi bi-plus-circle"></i> Tạo dự án
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="project-layout">
+    <div class="project-left">
+        <section class="panel mt-4">
+            <div class="panel-title">📁 Danh sách dự án</div>
+            <div id="projectList" class="project-grid"></div>
+            <div id="emptyState" class="text-center py-5 d-none">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                <h5 class="text-muted">Không có dự án nào</h5>
+                <p class="text-muted">Tạo dự án mới để bắt đầu quản lý</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="offcanvas offcanvas-end project-drawer" tabindex="-1" id="projectDetailPanel" aria-labelledby="projectDetailLabel">
+        <div class="offcanvas-header">
+            <h5 id="projectDetailLabel" class="offcanvas-title">Chi tiết dự án</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div id="detailSection" class="offcanvas-body">
+    <div class="project-detail-top">
+        <div>
+            <h3 id="dName" class="mb-1">📊 Chi tiết dự án</h3>
+            <p id="dDesc" class="text-muted mb-1">-</p>
+            <div id="dStatus"></div>
+        </div>
+        <div class="d-flex gap-2 align-items-start">
+            @if (canManageProject)
+            {
+                <button id="btnEditProject" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil"></i> Cập nhật
+                </button>
+                <button id="btnDeleteProject" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Xóa mềm
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="project-kpi-grid mt-2">
+        <div class="mini-card"><div class="text-muted">Tổng công việc</div><div id="dTotalTask" class="h4 mb-0">0</div></div>
+        <div class="mini-card"><div class="text-muted">Đã hoàn thành</div><div id="dDoneTask" class="h4 mb-0">0</div></div>
+        <div class="mini-card"><div class="text-muted">Trễ hạn</div><div id="dLateTask" class="h4 mb-0">0</div></div>
+        <div class="mini-card"><div class="text-muted">% Hoàn thành</div><div id="dPercent" class="h4 mb-0">0%</div></div>
+        <div class="mini-card"><div class="text-muted">Nhân sự</div><div id="dMembers" class="h4 mb-0">0</div></div>
+        <div class="mini-card"><div class="text-muted">KPI liên kết</div><div id="dKpi" class="h4 mb-0">0</div></div>
+    </div>
+
+
+
+    <div class="mt-4">
+        <ul class="nav nav-tabs" id="projectDetailTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="resourcesTab" data-bs-toggle="tab" data-bs-target="#resourcesPane" type="button" role="tab" aria-controls="resourcesPane" aria-selected="true">Nhân sự & Phòng ban</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tasksTab" data-bs-toggle="tab" data-bs-target="#tasksPane" type="button" role="tab" aria-controls="tasksPane" aria-selected="false">Công việc</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="aiTab" data-bs-toggle="tab" data-bs-target="#aiPane" type="button" role="tab" aria-controls="aiPane" aria-selected="false">AI Cảnh báo</button>
+            </li>
+        </ul>
+        <div class="tab-content mt-3" id="projectDetailTabContent">
+            <div class="tab-pane fade show active" id="resourcesPane" role="tabpanel" aria-labelledby="resourcesTab">
+                <div class="project-resource-grid">
+                    <div>
+                        <div class="mini-card h-100">
+                            <div class="panel-title">Nhân sự dự án</div>
+                            @if (canManageProject)
+                            {
+                                <div class="input-group mb-2">
+                                    <select id="sEmployee" name="sEmployee" class="form-select"></select>
+                                    <select id="sRole" name="sRole" class="form-select">
+                                        <option value="Project Manager">Quản lý dự án</option>
+                                        <option value="Leader">Trưởng nhóm</option>
+                                        <option value="Member" selected>Thành viên</option>
+                                    </select>
+                                    <button id="btnAssignEmployee" class="btn btn-primary">Gán</button>
+                                </div>
+                            }
+                            <ul id="listEmployee" class="list-clean"></ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="mini-card h-100">
+                            <div class="panel-title">Nhóm tham gia</div>
+                            @if (canManageProject)
+                            {
+                                <div class="input-group mb-2">
+                                    <select id="sTeam" name="sTeam" class="form-select"></select>
+                                    <button id="btnAssignTeam" class="btn btn-primary">Gán nhóm</button>
+                                </div>
+                            }
+                            <ul id="listTeam" class="list-clean"></ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="mini-card h-100">
+                            <div class="panel-title">Phòng ban tham gia</div>
+                            @if (canManageProject)
+                            {
+                                <div class="input-group mb-2">
+                                    <select id="sDepartment" name="sDepartment" class="form-select"></select>
+                                    <button id="btnAssignDepartment" class="btn btn-primary">Gán PB</button>
+                                </div>
+                            }
+                            <ul id="listDepartment" class="list-clean"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tasksPane" role="tabpanel" aria-labelledby="tasksTab">
+                <div class="mini-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="panel-title mb-0">Theo dõi công việc dự án</div>
+                        @if (canManageProject)
+                        {
+                            <button id="btnCreateTaskFromProject" class="btn btn-sm btn-primary">+ Tạo công việc</button>
+                        }
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Công việc</th>
+                                    <th>Người thực hiện</th>
+                                    <th>Hạn hoàn thành</th>
+                                    <th>Trạng thái</th>
+                                    <th>%</th>
+                                    <th>Cảnh báo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="taskBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="taskDetailPanel" class="mini-card mt-3 d-none">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <div class="panel-title mb-1">Chi tiết công việc</div>
+                                <div id="taskDetailTitle" class="fw-bold">-</div>
+                                <div id="taskDetailMeta" class="text-muted small">Bấm vào một công việc để xem chi tiết.</div>
+                            </div>
+                            @if (canManageProject)
+                            {
+                                <button id="btnEditSelectedTask" type="button" class="btn btn-sm btn-outline-primary" disabled>
+                                    <i class="bi bi-pencil-square"></i> Chỉnh sửa công việc
+                                </button>
+                                <button id="btnDeleteSelectedTask" type="button" class="btn btn-sm btn-outline-danger" disabled>
+                                    <i class="bi bi-trash"></i> Xóa công việc
+                                </button>
+                            }
+                        </div>
+
+                        <div id="taskDetailDescription" class="small text-muted mt-2">-</div>
+
+                        <div class="task-detail-grid mt-2">
+                            <div class="task-detail-item"><span class="label">Trạng thái</span><span id="taskDetailStatus" class="value">-</span></div>
+                            <div class="task-detail-item"><span class="label">Ưu tiên</span><span id="taskDetailPriority" class="value">-</span></div>
+                            <div class="task-detail-item"><span class="label">Độ khó</span><span id="taskDetailDifficulty" class="value">-</span></div>
+                            <div class="task-detail-item"><span class="label">Tiến độ</span><span id="taskDetailProgress" class="value">-</span></div>
+                            <div class="task-detail-item"><span class="label">Bắt đầu</span><span id="taskDetailStart" class="value">-</span></div>
+                            <div class="task-detail-item"><span class="label">Hạn hoàn thành</span><span id="taskDetailDeadline" class="value">-</span></div>
+                        </div>
+
+                        <div class="mt-2 small"><strong>Người thực hiện:</strong> <span id="taskDetailAssignees" class="text-muted">-</span></div>
+                    </div>
+
+                    <partial name="_TaskFormPartial" />
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="aiPane" role="tabpanel" aria-labelledby="aiTab">
+                <div class="mini-card">
+                    <div class="panel-title">AI cảnh báo trễ hạn</div>
+                    <div class="mb-2">Tỷ lệ rủi ro: <strong id="aiRisk">0%</strong></div>
+                    <div class="mb-2">Nhân viên rủi ro cao: <strong id="aiHighRisk">0</strong></div>
+                    <div class="mb-2">Mức cảnh báo: <strong id="aiLevel">Thấp</strong></div>
+                    <div>Ngày trễ dự kiến: <strong id="aiDate">-</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="projectModalTitle" class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Tạo dự án mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="mName" class="form-label">Tên dự án</label>
+                        <input id="mName" name="mName" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label for="mDesc" class="form-label">Mô tả</label>
+                        <textarea id="mDesc" name="mDesc" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mStart" class="form-label">Ngày bắt đầu</label>
+                        <input id="mStart" name="mStart" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mEnd" class="form-label">Ngày kết thúc</label>
+                        <input id="mEnd" name="mEnd" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mStatus" class="form-label">Trạng thái</label>
+                        <select id="mStatus" name="mStatus" class="form-select">
+                            <option value="0">Chưa bắt đầu</option>
+                            <option value="1">Đang thực hiện</option>
+                            <option value="2">Hoàn thành</option>
+                        </select>
+                    </div>
+                    @if (role == "admin")
+                    {
+                        <div class="col-12">
+                            <label for="mDepartment" class="form-label">Phòng ban phụ trách</label>
+                            <select id="mDepartment" name="mDepartment" class="form-select"></select>
+                        </div>
+                    }
+                </div>
+                <div id="modalResult" class="small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button id="btnSaveProject" type="button" class="btn btn-primary">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        const role = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(role));
+        const canManageProject = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(canManageProject));
+
+        const el = {
+            fKeyword: document.getElementById('fKeyword'),
+            fStatus: document.getElementById('fStatus'),
+            fMonth: document.getElementById('fMonth'),
+            fYear: document.getElementById('fYear'),
+            fFromDate: document.getElementById('fFromDate'),
+            fToDate: document.getElementById('fToDate'),
+            btnCreateProject: document.getElementById('btnCreateProject'),
+            btnCreateTaskFromProject: document.getElementById('btnCreateTaskFromProject'),
+            projectList: document.getElementById('projectList'),
+            emptyState: document.getElementById('emptyState'),
+            detailSection: document.getElementById('detailSection'),
+            dName: document.getElementById('dName'),
+            dDesc: document.getElementById('dDesc'),
+            dStatus: document.getElementById('dStatus'),
+            dTotalTask: document.getElementById('dTotalTask'),
+            dDoneTask: document.getElementById('dDoneTask'),
+            dLateTask: document.getElementById('dLateTask'),
+            dPercent: document.getElementById('dPercent'),
+            dMembers: document.getElementById('dMembers'),
+            dKpi: document.getElementById('dKpi'),
+            btnEditProject: document.getElementById('btnEditProject'),
+            btnDeleteProject: document.getElementById('btnDeleteProject'),
+            sEmployee: document.getElementById('sEmployee'),
+            sRole: document.getElementById('sRole'),
+            btnAssignEmployee: document.getElementById('btnAssignEmployee'),
+            listEmployee: document.getElementById('listEmployee'),
+            sTeam: document.getElementById('sTeam'),
+            btnAssignTeam: document.getElementById('btnAssignTeam'),
+            listTeam: document.getElementById('listTeam'),
+            sDepartment: document.getElementById('sDepartment'),
+            btnAssignDepartment: document.getElementById('btnAssignDepartment'),
+            listDepartment: document.getElementById('listDepartment'),
+            taskBody: document.getElementById('taskBody'),
+            taskDetailPanel: document.getElementById('taskDetailPanel'),
+            taskDetailTitle: document.getElementById('taskDetailTitle'),
+            taskDetailMeta: document.getElementById('taskDetailMeta'),
+            taskDetailDescription: document.getElementById('taskDetailDescription'),
+            taskDetailStatus: document.getElementById('taskDetailStatus'),
+            taskDetailPriority: document.getElementById('taskDetailPriority'),
+            taskDetailDifficulty: document.getElementById('taskDetailDifficulty'),
+            taskDetailProgress: document.getElementById('taskDetailProgress'),
+            taskDetailStart: document.getElementById('taskDetailStart'),
+            taskDetailDeadline: document.getElementById('taskDetailDeadline'),
+            taskDetailAssignees: document.getElementById('taskDetailAssignees'),
+            btnEditSelectedTask: document.getElementById('btnEditSelectedTask'),
+            btnDeleteSelectedTask: document.getElementById('btnDeleteSelectedTask'),
+            aiRisk: document.getElementById('aiRisk'),
+            aiHighRisk: document.getElementById('aiHighRisk'),
+            aiLevel: document.getElementById('aiLevel'),
+            aiDate: document.getElementById('aiDate'),
+            projectModal: new bootstrap.Modal(document.getElementById('projectModal')),
+            projectModalTitle: document.getElementById('projectModalTitle'),
+            mName: document.getElementById('mName'),
+            mDesc: document.getElementById('mDesc'),
+            mStart: document.getElementById('mStart'),
+            mEnd: document.getElementById('mEnd'),
+            mStatus: document.getElementById('mStatus'),
+            mDepartment: document.getElementById('mDepartment'),
+            modalResult: document.getElementById('modalResult'),
+            btnSaveProject: document.getElementById('btnSaveProject')
+        };
+
+        let currentProjectId = null;
+        let editingProjectId = null;
+    let currentProjectTasks = [];
+    let selectedTaskId = null;
+
+        function toast(msg, ok = true) {
+            const cls = ok ? 'text-success' : 'text-danger';
+            el.modalResult.className = `small mt-2 ${cls}`;
+            el.modalResult.textContent = msg;
+        }
+
+        function toDateText(v) {
+            if (!v) return '-';
+            return new Date(v).toLocaleDateString('vi-VN');
+        }
+
+        function statusText(v) {
+            if (v === -1) return 'Đã xóa';
+            if (v === 0) return 'Chưa bắt đầu';
+            if (v === 1) return 'Đang thực hiện';
+            if (v === 2) return 'Hoàn thành';
+            return 'Không rõ';
+        }
+
+        function taskStatusText(v) {
+            if (v === 3) return 'Hoàn thành';
+            if (v === 2) return 'Đang làm';
+            return 'Chưa bắt đầu';
+        }
+
+        function priorityText(v) {
+            if (v === 3) return 'Cao';
+            if (v === 2) return 'Trung bình';
+            if (v === 1) return 'Thấp';
+            return '-';
+        }
+
+        function difficultyText(v) {
+            if (v === 3) return 'Khó';
+            if (v === 2) return 'Trung bình';
+            if (v === 1) return 'Dễ';
+            return '-';
+        }
+
+        function setTaskDetailPlaceholder(message) {
+            el.taskDetailPanel?.classList.add('d-none');
+            if (el.taskDetailTitle) el.taskDetailTitle.textContent = '-';
+            if (el.taskDetailMeta) el.taskDetailMeta.textContent = message;
+            if (el.taskDetailDescription) el.taskDetailDescription.textContent = '-';
+            if (el.taskDetailStatus) el.taskDetailStatus.textContent = '-';
+            if (el.taskDetailPriority) el.taskDetailPriority.textContent = '-';
+            if (el.taskDetailDifficulty) el.taskDetailDifficulty.textContent = '-';
+            if (el.taskDetailProgress) el.taskDetailProgress.textContent = '-';
+            if (el.taskDetailStart) el.taskDetailStart.textContent = '-';
+            if (el.taskDetailDeadline) el.taskDetailDeadline.textContent = '-';
+            if (el.taskDetailAssignees) el.taskDetailAssignees.textContent = '-';
+            if (el.btnEditSelectedTask) el.btnEditSelectedTask.disabled = true;
+            if (el.btnDeleteSelectedTask) el.btnDeleteSelectedTask.disabled = true;
+        }
+
+        function highlightTaskRow(taskId) {
+            el.taskBody?.querySelectorAll('tr[data-task-id]').forEach(row => {
+                row.classList.toggle('table-primary', String(row.dataset.taskId) === String(taskId));
+            });
+        }
+
+        async function openTaskDetail(taskId) {
+            if (!taskId) return;
+
+            const detail = await requestJson(`/congviec/${taskId}`);
+            const assignees = (detail.nguoiDuocGiao || []).map(x => x.hoTen).filter(Boolean);
+
+            selectedTaskId = taskId;
+            highlightTaskRow(taskId);
+            el.taskDetailPanel?.classList.remove('d-none');
+
+            if (el.taskDetailTitle) el.taskDetailTitle.textContent = detail.tenCongViec || `Công việc #${taskId}`;
+            if (el.taskDetailMeta) el.taskDetailMeta.textContent = `Mã công việc: #${taskId}`;
+            if (el.taskDetailDescription) el.taskDetailDescription.textContent = detail.moTa || 'Không có mô tả.';
+            if (el.taskDetailStatus) el.taskDetailStatus.textContent = taskStatusText(detail.maTrangThai);
+            if (el.taskDetailPriority) el.taskDetailPriority.textContent = priorityText(detail.maDoUuTien);
+            if (el.taskDetailDifficulty) el.taskDetailDifficulty.textContent = difficultyText(detail.maDoKho);
+            if (el.taskDetailProgress) el.taskDetailProgress.textContent = `${detail.tienDoPhanTram || 0}%`;
+            if (el.taskDetailStart) el.taskDetailStart.textContent = toDateText(detail.ngayBatDau);
+            if (el.taskDetailDeadline) el.taskDetailDeadline.textContent = toDateText(detail.hanHoanThanh);
+            if (el.taskDetailAssignees) el.taskDetailAssignees.textContent = assignees.length ? assignees.join(', ') : '-';
+            if (el.btnEditSelectedTask) el.btnEditSelectedTask.disabled = !canManageProject;
+            if (el.btnDeleteSelectedTask) el.btnDeleteSelectedTask.disabled = !canManageProject;
+        }
+
+        async function openEditSelectedTask() {
+            if (!selectedTaskId || !currentProjectId) return;
+
+            const tasksTabBtn = document.getElementById('tasksTab');
+            if (tasksTabBtn) tasksTabBtn.click();
+
+            if (typeof initProjectTaskForm === 'function') {
+                await initProjectTaskForm(currentProjectId);
+            }
+
+            if (typeof window.openTaskForm === 'function') {
+                await window.openTaskForm(selectedTaskId);
+            }
+
+            const wrap = document.getElementById('projectTaskFormWrap');
+            if (wrap) {
+                wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        async function deleteSelectedTask() {
+            if (!selectedTaskId || !currentProjectId) return;
+            if (!canManageProject) return;
+            if (!confirm('Bạn có chắc muốn xóa công việc này?')) return;
+
+            try {
+                await requestJson(`/congviec/${selectedTaskId}`, { method: 'DELETE' });
+                selectedTaskId = null;
+                await openDetail(currentProjectId);
+            } catch (error) {
+                alert(error.message || 'Không thể xóa công việc.');
+            }
+        }
+
+        async function handleTaskRowClick(event) {
+            const row = event.target.closest('tr[data-task-id]');
+            if (!row) return;
+
+            const taskId = Number(row.dataset.taskId || 0);
+            if (!taskId) return;
+
+            await openTaskDetail(taskId);
+        }
+
+        function statusChip(v) {
+            if (v === -1) return '<span class="project-chip chip-deleted">Đã xóa</span>';
+            if (v === 0) return '<span class="project-chip chip-start">Chưa bắt đầu</span>';
+            if (v === 1) return '<span class="project-chip chip-active">Đang thực hiện</span>';
+            return '<span class="project-chip chip-done">Hoàn thành</span>';
+        }
+
+        async function requestJson(url, options = {}) {
+            const res = await fetch(url, options);
+            const text = await res.text();
+            let data = null;
+            try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+            const isSuccess = data?.success ?? data?.Success;
+            const message = data?.message ?? data?.Message;
+            const payload = data?.data ?? data?.Data;
+            if (!res.ok || isSuccess === false) {
+                throw new Error(message || `HTTP ${res.status}`);
+            }
+            if (isSuccess === undefined && data !== null && !Array.isArray(data) && typeof data === 'object') {
+                return payload ?? data;
+            }
+            return payload;
+        }
+
+        function fillMonthYear() {
+            el.fMonth.innerHTML = '<option value="">Tất cả tháng</option>';
+            for (let i = 1; i <= 12; i++) {
+                el.fMonth.innerHTML += `<option value="${i}">Tháng ${i}</option>`;
+            }
+
+            const y = new Date().getFullYear();
+            el.fYear.innerHTML = '<option value="">Tất cả năm</option>';
+            for (let i = y - 4; i <= y + 2; i++) {
+                el.fYear.innerHTML += `<option value="${i}">${i}</option>`;
+            }
+            el.fYear.value = String(y);
+        }
+
+        async function loadLookup() {
+            const [employees, teams, departments] = await Promise.all([
+                requestJson('/nhanvien?page=1&size=200').catch(err => {
+                    console.warn('Failed to load employees:', err.message);
+                    return { items: [] };
+                }),
+                requestJson('/api/nhom').catch(err => {
+                    console.warn('Failed to load teams:', err.message);
+                    return [];
+                }),
+                requestJson('/phongban').catch(err => {
+                    console.warn('Failed to load departments:', err.message);
+                    return [];
+                })
+            ]);
+
+            const employeeItems = employees?.items || [];
+            if (el.sEmployee) {
+                el.sEmployee.innerHTML = '<option value="">Chọn nhân viên</option>';
+                employeeItems.forEach(x => {
+                    el.sEmployee.innerHTML += `<option value="${x.maNhanVien}">${x.hoTen} (#${x.maNhanVien})</option>`;
+                });
+            }
+
+            if (el.sTeam) {
+                el.sTeam.innerHTML = '<option value="">Chọn nhóm</option>';
+                teams.forEach(x => {
+                    el.sTeam.innerHTML += `<option value="${x.maNhom}">${x.tenNhom}</option>`;
+                });
+            }
+
+            if (el.mDepartment) {
+                el.mDepartment.innerHTML = '<option value="">Chọn phòng ban</option>';
+            }
+
+            if (el.sDepartment) {
+                el.sDepartment.innerHTML = '<option value="">Chọn phòng ban</option>';
+                departments.forEach(x => {
+                    el.sDepartment.innerHTML += `<option value="${x.maPhongBan}">${x.tenPhongBan}</option>`;
+                    if (el.mDepartment) {
+                        el.mDepartment.innerHTML += `<option value="${x.maPhongBan}">${x.tenPhongBan}</option>`;
+                    }
+                });
+            }
+        }
+
+        function buildQuery() {
+            const q = new URLSearchParams();
+            if (el.fKeyword?.value?.trim()) q.set('keyword', el.fKeyword.value.trim());
+            if (el.fStatus?.value) q.set('trangThai', el.fStatus.value);
+            if (el.fMonth?.value) q.set('month', el.fMonth.value);
+            if (el.fYear?.value) q.set('year', el.fYear.value);
+            if (el.fFromDate?.value) q.set('tuNgay', el.fFromDate.value);
+            if (el.fToDate?.value) q.set('denNgay', el.fToDate.value);
+            q.set('page', '1');
+            q.set('size', '50');
+            return q.toString();
+        }
+
+        async function loadProjects() {
+            el.projectList.innerHTML = '<div class="text-muted text-center py-5"><span class="spinner-border spinner-border-sm"></span> Đang tải dữ liệu...</div>';
+            try {
+                const data = await requestJson(`/duan?${buildQuery()}`);
+                const items = data.items || [];
+                
+                if (!items.length) {
+                    el.projectList.innerHTML = '';
+                    el.emptyState?.classList.remove('d-none');
+                    updateDashboardStats([]);
+                    return;
+                }
+
+                el.emptyState?.classList.add('d-none');
+                updateDashboardStats(items);
+
+                el.projectList.innerHTML = items.map(p => {
+                    const progress = Math.round(p.phanTramHoanThanh || 0);
+                    
+                    return `
+                        <article class="project-card is-clickable" data-project-id="${p.maDuAn}" onclick="openDetail(${p.maDuAn})">
+                            <div class="project-header">
+                                <div>
+                                    <div class="project-title">${p.tenDuAn || '(Không tên)'}</div>
+                                    <div class="project-meta">
+                                        <i class="bi bi-calendar"></i> ${toDateText(p.ngayBatDau)} - ${toDateText(p.ngayKetThuc)}
+                                    </div>
+                                </div>
+                                <div>${statusChip(p.trangThai)}</div>
+                            </div>
+                            <p class="mt-2 mb-2 text-muted">${p.moTa || '<span class="text-muted fst-italic">Không có mô tả</span>'}</p>
+                            
+                            <div class="project-progress">
+                                <div class="progress-label">
+                                    <span>Tiến độ hoàn thành</span>
+                                    <strong>${progress}%</strong>
+                                </div>
+                                <div class="progress-bar-custom">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="project-stats">
+                                <div class="stat-item">
+                                    <div class="stat-item-value">${p.tongCongViec || 0}</div>
+                                    <div class="stat-item-label">Tổng CV</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-item-value">${p.congViecHoanThanh || 0}</div>
+                                    <div class="stat-item-label">Hoàn thành</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-item-value text-danger">${p.congViecTreHan || 0}</div>
+                                    <div class="stat-item-label">Trễ hạn</div>
+                                </div>
+                            </div>
+
+                        </article>
+                    `;
+                }).join('');
+
+                if (currentProjectId) {
+                    setActiveProjectCard(currentProjectId);
+                }
+            } catch (err) {
+                el.projectList.innerHTML = `<div class="alert alert-danger">⚠️ ${err.message}</div>`;
+            }
+        }
+
+        function updateDashboardStats(projects) {
+            const totalProjects = projects.length;
+            const activeProjects = projects.filter(p => p.trangThai === 1).length;
+            const doneProjects = projects.filter(p => p.trangThai === 2).length;
+            const totalTasks = projects.reduce((sum, p) => sum + (p.tongCongViec || 0), 0);
+
+            document.getElementById('statTotalProject').textContent = totalProjects;
+            document.getElementById('statActiveProject').textContent = activeProjects;
+            document.getElementById('statDoneProject').textContent = doneProjects;
+            document.getElementById('statTotalTask').textContent = totalTasks;
+        }
+
+        function setActiveProjectCard(id) {
+            el.projectList.querySelectorAll('.project-card').forEach(card => {
+                card.classList.toggle('active', String(card.dataset.projectId) === String(id));
+            });
+        }
+
+        const projectDetailOffcanvas = new bootstrap.Offcanvas(document.getElementById('projectDetailPanel'));
+
+        function openProjectDetail(id) {
+            currentProjectId = id;
+            projectDetailOffcanvas.show();
+            setActiveProjectCard(id);
+        }
+
+        function closeProjectDetail() {
+            currentProjectId = null;
+            projectDetailOffcanvas.hide();
+            el.projectList.querySelectorAll('.project-card').forEach(card => card.classList.remove('active'));
+        }
+
+        async function openDetail(id) {
+            openProjectDetail(id);
+            selectedTaskId = null;
+
+            const [detail, employees, teams, departments, tasks, tracking] = await Promise.all([
+                requestJson(`/duan/${id}`),
+                requestJson(`/duan/${id}/nhanvien`).catch(() => []),
+                requestJson(`/duan/${id}/nhom`).catch(() => []),
+                requestJson(`/duan/${id}/phongban`).catch(() => []),
+                requestJson(`/duan/${id}/tasks`).catch(() => []),
+                requestJson(`/duan/${id}/tracking`).catch(() => null)
+            ]);
+
+            el.dName.textContent = detail.tenDuAn || '(Không tên)';
+            el.dDesc.textContent = detail.moTa || 'Không có mô tả.';
+            el.dStatus.innerHTML = `${statusChip(detail.trangThai)} <span class="text-muted ms-2">${toDateText(detail.ngayBatDau)} - ${toDateText(detail.ngayKetThuc)}</span>`;
+
+            el.dTotalTask.textContent = String(detail.tongCongViec || 0);
+            el.dDoneTask.textContent = String(detail.congViecHoanThanh || 0);
+            el.dLateTask.textContent = String(detail.congViecTreHan || 0);
+            el.dPercent.textContent = `${detail.phanTramHoanThanh || 0}%`;
+            el.dMembers.textContent = String(detail.soNhanSu || 0);
+            el.dKpi.textContent = String(detail.soKpiLienKet || 0);
+
+            el.listEmployee.innerHTML = employees.length
+                ? employees.map(x => `<li>${x.hoTen} - ${x.vaiTro || 'Thành viên'} ${canManageProject ? `<button class="btn btn-link btn-sm text-danger" onclick="removeEmployee(${x.maNhanVien})">Bỏ gán</button>` : ''}</li>`).join('')
+                : '<li class="text-muted">Chưa có nhân sự</li>';
+
+            el.listTeam.innerHTML = teams.length
+                ? teams.map(x => `<li>${x.tenNhom} ${canManageProject ? `<button class="btn btn-link btn-sm text-danger" onclick="removeTeam(${x.maNhom})">Bỏ gán</button>` : ''}</li>`).join('')
+                : '<li class="text-muted">Chưa có nhóm</li>';
+
+            el.listDepartment.innerHTML = departments.length
+                ? departments.map(x => `<li>${x.tenPhongBan} ${canManageProject ? `<button class="btn btn-link btn-sm text-danger" onclick="removeDepartment(${x.maPhongBan})">Bỏ gán</button>` : ''}</li>`).join('')
+                : '<li class="text-muted">Chưa có phòng ban</li>';
+
+            currentProjectTasks = tasks;
+            el.taskBody.innerHTML = tasks.length
+                ? tasks.map(t => `
+                    <tr class="project-task-row" data-task-id="${t.maCongViec}" title="Bấm để xem chi tiết công việc">
+                        <td>${t.tenCongViec || ''}</td>
+                        <td>${(t.nguoiThucHien || []).filter(Boolean).join(', ') || '-'}</td>
+                        <td>${toDateText(t.hanHoanThanh)}</td>
+                        <td>${t.maTrangThai === 3 ? 'Hoàn thành' : (t.maTrangThai === 2 ? 'Đang làm' : 'Chưa bắt đầu')}</td>
+                        <td>${t.phanTramHoanThanh || 0}%</td>
+                        <td>${t.laTreHan ? '<span class="text-danger">Trễ hạn</span>' : '<span class="text-success">Đúng hạn</span>'}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" class="text-muted">Chưa có công việc</td></tr>';
+
+            highlightTaskRow(null);
+            setTaskDetailPlaceholder(tasks.length
+                ? 'Bấm vào một công việc trong bảng để xem chi tiết và chỉnh sửa.'
+                : 'Dự án chưa có công việc. Hãy tạo công việc mới để theo dõi.');
+
+            if (tracking && tracking.aiCanhBao) {
+                el.aiRisk.textContent = `${tracking.aiCanhBao.tyLeRuiRoTreHan || 0}%`;
+                el.aiHighRisk.textContent = String(tracking.aiCanhBao.soNhanVienRuiRoCao || 0);
+                el.aiLevel.textContent = tracking.aiCanhBao.mucCanhBao || 'Thấp';
+                el.aiDate.textContent = toDateText(tracking.aiCanhBao.ngayTreDuKien);
+            } else {
+                el.aiRisk.textContent = '0%';
+                el.aiHighRisk.textContent = '0';
+                el.aiLevel.textContent = 'Thấp';
+                el.aiDate.textContent = '-';
+            }
+        }
+
+        async function saveProject() {
+            const payload = {
+                tenDuAn: el.mName.value.trim(),
+                moTa: el.mDesc.value.trim(),
+                ngayBatDau: el.mStart.value || null,
+                ngayKetThuc: el.mEnd.value || null,
+                trangThai: Number(el.mStatus.value)
+            };
+
+            if (el.mDepartment?.value) {
+                payload.maPhongBan = Number(el.mDepartment.value);
+            }
+
+            if (!payload.tenDuAn) {
+                toast('Tên dự án không được để trống.', false);
+                return;
+            }
+
+            if (!payload.ngayBatDau || !payload.ngayKetThuc) {
+                toast('Ngày bắt đầu và ngày kết thúc là bắt buộc.', false);
+                return;
+            }
+
+            try {
+                if (editingProjectId) {
+                    await requestJson(`/duan/${editingProjectId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    await requestJson('/duan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                toast('Lưu dự án thành công.', true);
+                await loadProjects();
+                if (currentProjectId) {
+                    await openDetail(currentProjectId);
+                }
+                el.projectModal.hide();
+            } catch (err) {
+                toast(err.message, false);
+            }
+        }
+
+        async function assignEmployee() {
+            if (!currentProjectId || !el.sEmployee.value) return;
+            await requestJson(`/duan/${currentProjectId}/nhanvien`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maNhanVien: Number(el.sEmployee.value), vaiTro: el.sRole.value })
+            });
+            await openDetail(currentProjectId);
+        }
+
+        async function assignTeam() {
+            if (!currentProjectId || !el.sTeam.value) return;
+            await requestJson(`/duan/${currentProjectId}/nhom`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maNhom: Number(el.sTeam.value), tuDongThemThanhVienNhom: true })
+            });
+            await openDetail(currentProjectId);
+        }
+
+        async function assignDepartment() {
+            if (!currentProjectId || !el.sDepartment.value) return;
+            await requestJson(`/duan/${currentProjectId}/phongban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maPhongBan: Number(el.sDepartment.value) })
+            });
+            await openDetail(currentProjectId);
+        }
+
+        async function removeEmployee(id) {
+            if (!currentProjectId) return;
+            const triggerButton = document.activeElement && document.activeElement.matches('button')
+                ? document.activeElement
+                : null;
+
+            await (window.UiButtonLoading?.run
+                ? window.UiButtonLoading.run(triggerButton, () => requestJson(`/duan/${currentProjectId}/nhanvien/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                : requestJson(`/duan/${currentProjectId}/nhanvien/${id}`, { method: 'DELETE' }));
+            await openDetail(currentProjectId);
+        }
+
+        async function removeTeam(id) {
+            if (!currentProjectId) return;
+            const triggerButton = document.activeElement && document.activeElement.matches('button')
+                ? document.activeElement
+                : null;
+
+            await (window.UiButtonLoading?.run
+                ? window.UiButtonLoading.run(triggerButton, () => requestJson(`/duan/${currentProjectId}/nhom/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                : requestJson(`/duan/${currentProjectId}/nhom/${id}`, { method: 'DELETE' }));
+            await openDetail(currentProjectId);
+        }
+
+        async function removeDepartment(id) {
+            if (!currentProjectId) return;
+            const triggerButton = document.activeElement && document.activeElement.matches('button')
+                ? document.activeElement
+                : null;
+
+            await (window.UiButtonLoading?.run
+                ? window.UiButtonLoading.run(triggerButton, () => requestJson(`/duan/${currentProjectId}/phongban/${id}`, { method: 'DELETE' }), { profile: 'delete' })
+                : requestJson(`/duan/${currentProjectId}/phongban/${id}`, { method: 'DELETE' }));
+            await openDetail(currentProjectId);
+        }
+
+        async function deleteProject() {
+            if (!currentProjectId) return;
+            if (!confirm('Bạn chắc chắn muốn xóa mềm dự án này?')) return;
+
+            await requestJson(`/duan/${currentProjectId}`, { method: 'DELETE' });
+            closeProjectDetail();
+            await loadProjects();
+        }
+
+        function openCreateModal() {
+            editingProjectId = null;
+            el.projectModalTitle.textContent = 'Tạo dự án';
+            el.mName.value = '';
+            el.mDesc.value = '';
+            el.mStart.value = '';
+            el.mEnd.value = '';
+            el.mStatus.value = '0';
+            if (el.mDepartment) {
+                el.mDepartment.value = '';
+            }
+            el.modalResult.textContent = '';
+            el.projectModal.show();
+        }
+
+        async function openEditModal() {
+            if (!currentProjectId) return;
+            const detail = await requestJson(`/duan/${currentProjectId}`);
+            editingProjectId = currentProjectId;
+            el.projectModalTitle.textContent = 'Cập nhật dự án';
+            el.mName.value = detail.tenDuAn || '';
+            el.mDesc.value = detail.moTa || '';
+            el.mStart.value = detail.ngayBatDau ? new Date(detail.ngayBatDau).toISOString().slice(0, 10) : '';
+            el.mEnd.value = detail.ngayKetThuc ? new Date(detail.ngayKetThuc).toISOString().slice(0, 10) : '';
+            el.mStatus.value = String(detail.trangThai ?? 0);
+            el.modalResult.textContent = '';
+            el.projectModal.show();
+        }
+
+        function openTasksForProject() {
+            if (!currentProjectId) {
+                alert('Chọn một dự án trước khi tạo công việc.');
+                return;
+            }
+            // activate Tasks tab in project detail
+            const tasksTabBtn = document.getElementById('tasksTab');
+            if (tasksTabBtn) tasksTabBtn.click();
+            // initialize embedded task form through the partial helper first
+            if (typeof initProjectTaskForm === 'function') {
+                initProjectTaskForm(currentProjectId).catch(err => console.warn('Init task form failed', err));
+            } else if (window.PortalTaskForm && typeof PortalTaskForm.openForProject === 'function') {
+                PortalTaskForm.openForProject(currentProjectId).catch(err => console.warn('Init task form failed', err));
+            }
+            // scroll to form
+            setTimeout(() => {
+                const wrap = document.getElementById('projectTaskFormWrap');
+                if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+
+        window.openDetail = openDetail;
+        window.openProjectDetail = openProjectDetail;
+        window.closeProjectDetail = closeProjectDetail;
+        window.removeEmployee = removeEmployee;
+        window.removeTeam = removeTeam;
+        window.removeDepartment = removeDepartment;
+
+        // Auto-filter on field changes
+        const filterFields = ['fKeyword', 'fStatus', 'fMonth', 'fYear', 'fFromDate', 'fToDate'];
+        filterFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('change', loadProjects);
+                if (fieldId === 'fKeyword') {
+                    field.addEventListener('input', loadProjects);
+                }
+            }
+        });
+        el.btnCreateProject?.addEventListener('click', openCreateModal);
+        el.btnCreateTaskFromProject?.addEventListener('click', openTasksForProject);
+        window.UiButtonLoading?.bind(el.btnSaveProject, saveProject, { profile: 'save' });
+        window.UiButtonLoading?.bind(el.btnAssignEmployee, assignEmployee, { profile: 'assign' });
+        window.UiButtonLoading?.bind(el.btnAssignTeam, assignTeam, { profile: 'assign' });
+        window.UiButtonLoading?.bind(el.btnAssignDepartment, assignDepartment, { profile: 'assign' });
+        window.UiButtonLoading?.bind(el.btnDeleteProject, deleteProject, { profile: 'delete' });
+        el.btnEditProject?.addEventListener('click', openEditModal);
+        el.taskBody?.addEventListener('click', handleTaskRowClick);
+        el.btnEditSelectedTask?.addEventListener('click', openEditSelectedTask);
+        window.UiButtonLoading?.bind(el.btnDeleteSelectedTask, deleteSelectedTask, { profile: 'delete' });
+
+        (async () => {
+            fillMonthYear();
+            await loadLookup();
+            await loadProjects();
+        })();
+    </script>
+}

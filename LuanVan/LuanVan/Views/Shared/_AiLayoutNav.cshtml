@@ -1,0 +1,26 @@
+@{
+    var currentController = ViewData["LayoutCurrentController"]?.ToString() ?? ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewData["LayoutCurrentAction"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var displayRole = ViewData["LayoutDisplayRole"]?.ToString() ?? (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+    var aiNavItems = ViewData["LayoutAiNavItems"] as IEnumerable<dynamic>;
+
+    string IsAiActive(string action)
+    {
+        return currentController == "Portal" && currentAction == action ? "active" : "";
+    }
+}
+
+<div class="ai-layout-nav @(currentController == "Portal" && currentAction.StartsWith("Ai", StringComparison.OrdinalIgnoreCase) ? "" : "d-none")" id="aiSectionNav">
+    <nav class="ai-layout-nav-inner" aria-label="AI navigation">
+        @if (aiNavItems != null)
+        {
+            foreach (var item in aiNavItems)
+            {
+                <a class="ai-layout-nav-link @IsAiActive(item.Action)" asp-controller="Portal" asp-action="@item.Action" asp-route-role="@displayRole" data-ai-link="true">
+                    <i class="@item.Icon"></i>
+                    <span>@item.Label</span>
+                </a>
+            }
+        }
+    </nav>
+</div>

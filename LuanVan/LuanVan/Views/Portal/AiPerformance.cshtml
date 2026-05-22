@@ -1,0 +1,670 @@
+@{
+    ViewData["Title"] = "AI - Performance";
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+}
+
+<style>
+    .ai-perf-card { background: #fff; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 2px 8px rgba(16,24,40,0.04); }
+    .ai-perf-card h6 { margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #475569; }
+    .ai-perf-score { font-size: 28px; font-weight: 700; margin: 8px 0; color: #1e293b; }
+    .ai-perf-label { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .ai-perf-label.excellent { background: #dcfce7; color: #15803d; }
+    .ai-perf-label.good { background: #dbeafe; color: #1e40af; }
+    .ai-perf-label.average { background: #fef3c7; color: #92400e; }
+    .ai-perf-label.poor { background: #fff1f2; color: #be123c; }
+    .ai-filter-toolbar { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1.2fr auto; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 10px; margin-bottom: 16px; align-items: center; }
+    .ai-filter-toolbar .form-select { min-height: 38px; }
+    .ai-perf-banner { border: 1px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+    .ai-perf-insights { border: 1px solid #e2e8f0; border-radius: 10px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 12px; }
+    .ai-perf-insights h5 { margin-bottom: 10px; }
+    .ai-perf-insight-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ai-perf-insight-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+    .ai-perf-insight-item .k { display: block; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .ai-perf-insight-item .v { display: block; margin-top: 4px; color: #0f172a; font-weight: 600; }
+    .ai-perf-meta { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .ai-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ai-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+    .ai-chip.kpi { background: #fff7ed; color: #9a3412; }
+    .ai-chip.overdue { background: #fff1f2; color: #be123c; }
+    .ai-chip.workload { background: #fffbeb; color: #92400e; }
+    .ai-chip.completion { background: #eef2ff; color: #3730a3; }
+    .ai-chip.data { background: #f1f5f9; color: #334155; }
+    .ai-action-main { font-weight: 600; color: #0f172a; font-size: 12px; }
+    .ai-action-sub { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; background: #e2e8f0; color: #334155; }
+    .ai-feedback { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 0; }
+    .ai-feedback.ok { background: #dcfce7; color: #166534; }
+    .ai-feedback.wait { background: #fef3c7; color: #854d0e; }
+    .ai-feedback.recheck { background: #fff1f2; color: #be123c; }
+    .ai-top-card-wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .ai-top-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff; }
+    .ai-top-card .name { font-weight: 700; color: #0f172a; }
+    .ai-top-card .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .ai-table-wrap { max-height: 560px; overflow: auto; }
+    .ai-table-wrap thead th { position: sticky; top: 0; z-index: 2; background: #f8fafc; }
+    .ai-donut-wrap { max-width: 360px; height: 220px; margin: 0 auto; }
+    .ai-donut-wrap canvas { width: 100% !important; height: 100% !important; }
+    @@media (max-width: 992px) {
+        .ai-perf-insight-grid { grid-template-columns: 1fr; }
+        .ai-top-card-wrap { grid-template-columns: 1fr; }
+        .ai-donut-wrap { max-width: 320px; height: 200px; }
+        .ai-filter-toolbar { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+
+<section class="panel mt-2">
+    <div class="mb-3">
+        <h2 class="mb-1">👨‍💼 Hiệu suất nhân sự (AI)</h2>
+    </div>
+
+    <div class="ai-filter-toolbar">
+        <select id="perfMonth" class="form-select form-select-sm"></select>
+        <select id="perfYear" class="form-select form-select-sm"></select>
+        <select id="perfDepartment" class="form-select form-select-sm"><option value="">Tất cả phòng ban</option></select>
+        <select id="perfEmployee" class="form-select form-select-sm"><option value="">Tất cả nhân viên</option></select>
+        <button id="btnReloadPerf" class="btn btn-outline-primary btn-sm">Tải lại</button>
+    </div>
+
+    <div id="perfSkewBanner" class="ai-perf-banner d-none"></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="ai-perf-card"><h6>Xuất sắc</h6><div class="ai-perf-score" id="perfExcellentCount">0</div></div></div>
+        <div class="col-md-3"><div class="ai-perf-card"><h6>Tốt</h6><div class="ai-perf-score" id="perfGoodCount">0</div></div></div>
+        <div class="col-md-3"><div class="ai-perf-card"><h6>Cần cải thiện</h6><div class="ai-perf-score" id="perfAverageCount">0</div></div></div>
+        <div class="col-md-3"><div class="ai-perf-card"><h6>Cần hỗ trợ</h6><div class="ai-perf-score" id="perfPoorCount">0</div></div></div>
+    </div>
+
+    <div class="ai-perf-insights mb-4">
+        <h5 class="mb-2">Tổng quan nhân sự AI</h5>
+        <div class="ai-perf-insight-grid" id="perfInsightsGrid"></div>
+        <div class="ai-perf-meta" id="perfAnalysisFreshness">Lần phân tích nhân sự AI gần nhất: --</div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6"><div class="panel p-3"><h6>Phân bố nhân sự theo nhóm hiệu suất</h6><canvas id="perfDistributionChart" height="200"></canvas></div></div>
+        <div class="col-lg-6"><div class="panel p-3"><h6>Phân bố độ tin cậy (Cao/Trung bình/Thấp)</h6><div class="ai-donut-wrap"><canvas id="perfByDeptChart"></canvas></div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="panel">
+                <div class="p-3" style="border-bottom: 1px solid #eef2f7;"><h5 class="mb-0">🏆 Nhân viên xuất sắc</h5></div>
+                <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nhân viên</th><th>Phòng ban</th><th>Xếp loại</th><th>Độ tin cậy</th></tr></thead><tbody id="perfTopPerformersBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody></table></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel">
+                <div class="p-3" style="border-bottom: 1px solid #eef2f7;"><h5 class="mb-0">⚠️ Cần hỗ trợ</h5></div>
+                <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nhân viên</th><th>Phòng ban</th><th>Xếp loại</th><th>Công việc trễ</th></tr></thead><tbody id="perfNeedSupportBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody></table></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel mb-3">
+        <div class="p-3" style="border-bottom: 1px solid #eef2f7;"><h5 class="mb-0">🚨 Nhân sự cần hỗ trợ ưu tiên</h5></div>
+        <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nhân viên</th><th>Phòng ban</th><th>Nguyên nhân AI</th><th>Đề xuất AI</th></tr></thead><tbody id="perfPrioritySupportBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody></table></div>
+    </div>
+
+    <div class="panel">
+        <div class="p-3" style="border-bottom: 1px solid #eef2f7;"><h5 class="mb-0">Danh sách toàn bộ nhân viên</h5></div>
+        <div class="px-3 pt-2"><input id="perfTableSearch" class="form-control form-control-sm" placeholder="Tìm theo tên nhân viên hoặc phòng ban" /></div>
+        <div class="table-responsive ai-table-wrap">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Nhân viên</th>
+                        <th>Phòng ban</th>
+                        <th>KPI</th>
+                        <th>Hoàn thành</th>
+                        <th>Trễ</th>
+                        <th>Xếp loại</th>
+                        <th>Độ tin cậy</th>
+                        <th>Nguyên nhân AI</th>
+                        <th>Đề xuất AI</th>
+                        <th>Phản hồi quản lý</th>
+                    </tr>
+                </thead>
+                <tbody id="perfFullTableBody"><tr><td colspan="10" class="text-muted">Đang tải...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        const perfMonth = document.getElementById('perfMonth');
+        const perfYear = document.getElementById('perfYear');
+        const perfDepartment = document.getElementById('perfDepartment');
+        const perfEmployee = document.getElementById('perfEmployee');
+        const btnReloadPerf = document.getElementById('btnReloadPerf');
+        const perfExcellentCount = document.getElementById('perfExcellentCount');
+        const perfGoodCount = document.getElementById('perfGoodCount');
+        const perfAverageCount = document.getElementById('perfAverageCount');
+        const perfPoorCount = document.getElementById('perfPoorCount');
+        const perfTopPerformersBody = document.getElementById('perfTopPerformersBody');
+        const perfNeedSupportBody = document.getElementById('perfNeedSupportBody');
+        const perfPrioritySupportBody = document.getElementById('perfPrioritySupportBody');
+        const perfFullTableBody = document.getElementById('perfFullTableBody');
+        const perfTableSearch = document.getElementById('perfTableSearch');
+        const perfSkewBanner = document.getElementById('perfSkewBanner');
+        const perfInsightsGrid = document.getElementById('perfInsightsGrid');
+        const perfAnalysisFreshness = document.getElementById('perfAnalysisFreshness');
+
+        const state = {
+            employees: [],
+            departments: [],
+            tasks: [],
+            performanceResults: [],
+            kpiScores: new Map(),
+            feedbackByEmployee: new Map(),
+            charts: { distribution: null, byDept: null },
+            analyzedAt: null
+        };
+
+        function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+        function safeNum(v, d = 0) { const n = Number(v); return Number.isFinite(n) ? n : d; }
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function normalizeLabel(label) {
+            const raw = String(label || '').trim().toLowerCase();
+            if (raw === 'xuất sắc' || raw === 'xuat sac') return 'Xuất sắc';
+            if (raw === 'tốt' || raw === 'tot') return 'Tốt';
+            if (raw === 'yếu' || raw === 'yeu' || raw === 'kém' || raw === 'kem') return 'Cần hỗ trợ';
+            return 'Cần cải thiện';
+        }
+
+        function confidenceBand(confidencePercent) {
+            if (confidencePercent >= 85) return 'High';
+            if (confidencePercent >= 70) return 'Medium';
+            return 'Low';
+        }
+
+        function confidenceBandVi(confidenceBandKey) {
+            if (confidenceBandKey === 'High') return 'Cao';
+            if (confidenceBandKey === 'Medium') return 'Trung bình';
+            return 'Thấp';
+        }
+
+        function renderExplainChips(chips) {
+            if (!chips.length) return '<span class="ai-chip data">Thiếu dữ liệu</span>';
+            return `<div class="ai-chip-list">${chips.map(x => `<span class="ai-chip ${escapeHtml(x.type)}">${escapeHtml(x.text)}</span>`).join('')}</div>`;
+        }
+
+        function computeExplainAndAction(kpiScore, completedTasks, overdueTasks, totalTasks) {
+            const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            const chips = [];
+            if (kpiScore < 60) chips.push({ type: 'kpi', text: 'KPI thấp' });
+            if (overdueTasks >= 3) chips.push({ type: 'overdue', text: 'Task trễ nhiều' });
+            if (totalTasks >= 8) chips.push({ type: 'workload', text: 'Khối lượng cao' });
+            if (totalTasks > 0 && completionRate < 55) chips.push({ type: 'completion', text: 'Tỷ lệ hoàn thành thấp' });
+            if (totalTasks === 0) chips.push({ type: 'data', text: 'Thiếu dữ liệu task' });
+
+            let primaryAction = 'Theo dõi định kỳ';
+            let secondaryActionTag = null;
+
+            if (kpiScore < 60 && overdueTasks >= 3) {
+                primaryAction = 'Kèm cặp 1-1';
+                secondaryActionTag = 'Rà soát khối lượng';
+            } else if (overdueTasks >= 4) {
+                primaryAction = 'Giảm workload';
+                secondaryActionTag = 'Ưu tiên task trọng yếu';
+            } else if (kpiScore < 70) {
+                primaryAction = 'Ưu tiên đào tạo';
+                secondaryActionTag = 'Rà soát mục tiêu KPI';
+            } else if (completionRate < 60) {
+                primaryAction = 'Review phân công';
+            }
+
+            return { chips, primaryAction, secondaryActionTag, completionRate };
+        }
+
+        // displayConfidence is for UI visualization only.
+        // It is never used to evaluate model quality or persisted to database.
+        function computeDisplayConfidence(rawConfidencePercent, kpiScore, totalTasks, overdueTasks) {
+            const kpiFactor = clamp((kpiScore - 70) * 0.08, -4, 4);
+            const workloadFactor = clamp((totalTasks - 6) * 0.35, -3, 3);
+            const overdueFactor = clamp(-overdueTasks * 0.9, -6, 0);
+            return clamp(rawConfidencePercent + kpiFactor + workloadFactor + overdueFactor, 0, 100);
+        }
+
+        function feedbackStatusFromAvg(avgScore) {
+            if (avgScore == null || avgScore <= 0) return { key: 'wait', text: '🟡 Chưa phản hồi' };
+            if (avgScore >= 70) return { key: 'ok', text: '🟢 Đồng ý' };
+            return { key: 'recheck', text: '🔴 Cần đánh giá lại' };
+        }
+
+        async function fetchJson(url, options) {
+            try {
+                const response = await fetch(url, options);
+                const raw = await response.text();
+                let payload = null;
+                if (raw && (raw.startsWith('{') || raw.startsWith('['))) {
+                    try { payload = JSON.parse(raw); } catch (e) { console.error('Parse error', e); }
+                }
+                if (!response.ok) { return { success: false, message: payload?.message || 'Error' }; }
+                if (payload && typeof payload.success === 'boolean') return payload;
+                return { success: true, data: payload ?? raw };
+            } catch (e) {
+                console.error('Fetch error', e);
+                return { success: false, message: 'Connection error' };
+            }
+        }
+
+        function initTimeFilters() {
+            const now = new Date();
+            for (let m = 1; m <= 12; m++) {
+                const o = document.createElement('option');
+                o.value = String(m);
+                o.textContent = `Tháng ${m}`;
+                if (m === now.getMonth() + 1) o.selected = true;
+                perfMonth.appendChild(o);
+            }
+            for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+                const o = document.createElement('option');
+                o.value = String(y);
+                o.textContent = `${y}`;
+                if (y === now.getFullYear()) o.selected = true;
+                perfYear.appendChild(o);
+            }
+        }
+
+        async function loadFilterData() {
+            const [pbRes, nvRes] = await Promise.all([
+                fetchJson('/phongban?page=1&size=200'),
+                fetchJson('/nhanvien?page=1&size=200')
+            ]);
+            state.departments = pbRes.success ? (pbRes.data?.items || pbRes.data || []) : [];
+            state.employees = nvRes.success ? (nvRes.data?.items || []) : [];
+
+            perfDepartment.innerHTML = '<option value="">Tất cả phòng ban</option>' + state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || 'Phòng ' + d.maPhongBan)}</option>`).join('');
+            perfEmployee.innerHTML = '<option value="">Tất cả nhân viên</option>' + state.employees.map(e => `<option value="${e.maNhanVien}">${escapeHtml(e.hoTen || 'NV ' + e.maNhanVien)}</option>`).join('');
+        }
+
+        async function loadTasks() {
+            const res = await fetchJson('/congviec?page=1&size=300');
+            state.tasks = res.success ? (res.data?.items || []) : [];
+        }
+
+        async function loadKpiScores() {
+            state.kpiScores.clear();
+            const month = safeNum(perfMonth.value, new Date().getMonth() + 1);
+            const year = safeNum(perfYear.value, new Date().getFullYear());
+            await Promise.all(state.employees.map(async e => {
+                const res = await fetchJson(`/kpi/nhanvien/${e.maNhanVien}?thang=${month}&nam=${year}`);
+                const score = res.success ? safeNum(res.data?.diemHienTai, 0) : 0;
+                state.kpiScores.set(e.maNhanVien, score);
+            }));
+        }
+
+        async function loadFeedbackSummary() {
+            state.feedbackByEmployee.clear();
+            const res = await fetchJson('/ai/history?top=30');
+            if (!res.success || !Array.isArray(res.data?.predictions)) {
+                return;
+            }
+
+            const grouped = new Map();
+            for (const p of res.data.predictions) {
+                const key = Number(p.maNhanVien || 0);
+                if (!key) continue;
+                if (!grouped.has(key)) grouped.set(key, []);
+                grouped.get(key).push(p);
+            }
+
+            for (const [empId, rows] of grouped.entries()) {
+                const avgArr = rows.map(x => safeNum(x.avgDoChinhXac, 0)).filter(x => x > 0);
+                const avg = avgArr.length ? (avgArr.reduce((s, v) => s + v, 0) / avgArr.length) : null;
+                state.feedbackByEmployee.set(empId, feedbackStatusFromAvg(avg));
+            }
+        }
+
+        function renderSummary() {
+            const excellent = state.performanceResults.filter(x => x.normalizedLabel === 'Xuất sắc').length;
+            const good = state.performanceResults.filter(x => x.normalizedLabel === 'Tốt').length;
+            const average = state.performanceResults.filter(x => x.normalizedLabel === 'Cần cải thiện').length;
+            const poor = state.performanceResults.filter(x => x.normalizedLabel === 'Cần hỗ trợ').length;
+
+            perfExcellentCount.textContent = excellent;
+            perfGoodCount.textContent = good;
+            perfAverageCount.textContent = average;
+            perfPoorCount.textContent = poor;
+
+            const totals = [excellent, good, average, poor];
+            const maxCount = Math.max(...totals, 0);
+            const total = state.performanceResults.length;
+            if (total > 0 && (maxCount / total) > 0.8) {
+                perfSkewBanner.classList.remove('d-none');
+                perfSkewBanner.textContent = 'Dữ liệu hiện tại đang tập trung vào một nhóm phân loại. AI cần thêm dữ liệu đa dạng để đánh giá cân bằng hơn.';
+            } else {
+                perfSkewBanner.classList.add('d-none');
+                perfSkewBanner.textContent = '';
+            }
+        }
+
+        function renderInsights() {
+            const total = state.performanceResults.length;
+            const supportCount = state.performanceResults.filter(x => x.normalizedLabel === 'Cần hỗ trợ').length;
+            const avgRawConfidence = total ? (state.performanceResults.reduce((s, x) => s + x.rawConfidence, 0) / total) : 0;
+            const confidenceBandText = confidenceBand(avgRawConfidence);
+
+            const deptLate = new Map();
+            for (const x of state.performanceResults) {
+                const key = x.tenPhongBan || 'Chưa rõ';
+                deptLate.set(key, (deptLate.get(key) || 0) + x.overdueTasks);
+            }
+            const topDeptLate = Array.from(deptLate.entries()).sort((a, b) => b[1] - a[1])[0];
+            const issueText = topDeptLate && topDeptLate[1] > 0
+                ? `Task trễ tập trung ở phòng ${topDeptLate[0]}.`
+                : 'Chưa ghi nhận điểm nghẽn trễ hạn nổi bật.';
+
+            const supportKpiLow = state.performanceResults.filter(x => x.kpiScore < 70).length;
+            const suggestedAction = supportKpiLow > 0
+                ? 'Ưu tiên mentoring cho nhóm KPI thấp.'
+                : 'Duy trì theo dõi định kỳ và tối ưu phân công.';
+
+            perfInsightsGrid.innerHTML = `
+                <div class="ai-perf-insight-item"><span class="k">Trạng thái nhân sự</span><span class="v">${supportCount} nhân sự cần hỗ trợ.</span></div>
+                <div class="ai-perf-insight-item"><span class="k">Vấn đề chính</span><span class="v">${escapeHtml(issueText)}</span></div>
+                <div class="ai-perf-insight-item"><span class="k">Hành động đề xuất</span><span class="v">${escapeHtml(suggestedAction)}</span></div>
+                <div class="ai-perf-insight-item"><span class="k">Độ tin cậy AI</span><span class="v">${confidenceBandText === 'High' ? 'Cao' : (confidenceBandText === 'Medium' ? 'Trung bình' : 'Thấp')} (${avgRawConfidence.toFixed(0)}%)</span></div>
+            `;
+
+            const stamp = state.analyzedAt ? state.analyzedAt.toLocaleString('vi-VN') : '--';
+            perfAnalysisFreshness.textContent = `Lần phân tích nhân sự AI gần nhất: ${stamp}`;
+        }
+
+        function renderTables() {
+            const topPerformers = state.performanceResults
+                .filter(x => x.normalizedLabel === 'Xuất sắc' || x.normalizedLabel === 'Tốt')
+                .sort((a, b) => b.rawConfidence - a.rawConfidence)
+                .slice(0, 10);
+
+            if (!topPerformers.length) {
+                perfTopPerformersBody.innerHTML = '<tr><td colspan="4" class="text-muted">🏆 Chưa có nhân sự đạt mức "Xuất sắc" trong kỳ này. <button type="button" class="btn btn-link btn-sm p-0" id="btnFocusSupport">Xem nhóm cần cải thiện</button></td></tr>';
+                setTimeout(() => {
+                    const btn = document.getElementById('btnFocusSupport');
+                    if (btn) btn.addEventListener('click', () => document.querySelector('#perfPrioritySupportBody')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                }, 0);
+            } else if (topPerformers.length <= 2) {
+                perfTopPerformersBody.innerHTML = `
+                    <tr>
+                        <td colspan="4">
+                            <div class="ai-top-card-wrap">
+                                ${topPerformers.map(p => `
+                                    <article class="ai-top-card">
+                                        <div class="name">🏆 ${escapeHtml(p.hoTen)}</div>
+                                        <div class="meta">${escapeHtml(p.tenPhongBan)}</div>
+                                        <div class="meta">${escapeHtml(p.normalizedLabel)} · ${p.displayConfidence.toFixed(0)}%</div>
+                                    </article>
+                                `).join('')}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                perfTopPerformersBody.innerHTML = topPerformers.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen)}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan)}</td>
+                        <td><span class="badge bg-success">${escapeHtml(p.normalizedLabel)}</span></td>
+                        <td>${p.displayConfidence.toFixed(0)}%</td>
+                    </tr>
+                `).join('');
+            }
+
+            const needSupport = state.performanceResults
+                .filter(x => x.normalizedLabel === 'Cần hỗ trợ' || (x.normalizedLabel === 'Cần cải thiện' && x.overdueTasks > 2))
+                .sort((a, b) => (b.overdueTasks - a.overdueTasks) || (a.kpiScore - b.kpiScore))
+                .slice(0, 10);
+
+            perfNeedSupportBody.innerHTML = needSupport.length
+                ? needSupport.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen)}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan)}</td>
+                        <td><span class="badge" style="background:#fff1f2;color:#be123c;">${escapeHtml(p.normalizedLabel)}</span></td>
+                        <td><span class="badge bg-warning text-dark">${p.overdueTasks}</span></td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="text-muted">Không có dữ liệu</td></tr>';
+
+            const prioritySupport = state.performanceResults
+                .filter(x => x.normalizedLabel === 'Cần hỗ trợ' || x.overdueTasks >= 3 || x.kpiScore < 60)
+                .sort((a, b) => (b.overdueTasks - a.overdueTasks) || (a.kpiScore - b.kpiScore))
+                .slice(0, 5);
+
+            perfPrioritySupportBody.innerHTML = prioritySupport.length
+                ? prioritySupport.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen)}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan)}</td>
+                        <td>${renderExplainChips(p.explainChips)}</td>
+                        <td><span class="ai-action-main">${escapeHtml(p.primaryAction)}</span>${p.secondaryActionTag ? `<span class="ai-action-sub">${escapeHtml(p.secondaryActionTag)}</span>` : ''}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="text-muted">Không có dữ liệu</td></tr>';
+
+            const sorted = [...state.performanceResults].sort((a, b) => {
+                const riskA = (a.normalizedLabel === 'Cần hỗ trợ' ? 2 : (a.normalizedLabel === 'Cần cải thiện' ? 1 : 0));
+                const riskB = (b.normalizedLabel === 'Cần hỗ trợ' ? 2 : (b.normalizedLabel === 'Cần cải thiện' ? 1 : 0));
+                if (riskB !== riskA) return riskB - riskA;
+                if (b.overdueTasks !== a.overdueTasks) return b.overdueTasks - a.overdueTasks;
+                return a.kpiScore - b.kpiScore;
+            });
+
+            perfFullTableBody.innerHTML = sorted.length
+                ? sorted.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen)}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan)}</td>
+                        <td>${p.kpiScore.toFixed(1)}%</td>
+                        <td>${p.completedTasks}</td>
+                        <td><span class="badge bg-warning text-dark">${p.overdueTasks}</span></td>
+                        <td><span class="badge ${p.normalizedLabel === 'Cần hỗ trợ' ? '' : (p.normalizedLabel === 'Cần cải thiện' ? 'bg-warning text-dark' : 'bg-success')}" style="${p.normalizedLabel === 'Cần hỗ trợ' ? 'background:#fff1f2;color:#be123c;' : ''}">${escapeHtml(p.normalizedLabel)}</span></td>
+                        <td>${p.displayConfidence.toFixed(0)}% <span class="text-muted small">(${confidenceBandVi(p.confidenceBand)})</span></td>
+                        <td>${renderExplainChips(p.explainChips)}</td>
+                        <td><span class="ai-action-main">${escapeHtml(p.primaryAction)}</span></td>
+                        <td><button class="ai-feedback ${escapeHtml(p.feedbackStatus.key)}" type="button">${escapeHtml(p.feedbackStatus.text)}</button></td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="10" class="text-muted">Không có dữ liệu</td></tr>';
+        }
+
+        function renderCharts() {
+            const canvasDist = document.getElementById('perfDistributionChart');
+            const canvasDept = document.getElementById('perfByDeptChart');
+            if (!canvasDist || !canvasDept) return;
+
+            const barValueLabelPlugin = {
+                id: 'barValueLabelPlugin',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const data = chart.data.datasets[0]?.data || [];
+                    ctx.save();
+                    ctx.fillStyle = '#334155';
+                    ctx.font = '600 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    meta.data.forEach((bar, i) => {
+                        ctx.fillText(String(data[i] ?? 0), bar.x, bar.y - 4);
+                    });
+                    ctx.restore();
+                }
+            };
+
+            const doughnutCenterLabelPlugin = {
+                id: 'doughnutCenterLabelPlugin',
+                afterDraw(chart) {
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return;
+                    const total = (chart.data.datasets[0]?.data || []).reduce((s, v) => s + Number(v || 0), 0);
+                    const bands = chart.data.datasets[0]?.data || [];
+                    const labels = chart.data.labels || [];
+                    let maxIdx = 0;
+                    for (let i = 1; i < bands.length; i++) {
+                        if (Number(bands[i] || 0) > Number(bands[maxIdx] || 0)) maxIdx = i;
+                    }
+                    const centerX = (chartArea.left + chartArea.right) / 2;
+                    const centerY = (chartArea.top + chartArea.bottom) / 2;
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '700 16px sans-serif';
+                    ctx.fillText(String(total), centerX, centerY - 2);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '600 11px sans-serif';
+                    ctx.fillText(total === 0 ? 'Nhân sự' : String(labels[maxIdx] || 'Nhân sự'), centerX, centerY + 14);
+                    ctx.restore();
+                }
+            };
+
+            const labelCount = {
+                excellent: state.performanceResults.filter(x => x.normalizedLabel === 'Xuất sắc').length,
+                good: state.performanceResults.filter(x => x.normalizedLabel === 'Tốt').length,
+                average: state.performanceResults.filter(x => x.normalizedLabel === 'Cần cải thiện').length,
+                poor: state.performanceResults.filter(x => x.normalizedLabel === 'Cần hỗ trợ').length
+            };
+
+            if (state.charts.distribution) state.charts.distribution.destroy();
+            state.charts.distribution = new Chart(canvasDist, {
+                type: 'bar',
+                data: {
+                    labels: ['Xuất sắc', 'Tốt', 'Cần cải thiện', 'Cần hỗ trợ'],
+                    datasets: [{
+                        label: 'Số nhân sự',
+                        data: [labelCount.excellent, labelCount.good, labelCount.average, labelCount.poor],
+                        backgroundColor: ['#16a34a', '#2563eb', '#f59e0b', '#fb7185']
+                    }]
+                },
+                options: { animation: { duration: 700 }, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } },
+                plugins: [barValueLabelPlugin]
+            });
+
+            const bands = { high: 0, medium: 0, low: 0 };
+            for (const x of state.performanceResults) {
+                if (x.confidenceBand === 'High') bands.high += 1;
+                else if (x.confidenceBand === 'Medium') bands.medium += 1;
+                else bands.low += 1;
+            }
+
+            if (state.charts.byDept) state.charts.byDept.destroy();
+            state.charts.byDept = new Chart(canvasDept, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cao', 'Trung bình', 'Thấp'],
+                    datasets: [{
+                        label: 'Nhóm độ tin cậy',
+                        data: [bands.high, bands.medium, bands.low],
+                        backgroundColor: ['#16a34a', '#f59e0b', '#fb7185']
+                    }]
+                },
+                options: { animation: { duration: 700 }, responsive: true, maintainAspectRatio: false, cutout: '68%', radius: '82%', plugins: { legend: { position: 'bottom' } } },
+                plugins: [doughnutCenterLabelPlugin]
+            });
+        }
+
+        async function loadAndRenderPerformance() {
+            try {
+                const employees = perfEmployee.value ? state.employees.filter(e => String(e.maNhanVien) === perfEmployee.value) : state.employees;
+                state.performanceResults = [];
+                const deptNames = new Map(state.departments.map(d => [String(d.maPhongBan), d.tenPhongBan || 'Phòng ' + d.maPhongBan]));
+
+                for (const emp of employees) {
+                    if (perfDepartment.value && String(emp.maPhongBan) !== perfDepartment.value) continue;
+                    const empTasks = state.tasks.filter(t => (t.nguoiDuocGiao || []).some(nv => nv.maNhanVien === emp.maNhanVien));
+                    const completedTasks = empTasks.filter(t => t.maTrangThai === 3).length;
+                    const overdueTasks = empTasks.filter(t => t.maTrangThai !== 3 && (new Date(t.hanHoanThanh || '9999-12-31') < new Date())).length;
+                    const kpiScore = state.kpiScores.get(emp.maNhanVien) || 0;
+
+                    const classifyRes = await fetchJson('/ai/classify-performance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            maNhanVien: emp.maNhanVien,
+                            soCongViecHoanThanh: completedTasks,
+                            soCongViecTreHan: overdueTasks,
+                            thoiGianTrungBinh: empTasks.length || 0,
+                            kpiTrungBinh: kpiScore
+                        })
+                    });
+
+                    if (!classifyRes.success || !classifyRes.data) continue;
+
+                    const normalized = normalizeLabel(classifyRes.data?.label);
+                    const rawConfidence = clamp(safeNum(classifyRes.data?.confidence, 0) * 100, 0, 100);
+                    const explain = computeExplainAndAction(kpiScore, completedTasks, overdueTasks, empTasks.length);
+                    const displayConfidence = computeDisplayConfidence(rawConfidence, kpiScore, empTasks.length, overdueTasks);
+                    const fb = state.feedbackByEmployee.get(emp.maNhanVien) || { key: 'wait', text: '🟡 Chưa phản hồi' };
+
+                    state.performanceResults.push({
+                        maNhanVien: emp.maNhanVien,
+                        hoTen: emp.hoTen,
+                        maPhongBan: emp.maPhongBan,
+                        tenPhongBan: deptNames.get(String(emp.maPhongBan)) || 'Chưa rõ',
+                        rawLabel: classifyRes.data?.label || 'Trung bình',
+                        normalizedLabel: normalized,
+                        rawConfidence,
+                        displayConfidence,
+                        confidenceBand: confidenceBand(rawConfidence),
+                        explainChips: explain.chips,
+                        primaryAction: explain.primaryAction,
+                        secondaryActionTag: explain.secondaryActionTag,
+                        completedTasks,
+                        overdueTasks,
+                        kpiScore,
+                        feedbackStatus: fb
+                    });
+                }
+
+                state.analyzedAt = new Date();
+                renderSummary();
+                renderInsights();
+                renderTables();
+                renderCharts();
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        }
+
+        function bindTableSearch() {
+            perfTableSearch?.addEventListener('input', () => {
+                const q = (perfTableSearch.value || '').trim().toLowerCase();
+                const rows = Array.from(perfFullTableBody.querySelectorAll('tr'));
+                rows.forEach(r => {
+                    if (!q) {
+                        r.classList.remove('d-none');
+                        return;
+                    }
+                    const txt = r.textContent?.toLowerCase() || '';
+                    if (txt.includes(q)) r.classList.remove('d-none');
+                    else r.classList.add('d-none');
+                });
+            });
+        }
+
+        async function onAutoFilterChanged() {
+            await loadKpiScores();
+            await loadAndRenderPerformance();
+        }
+
+        [perfMonth, perfYear, perfDepartment, perfEmployee].forEach(el => {
+            el?.addEventListener('change', onAutoFilterChanged);
+        });
+        btnReloadPerf.addEventListener('click', async () => {
+            await loadTasks();
+            await loadKpiScores();
+            await loadFeedbackSummary();
+            await loadAndRenderPerformance();
+        });
+
+        (async function initPage() {
+            initTimeFilters();
+            bindTableSearch();
+            await loadFilterData();
+            await loadTasks();
+            await loadKpiScores();
+            await loadFeedbackSummary();
+            await loadAndRenderPerformance();
+        })();
+    </script>
+}

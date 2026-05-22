@@ -1,0 +1,1728 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").ToLowerInvariant();
+    var roleKey = (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+    var isEmployeeDashboard = roleKey == "employee";
+}
+
+
+<style>
+    .employee-dashboard-v3 {
+        padding: 14px 16px 28px;
+    }
+
+    .employee-dashboard-grid-v3 {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, .95fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .employee-left-col,
+    .employee-right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .employee-panel {
+        border: 1px solid #dbe3ef;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .97);
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .045);
+    }
+
+    .employee-panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .employee-panel-head h4 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .employee-panel-head span {
+        display: block;
+        margin-top: 5px;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .employee-summary-panel {
+        border-color: #bfdbfe;
+        background: linear-gradient(135deg, #f8fbff 0%, #ffffff 72%);
+    }
+
+    .employee-ai-panel {
+        border-left: 5px solid #7c3aed;
+        background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 72%);
+    }
+
+    .employee-org-panel {
+        background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 72%);
+        border-color: #ccfbf1;
+    }
+
+    .employee-alert-panel {
+        min-height: 170px;
+    }
+
+    .employee-kpi-panel {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .employee-eval-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 16px;
+        border: 1px solid #bfdbfe;
+        background: #fff;
+    }
+
+    .employee-eval-label,
+    .employee-org-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .employee-eval-value {
+        margin-top: 4px;
+        font-size: 38px;
+        line-height: 1;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .employee-eval-note,
+    .employee-org-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .employee-eval-badge {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        font-size: 28px;
+    }
+
+    .today-task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .today-task-item {
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        background: #fff;
+        transition: .18s ease;
+    }
+
+    .today-task-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+    }
+
+    .task-name {
+        color: #0f172a;
+        font-weight: 800;
+    }
+
+    .employee-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .employee-timeline .timeline-item {
+        display: flex;
+        gap: 12px;
+    }
+
+    .employee-timeline .timeline-avatar {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .employee-timeline .timeline-content strong {
+        color: #0f172a;
+        font-size: 15px;
+    }
+
+    .employee-org-meta {
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid #ccfbf1;
+        background: rgba(240, 253, 250, .75);
+    }
+
+    .employee-org-value {
+        margin-top: 4px;
+        font-size: 23px;
+        font-weight: 850;
+        color: #0f766e;
+    }
+
+    .employee-org-subtitle {
+        color: #64748b;
+        font-size: 13px;
+        margin: 14px 0 8px;
+    }
+
+    .employee-chip-wrap {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .employee-chip {
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .ai-assistant ul {
+        padding-left: 20px;
+        margin-bottom: 0;
+    }
+
+    .ai-assistant li {
+        margin-bottom: 9px;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    .employee-kpi-donut-wrap {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    #employeeDonut {
+        width: 130px !important;
+        height: 130px !important;
+    }
+
+    .employee-kpi-label {
+        font-size: 19px;
+        font-weight: 800;
+        color: #475569;
+    }
+
+    /* KPI trend pill */
+    .employee-kpi-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .employee-kpi-trend.up {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .employee-kpi-trend.down {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .employee-kpi-trend.warning {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .employee-alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .employee-alert-item {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+    }
+
+    .employee-alert-item.unread {
+        border-color: #fed7aa;
+        background: #fff7ed;
+    }
+
+    .aix-alert-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .employee-alert-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f1f5f9;
+    }
+
+    .aix-alert-name {
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 14px;
+    }
+
+    .aix-alert-meta,
+    .employee-alert-item .desc {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .employee-alert-item .desc {
+        margin-top: 8px;
+    }
+
+    .employee-quick-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .employee-quick-actions .btn {
+        height: 38px;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 1200px) {
+        .employee-dashboard-grid-v3 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .employee-dashboard-v3 {
+            padding: 10px;
+        }
+
+        .employee-kpi-donut-wrap {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+@if (isEmployeeDashboard)
+{
+    <section class="employee-dashboard-v3 mt-3">
+        <section class="employee-dashboard-grid-v3">
+
+            <main class="employee-left-col">
+                <section class="panel employee-panel employee-summary-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Đánh giá cá nhân</h4>
+                            <span>KPI và tình trạng công việc hiện tại</span>
+                        </div>
+                        <span class="pill info">Cá nhân</span>
+                    </header>
+                    <div id="employeeEvaluationContent" class="dashboard-employee-summary-body text-muted">
+                        Đang tải dữ liệu cá nhân...
+                    </div>
+                </section>
+
+                <section class="panel employee-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Công việc hôm nay</h4>
+                            <span>Ưu tiên các công việc gần deadline</span>
+                        </div>
+                        <span class="pill info">Top 5</span>
+                    </header>
+                    <div id="todayTasks" class="text-muted">Đang tải công việc hôm nay...</div>
+                </section>
+
+                <section class="panel employee-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Hoạt động gần đây của bạn</h4>
+                        </div>
+                        <span class="pill ok">Gần đây</span>
+                    </header>
+                    <div id="employeeMiniTimeline" class="employee-timeline text-muted">
+                        Đang tải...
+                    </div>
+                </section>
+            </main>
+
+            <aside class="employee-right-col">
+                <section class="panel employee-panel employee-ai-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>AI Assistant</h4>
+                            <span>Gợi ý nhanh cho hôm nay</span>
+                        </div>
+                        <span class="pill info">AI</span>
+                    </header>
+                    <div id="aiAssistantMini" class="ai-assistant text-muted">
+                        Đang phân tích...
+                    </div>
+                </section>
+
+                <section class="panel employee-panel employee-kpi-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Tiến độ KPI</h4>
+                            <span>Theo kỳ hiện tại</span>
+                        </div>
+                    </header>
+
+                    <div class="employee-kpi-donut-wrap">
+                        <canvas id="employeeDonut" width="120" height="120"></canvas>
+                        <div>
+                            <div id="kpiProgressLabel" class="employee-kpi-label text-muted">Đang tải...</div>
+                            <small class="text-muted">Mục tiêu khuyến nghị: 80%</small>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel employee-panel employee-alert-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Cảnh báo</h4>
+                            <span>Các thông báo cần chú ý</span>
+                        </div>
+                        <span class="pill warning">Cảnh báo</span>
+                    </header>
+                    <div id="employeeAlertContent" class="dashboard-employee-alerts-body text-muted">
+                        Đang tải cảnh báo cá nhân...
+                    </div>
+                </section>
+
+                <section class="panel employee-panel">
+                    <header class="employee-panel-head">
+                        <div>
+                            <h4>Thao tác nhanh</h4>
+                            <span>Xử lý công việc thường dùng</span>
+                        </div>
+                    </header>
+
+                    <div id="quickActions" class="employee-quick-actions">
+                        <button class="btn btn-primary btn-sm" id="quickUpdateProgress">
+                            <i class="bi bi-check2-circle"></i> Cập nhật tiến độ
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="quickCreateReport">
+                            <i class="bi bi-file-earmark-text"></i> Tạo báo cáo
+                        </button>
+                    </div>
+                </section>
+            </aside>
+
+        </section>
+    </section>
+}
+else
+{
+    <section id="dashboardFilterBar" class="panel mt-3 dashboard-filter-bar dashboard-filter-surface">
+        <div class="dashboard-filter-grid">
+            <div>
+                <label class="form-label mb-1">Tháng</label>
+                <select id="dashMonth" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label mb-1">Năm</label>
+                <select id="dashYear" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label mb-1">Phòng ban</label>
+                <select id="dashDepartment" class="form-select form-select-sm">
+                    <option value="">Tất cả phòng ban</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1">Nhóm</label>
+                <select id="dashTeam" class="form-select form-select-sm">
+                    <option value="">Tất cả nhóm</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1">Dự án</label>
+                <select id="dashProject" class="form-select form-select-sm">
+                    <option value="">Tất cả dự án</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-end gap-2 dashboard-filter-actions">
+                <button class="btn btn-outline-primary btn-sm" id="btnExportDash"><i class="bi bi-download"></i> Xuất báo cáo</button>
+                <button class="btn btn-outline-secondary btn-sm" id="btnRefreshDash"><i class="bi bi-arrow-repeat"></i> Làm mới</button>
+            </div>
+        </div>
+        <div id="dashboardFilterStatus" class="dashboard-filter-status text-muted small mt-2">Đang xem: Tất cả phòng ban</div>
+    </section>
+
+    <section class="dashboard-kpi-grid mt-3" id="dashboardKpiGrid"></section>
+
+    <section id="dashboardMainGrid" class="dashboard-main-grid mt-3">
+        <div class="dashboard-analysis-stack">
+            <section class="panel">
+                <header class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0" id="barChartTitle">KPI theo phòng ban</h4>
+                    <small class="text-muted">Click chart để xem chi tiết</small>
+                </header>
+                <div class="dashboard-chart-box">
+                    <canvas id="dashBarChart" height="70"></canvas>
+                </div>
+            </section>
+
+            <section class="panel">
+                <header class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0" id="riskChartTitle">Rủi ro trễ hạn theo thời gian</h4>
+                    <small class="text-muted">Xu hướng rủi ro AI</small>
+                </header>
+                <div class="dashboard-chart-box">
+                    <canvas id="dashRiskChart" height="70"></canvas>
+                </div>
+            </section>
+
+            <section class="panel">
+                <header class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0" id="lineChartTitle">Xu hướng hiệu suất theo thời gian</h4>
+                    <small class="text-muted">tháng 1 - tháng 12</small>
+                </header>
+                <div class="dashboard-chart-box">
+                    <canvas id="dashLineChart" height="70"></canvas>
+                </div>
+            </section>
+
+            <section class="panel">
+                <header class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0">Phân bố hiệu suất nhân viên</h4>
+                    <small class="text-muted">Theo trạng thái công việc</small>
+                </header>
+                <div class="dashboard-chart-box small">
+                    <canvas id="dashDonutChart" height="50"></canvas>
+                </div>
+                <div id="donutLegendGrid" class="donut-legend-grid"></div>
+            </section>
+        </div>
+
+        <aside class="panel ai-insight-panel">
+            <header class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0" id="insightPanelTitle">Gợi ý hệ thống</h4>
+                <span class="pill info">Dự báo</span>
+            </header>
+            <div id="aiInsightList" class="ai-insight-list">
+                <p class="text-muted mb-0">Đang phân tích dữ liệu AI...</p>
+            </div>
+        </aside>
+    </section>
+
+    <section id="dashboardBottomGrid" class="dashboard-bottom-grid mt-3">
+        <section class="panel">
+            <header class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Công việc sắp deadline và tiến độ</h4>
+                <small class="text-muted">Gợi ý AI trên từng công việc</small>
+            </header>
+            <div class="table-responsive dashboard-scroll-region">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tên công việc</th>
+                            <th id="taskOwnerHeader">Nhân viên</th>
+                            <th>Deadline</th>
+                            <th>Tiến độ</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deadlineTaskBody">
+                        <tr><td colspan="5" class="text-muted">Đang tải danh sách công việc...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <header class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Thông báo và hoạt động gần đây</h4>
+                <small class="text-muted">Timeline 24h</small>
+            </header>
+            <div id="activityTimeline" class="activity-timeline dashboard-scroll-region">
+                <div class="timeline-item muted">Đang tải timeline hoạt động...</div>
+            </div>
+        </section>
+    </section>
+
+    <section class="dashboard-bottom-grid mt-3">
+        <section class="panel">
+            <header class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Nhân viên cần chú ý</h4>
+                <small class="text-muted">KPI thấp / task trễ / quá tải</small>
+            </header>
+            <div class="table-responsive dashboard-scroll-region">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>KPI</th>
+                            <th>Task trễ</th>
+                            <th>Task đang làm</th>
+                            <th>Mức tải</th>
+                            <th>Cảnh báo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attentionEmployeeBody">
+                        <tr><td colspan="6" class="text-muted">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="panel">
+            <header class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Khối lượng công việc nhóm</h4>
+                <small class="text-muted">Phân bổ công việc hiện tại</small>
+            </header>
+            <div id="workloadList" class="activity-timeline dashboard-scroll-region">
+                <div class="timeline-item muted">Đang tải workload...</div>
+            </div>
+        </section>
+    </section>
+
+    <section class="panel mt-3">
+        <header class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">Phê duyệt đang chờ</h4>
+        </header>
+        <div id="pendingApprovalGrid" class="dashboard-kpi-grid pending-approval-grid"></div>
+    </section>
+
+    <section class="panel mt-3">
+        <header class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">Tiến độ dự án</h4>
+        </header>
+        <div class="table-responsive dashboard-scroll-region dashboard-scroll-project">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Dự án</th>
+                        <th>Tiến độ</th>
+                        <th>KPI</th>
+                        <th>Deadline</th>
+                        <th>Task trễ</th>
+                        <th>Risk</th>
+                    </tr>
+                </thead>
+                <tbody id="projectHealthBody">
+                    <tr><td colspan="6" class="text-muted">Đang tải dữ liệu dự án...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <script>
+        const role = '@role';
+        const roleKey = '@roleKey';
+        const isEmployeeDashboard = @isEmployeeDashboard.ToString().ToLowerInvariant();
+        const charts = [];
+        const commonScale = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { stepSize: 20 }
+                }
+            }
+        };
+
+        const kpiGrid = document.getElementById('dashboardKpiGrid');
+        const dashboardFilterBar = document.getElementById('dashboardFilterBar');
+        const dashboardMainGrid = document.getElementById('dashboardMainGrid');
+        const dashboardBottomGrid = document.getElementById('dashboardBottomGrid');
+        const employeeDashboardGrid = document.getElementById('employeeDashboardGrid');
+        const employeeEvaluationContent = document.getElementById('employeeEvaluationContent');
+        const employeeOrgContent = document.getElementById('employeeOrgContent');
+        const employeeAlertContent = document.getElementById('employeeAlertContent');
+        const taskBody = document.getElementById('deadlineTaskBody');
+        const activityTimeline = document.getElementById('activityTimeline');
+        const aiInsightList = document.getElementById('aiInsightList');
+        const taskOwnerHeader = document.getElementById('taskOwnerHeader');
+        const attentionEmployeeBody = document.getElementById('attentionEmployeeBody');
+        const workloadList = document.getElementById('workloadList');
+        const pendingApprovalGrid = document.getElementById('pendingApprovalGrid');
+        const projectHealthBody = document.getElementById('projectHealthBody');
+        const donutLegendGrid = document.getElementById('donutLegendGrid');
+
+        const dashMonth = document.getElementById('dashMonth');
+        const dashYear = document.getElementById('dashYear');
+        const dashDepartment = document.getElementById('dashDepartment');
+        const dashTeam = document.getElementById('dashTeam');
+        const dashProject = document.getElementById('dashProject');
+        const btnRefreshDash = document.getElementById('btnRefreshDash');
+        const btnExportDash = document.getElementById('btnExportDash');
+        const dashboardFilterStatus = document.getElementById('dashboardFilterStatus');
+
+        const barChartTitle = document.getElementById('barChartTitle');
+        const lineChartTitle = document.getElementById('lineChartTitle');
+        const insightPanelTitle = document.getElementById('insightPanelTitle');
+
+        let currentDashPayload = null;
+        let employeeDonutChart = null;
+
+        function destroyCharts() {
+            while (charts.length > 0) {
+                const chart = charts.pop();
+                chart.destroy();
+            }
+            if (employeeDonutChart) {
+                employeeDonutChart.destroy();
+                employeeDonutChart = null;
+            }
+            if (donutLegendGrid) {
+                donutLegendGrid.innerHTML = '';
+            }
+        }
+
+        function renderDonutLegend(labels, colors) {
+            if (!donutLegendGrid) return;
+            const items = (labels || []).map((label, idx) => {
+                const color = colors[idx] || '#9CA3AF';
+                return `<span class="legend-item"><i class="legend-swatch" style="background:${color}"></i>${label}</span>`;
+            });
+            donutLegendGrid.innerHTML = items.join('');
+        }
+
+        function updateDepartmentFilterStatus() {
+            if (!dashboardFilterStatus) return;
+            const selectedOption = dashDepartment.selectedOptions && dashDepartment.selectedOptions.length > 0
+                ? dashDepartment.selectedOptions[0]
+                : null;
+            const label = selectedOption ? selectedOption.textContent.trim() : 'Tất cả phòng ban';
+            dashboardFilterStatus.textContent = `Đang xem: ${label}`;
+        }
+
+        function initFilterOptions() {
+            if (isEmployeeDashboard) {
+                return;
+            }
+
+            if (!dashMonth || !dashYear || !dashDepartment) {
+                return;
+            }
+
+            const now = new Date();
+            const allMonthOpt = document.createElement('option');
+            allMonthOpt.value = '';
+            allMonthOpt.textContent = 'Tất cả các tháng';
+            dashMonth.appendChild(allMonthOpt);
+            for (let m = 1; m <= 12; m++) {
+                const opt = document.createElement('option');
+                opt.value = String(m);
+                opt.textContent = `tháng ${m}`;
+                if (m === now.getMonth() + 1) opt.selected = true;
+                dashMonth.appendChild(opt);
+            }
+
+            for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) {
+                const opt = document.createElement('option');
+                opt.value = String(y);
+                opt.textContent = `năm ${y}`;
+                if (y === now.getFullYear()) opt.selected = true;
+                dashYear.appendChild(opt);
+            }
+
+            if (roleKey === 'employee') {
+                dashDepartment.disabled = true;
+            }
+
+            updateDepartmentFilterStatus();
+        }
+
+        function renderSparklines(trend = []) {
+            const maxValue = Math.max(...trend, 1);
+            return `<div class="mini-sparkline">${trend.map(value => `<span style="height:${Math.max(3, Math.round((value / maxValue) * 24))}px"></span>`).join('')}</div>`;
+        }
+
+        function renderKpiCards(cards) {
+            kpiGrid.innerHTML = cards.map(card => `
+                <article class="kpi-card ${card.theme}">
+                    <div class="kpi-icon"><i class="${card.icon}"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">${card.label}</div>
+                        <div class="kpi-value">${card.value}</div>
+                        <div class="kpi-change ${card.delta >= 0 ? 'up' : 'down'}">${card.delta >= 0 ? '+' : ''}${card.delta}% so với tháng trước</div>
+                    </div>
+                    ${renderSparklines(card.trend)}
+                </article>
+            `).join('');
+        }
+
+        function progressTone(progress) {
+            if (progress >= 75) return 'good';
+            if (progress >= 45) return 'warn';
+            return 'bad';
+        }
+
+        function deadlineTag(daysLeft) {
+            if (daysLeft <= 2) return '<span class="pill danger"><2 ngày</span>';
+            if (daysLeft <= 5) return '<span class="pill warning">3-5 ngày</span>';
+            return '<span class="pill ok">On track</span>';
+        }
+
+        function statusTag(status) {
+            const normalized = (status || '').toLowerCase();
+            if (normalized === 'done') return '<span class="pill ok">Hoàn thành</span>';
+            if (normalized === 'doing') return '<span class="pill info">Đang thực hiện</span>';
+            return '<span class="pill warning">Chưa bắt đầu</span>';
+        }
+
+        function renderTaskTable(tasks) {
+            if (!tasks || tasks.length === 0) {
+                taskBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có công việc sắp deadline.</td></tr>';
+                return;
+            }
+
+            taskBody.innerHTML = tasks.map(task => `
+                <tr class="task-row-clickable" data-task="${task.name}">
+                    <td>
+                        <div title="${task.aiHint}">${task.name}</div>
+                    </td>
+                    <td>${task.owner}</td>
+                    <td>
+                        ${task.deadline}
+                        <div>${deadlineTag(task.daysLeft)}</div>
+                    </td>
+                    <td>
+                        <div class="progress" style="height:10px">
+                            <div class="progress-bar ${progressTone(task.progress)}" role="progressbar" style="width:${task.progress}%"></div>
+                        </div>
+                        <small class="text-muted">${task.progress}%</small>
+                    </td>
+                    <td>${statusTag(task.status)}</td>
+                </tr>
+            `).join('');
+
+            document.querySelectorAll('.task-row-clickable').forEach(row => {
+                row.addEventListener('click', () => {
+                    const taskName = row.getAttribute('data-task');
+                    alert(`Chi tiết task: ${taskName}`);
+                });
+            });
+        }
+
+        function renderTimeline(items) {
+            if (!items || items.length === 0) {
+                activityTimeline.innerHTML = '<div class="timeline-item muted">Không có hoạt động mới.</div>';
+                return;
+            }
+
+            activityTimeline.innerHTML = items.map(item => `
+                <div class="timeline-item">
+                    <div class="timeline-avatar">${item.avatar}</div>
+                    <div class="timeline-content">
+                        <strong>${item.actor}</strong>
+                        <div>${item.action}</div>
+                        <small class="text-muted">${item.time}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAiPanel(entries) {
+            aiInsightList.innerHTML = entries.map(item => `
+                <article class="ai-box ai-${item.type}">
+                    <div class="ai-box-icon">${item.icon}</div>
+                    <div>
+                        <h6>${item.title}</h6>
+                        <p>${item.content}</p>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function renderAttentionEmployees(items) {
+            if (!attentionEmployeeBody) return;
+            if (!items || items.length === 0) {
+                attentionEmployeeBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có nhân sự cần chú ý.</td></tr>';
+                return;
+            }
+            attentionEmployeeBody.innerHTML = items.map(x => `
+                <tr>
+                    <td>${x.hoTen || ''}</td>
+                    <td>${Number(x.kpi || 0).toFixed(1)}%</td>
+                    <td>${x.taskTre || 0}</td>
+                    <td>${x.taskDangLam || 0}</td>
+                    <td>${x.mucTai || ''}</td>
+                    <td><span class="pill ${x.canhBao === 'Nguy cơ cao' ? 'danger' : (x.canhBao === 'Cần hỗ trợ' ? 'warning' : 'ok')}">${x.canhBao || 'Ổn định'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderWorkload(items) {
+            if (!workloadList) return;
+            if (!items || items.length === 0) {
+                workloadList.innerHTML = '<div class="timeline-item muted">Chưa có dữ liệu workload.</div>';
+                return;
+            }
+            workloadList.innerHTML = items.map(x => `
+                <div class="timeline-item">
+                    <div class="timeline-avatar">${(x.hoTen || 'NV').slice(0,2).toUpperCase()}</div>
+                    <div class="timeline-content">
+                        <strong>${x.hoTen || ''}</strong>
+                        <div>${x.taskDangLam || 0} task đang làm</div>
+                        <small class="text-muted">${x.mucTai || ''}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPendingApprovals(data) {
+            if (!pendingApprovalGrid) return;
+            if (!data) {
+                pendingApprovalGrid.innerHTML = '<article class="kpi-card theme-cyan"><div class="kpi-body"><div class="kpi-label">Phê duyệt đang chờ</div><div class="kpi-value">Không có dữ liệu</div></div></article>';
+                return;
+            }
+            const cards = [
+                { label: 'Chờ duyệt tiến độ', value: data.tienDoChoDuyet || 0 },
+                { label: 'Chờ duyệt KPI', value: data.kpiChoDuyet || 0 },
+                { label: 'Báo cáo chờ xem', value: data.baoCaoChoXem || 0 },
+                { label: 'Đề xuất hệ thống chờ xử lý', value: data.deXuatHeThongChoXuLy || 0 }
+            ];
+            pendingApprovalGrid.innerHTML = cards.map(c => `
+                <article class="kpi-card theme-cyan">
+                    <div class="kpi-body">
+                        <div class="kpi-label">${c.label}</div>
+                        <div class="kpi-value">${c.value}</div>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        function renderProjectHealth(items) {
+            if (!projectHealthBody) return;
+            if (!items || items.length === 0) {
+                projectHealthBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có dữ liệu dự án trong phạm vi.</td></tr>';
+                return;
+            }
+            projectHealthBody.innerHTML = items.map(x => `
+                <tr>
+                    <td>${x.tenDuAn || ''}</td>
+                    <td>
+                        <div class="progress" style="height:10px">
+                            <div class="progress-bar ${Number(x.tienDo || 0) >= 75 ? 'good' : (Number(x.tienDo || 0) >= 45 ? 'warn' : 'bad')}" style="width:${Math.max(0, Math.min(100, Number(x.tienDo || 0)))}%"></div>
+                        </div>
+                        <small class="text-muted">${Number(x.tienDo || 0).toFixed(1)}%</small>
+                    </td>
+                    <td>${Number(x.kpi || 0).toFixed(1)}%</td>
+                    <td>${x.deadline ? new Date(x.deadline).toLocaleDateString('vi-VN') : '-'}</td>
+                    <td>${x.taskTre || 0}</td>
+                    <td><span class="pill ${x.risk === 'Cao' ? 'danger' : (x.risk === 'Trung bình' ? 'warning' : 'ok')}">${x.risk || 'Thấp'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderEmployeeDashboard(payload) {
+            if (dashboardMainGrid) {
+                dashboardMainGrid.style.display = 'none';
+            }
+
+            if (dashboardBottomGrid) {
+                dashboardBottomGrid.style.display = 'none';
+            }
+
+            if (employeeDashboardGrid) {
+                employeeDashboardGrid.style.display = 'block';
+            }
+
+            const ctx = payload?.employeeContext || payload?.nhanVienContext || {};
+            const cards = Array.isArray(payload?.cards) ? payload.cards : [];
+            const kpiCard = cards.find(card => (card.label || '').toLowerCase().includes('kpi')) || cards[0] || null;
+            const teamNames = Array.isArray(ctx.nhomThamGia) ? ctx.nhomThamGia : [];
+            const alerts = Array.isArray(ctx.canhBaoCaNhan) ? ctx.canhBaoCaNhan : [];
+            const departmentName = ctx.tenPhongBan || 'Chưa phân phòng ban';
+
+            if (kpiGrid) {
+                kpiGrid.innerHTML = `
+                    <article class="kpi-card theme-blue">
+                        <div class="kpi-icon"><i class="bi bi-person-check-fill"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">KPI cá nhân</div>
+                            <div class="kpi-value">${Number(ctx.kpiCaNhan || 0).toFixed(1)}%</div>
+                            <div id="employeeKpiTrend" class="employee-kpi-trend" style="display:inline-flex"></div>
+                        </div>
+                    </article>
+                    <article class="kpi-card theme-violet">
+                        <div class="kpi-icon"><i class="bi bi-building"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Phòng ban</div>
+                            <div class="kpi-value">${departmentName}</div>
+                            <div class="kpi-change up">${ctx.maPhongBan ? `Mã ${ctx.maPhongBan}` : 'Chưa xác định'}</div>
+                        </div>
+                    </article>
+                    <article class="kpi-card theme-red">
+                        <div class="kpi-icon"><i class="bi bi-bell-fill"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Cảnh báo chưa đọc</div>
+                            <div class="kpi-value">${Number(ctx.soCanhBaoChuaDoc || 0)}</div>
+                            <div class="kpi-change ${Number(ctx.soCanhBaoChuaDoc || 0) > 0 ? 'down' : 'up'}">${Number(ctx.soCanhBaoChuaDoc || 0) > 0 ? 'Cần xử lý' : 'Ổn định'}</div>
+                        </div>
+                    </article>
+                `;
+            }
+
+            if (employeeEvaluationContent) {
+                const kpiText = kpiCard?.value || `${Number(ctx.kpiCaNhan || 0).toFixed(1)}%`;
+                employeeEvaluationContent.innerHTML = `
+                    <div class="employee-eval-shell">
+                        <div class="employee-eval-hero">
+                            <div class="employee-eval-copy">
+                                <div class="employee-eval-label">KPI cá nhân</div>
+                                <div class="employee-eval-value">${kpiText}</div>
+                                <div id="employeeKpiTrendInline" class="employee-kpi-trend" style="display:inline-flex; margin-top:10px"></div>
+                                <div class="employee-eval-note">Theo kỳ hiện tại, tập trung vào kết quả của bạn.</div>
+                            </div>
+                            <div class="employee-eval-badge">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (employeeOrgContent) {
+                const teamHtml = teamNames.length > 0
+                    ? `<div class="employee-chip-wrap">${teamNames.map(name => `<span class="employee-chip">${name}</span>`).join('')}</div>`
+                    : '<div class="text-muted">Hiện chưa tham gia nhóm nào.</div>';
+
+                employeeOrgContent.innerHTML = `
+                    <div class="employee-org-shell">
+                        <div class="employee-org-meta">
+                            <div class="employee-org-label">Phòng ban</div>
+                            <div class="employee-org-value">${departmentName}</div>
+                            <div class="employee-org-note">Phạm vi công việc và phối hợp hiện tại.</div>
+                        </div>
+                        <div class="employee-org-stack">
+                            <div class="employee-org-subtitle">Nhóm đang tham gia</div>
+                            ${teamHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (employeeAlertContent) {
+                if (!Array.isArray(alerts) || alerts.length === 0) {
+                    employeeAlertContent.innerHTML = '<div class="text-muted">Không có cảnh báo cá nhân mới.</div>';
+                } else {
+                    const mapType = (t) => {
+                        const key = (t || '').toString().toLowerCase();
+                        if (key.includes('trễ') || key.includes('qua hạn') || key.includes('quá hạn')) return { cls: 'danger', icon: '⛔' };
+                        if (key.includes('gần') || key.includes('deadline')) return { cls: 'warning', icon: '⏰' };
+                        if (key.includes('kpi') || key.includes('kém') || key.includes('thấp')) return { cls: 'amber', icon: '📊' };
+                        if (key.includes('ai') || key.includes('dự đoán') || key.includes('gợi ý')) return { cls: 'deep-violet', icon: '🤖' };
+                        return { cls: 'info', icon: 'ℹ️' };
+                    };
+
+                    employeeAlertContent.innerHTML = `<div class="employee-alert-list">${alerts.slice(0, 8).map(item => {
+                        const t = mapType(item.loai || item.type || '');
+                        const readCls = item.daDoc ? 'read' : 'unread';
+                        const taskLink = item.taskId || item.maTask ? `/Portal/TaskDetail?id=${encodeURIComponent(item.taskId || item.maTask)}` : '/Portal/Notifications';
+                        const actionBtn = item.taskId || item.maTask ? `<a class="btn btn-sm btn-outline-primary employee-alert-action" data-action="openTask" data-id="${encodeURIComponent(item.taskId || item.maTask)}" href="${taskLink}">Xem task</a>` : `<a class="btn btn-sm btn-outline-secondary employee-alert-action" data-action="openDetail" href="/Portal/Notifications">Xem chi tiết</a>`;
+                        return `
+                            <article class="employee-alert-item ${readCls} aix-alert-card ${t.cls}">
+                                <div class="aix-alert-head">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <div class="employee-alert-icon">${t.icon}</div>
+                                        <div>
+                                            <div class="aix-alert-name">${item.loai || 'Cảnh báo'}</div>
+                                            <div class="aix-alert-meta">${item.thoiGian ? (new Date(item.thoiGian)).toLocaleString('vi-VN') : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        ${actionBtn}
+                                        <button class="btn btn-sm btn-outline-success employee-alert-action" data-action="markRead" data-id="${encodeURIComponent(item.id || item.alertId || '')}">${item.daDoc ? 'Đã đọc' : 'Đánh dấu đã đọc'}</button>
+                                    </div>
+                                </div>
+                                <div class="desc">${item.noiDung || ''}</div>
+                            </article>
+                        `;
+                    }).join('')}</div>`;
+                }
+            }
+
+            const todayEl = document.getElementById('todayTasks');
+            if (todayEl) {
+                const tlist = Array.isArray(payload?.tasks) ? payload.tasks.slice(0, 5) : [];
+
+                if (tlist.length === 0) {
+                    todayEl.innerHTML = '<div class="text-muted">Không có task hôm nay.</div>';
+                } else {
+                    todayEl.innerHTML = `<div class="today-task-list">${tlist.map(t => {
+                        const progress = Math.max(0, Math.min(100, Number(t.progress || 0)));
+                        const status = t.status || 'Đang thực hiện';
+
+                        return `
+                <div class="today-task-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="task-name">${t.name}</div>
+                            <small class="text-muted">Deadline: ${t.deadline || '-'}</small>
+                        </div>
+                        <span class="pill ${progress >= 80 ? 'ok' : progress >= 50 ? 'warning' : 'danger'}">${status}</span>
+                    </div>
+
+                    <div class="progress mt-2" style="height:8px; background:#f1f5f9; border-radius:999px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width:${progress}%"></div>
+                    </div>
+
+                    <small class="text-muted d-block mt-1">${progress}% hoàn thành</small>
+                </div>
+            `;
+                    }).join('')}</div>`;
+                }
+            }
+
+            const miniTl = document.getElementById('employeeMiniTimeline');
+            if (miniTl) {
+                const items = Array.isArray(payload?.timeline) ? payload.timeline.slice(0, 6) : [];
+                miniTl.innerHTML = items.length > 0 ? items.map(it => `
+                    <div class="timeline-item">
+                        <div class="timeline-avatar">${(it.avatar || (it.actor || '')).toString().slice(0, 2).toUpperCase()}</div>
+                        <div class="timeline-content">
+                            <strong>${it.actor}</strong>
+                            <div class="text-muted small">${it.action}</div>
+                            <small class="text-muted d-block">${it.time}</small>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-muted">Không có hoạt động gần đây.</div>';
+            }
+
+            const aiMini = document.getElementById('aiAssistantMini');
+            if (aiMini) {
+                const ais = Array.isArray(payload?.aiEntries) ? payload.aiEntries.slice(0, 4) : [];
+                aiMini.innerHTML = ais.length > 0 ? `<ul class="mb-0">${ais.map(a => `<li><strong>${a.icon} ${a.title}:</strong> ${a.content}</li>`).join('')}</ul>` : '<div class="text-muted">Không có gợi ý AI hôm nay.</div>';
+            }
+
+            const donutCtx = document.getElementById('employeeDonut');
+            if (donutCtx && typeof Chart !== 'undefined') {
+                const cardKpi = Array.isArray(cards) ? (cards.find(c => (c.label || '').toLowerCase().includes('kpi')) || cards[0]) : null;
+                const kpiValue = cardKpi && typeof cardKpi.value === 'string' && cardKpi.value.includes('%') ? Number(cardKpi.value.replace('%', '')) : (cardKpi && Number(cardKpi.value)) || 0;
+                try {
+                    if (employeeDonutChart) {
+                        employeeDonutChart.destroy();
+                        employeeDonutChart = null;
+                    }
+                    if (typeof Chart.getChart === 'function') {
+                        const existingDonut = Chart.getChart(donutCtx);
+                        if (existingDonut) existingDonut.destroy();
+                    }
+
+                    employeeDonutChart = new Chart(donutCtx, {
+                        type: 'doughnut',
+                        data: { labels: ['Đã đạt', 'Còn lại'], datasets: [{ data: [Math.max(0, Math.min(100, kpiValue)), Math.max(0, 100 - Math.max(0, Math.min(100, kpiValue)))], backgroundColor: ['#10B981', '#E5E7EB'] }] },
+                        options: { cutout: '75%', plugins: { legend: { display: false } } }
+                    });
+                } catch (e) { console.warn('donut render err', e); }
+                const labelEl = document.getElementById('kpiProgressLabel');
+                if (labelEl) labelEl.textContent = `KPI: ${kpiValue.toFixed(1)}%`;
+
+                // KPI trend: try to detect previous period value from common fields and render a trend pill
+                (function(){
+                    const trendEl = document.getElementById('employeeKpiTrend');
+                    const trendInline = document.getElementById('employeeKpiTrendInline');
+                    const cardKpi = Array.isArray(cards) ? (cards.find(c => (c.label || '').toLowerCase().includes('kpi')) || cards[0]) : null;
+                    let prevRaw = undefined;
+                    if (cardKpi) prevRaw = cardKpi.previous ?? cardKpi.prev ?? cardKpi.previousValue ?? cardKpi.prevValue ?? cardKpi.previous_period ?? cardKpi.prev_period;
+                    prevRaw = prevRaw ?? payload?.previousKpi ?? payload?.kpiPrevious ?? ctx.kpiCaNhanPrevious;
+                    if (typeof prevRaw === 'string' && prevRaw.includes('%')) prevRaw = Number(prevRaw.replace('%', ''));
+                    const prevVal = Number(prevRaw);
+
+                    function renderTrend(el){
+                        if (!el) return;
+                        if (!isFinite(prevVal)){
+                            el.textContent = 'Chưa có dữ liệu so sánh';
+                            el.className = 'employee-kpi-trend';
+                            return;
+                        }
+                        const delta = +(kpiValue - prevVal);
+                        const abs = Math.abs(delta).toFixed(1);
+                        const arrow = delta > 0 ? '<i class="bi bi-arrow-up-right"></i>' : (delta < 0 ? '<i class="bi bi-arrow-down-right"></i>' : '');
+                        const verb = delta > 0 ? 'Tăng' : (delta < 0 ? 'Giảm' : 'Ổn định');
+                        let cls = 'employee-kpi-trend';
+                        if (delta > 0) cls += ' up';
+                        else if (delta < 0) cls += (Math.abs(delta) >= 5 ? ' down' : ' warning');
+                        const text = delta === 0 ? 'Ổn định so với kỳ trước' : `${arrow} ${verb} ${abs}% so với tháng trước`;
+                        el.innerHTML = text;
+                        el.className = cls;
+                    }
+
+                    renderTrend(trendEl);
+                    renderTrend(trendInline);
+                })();
+            }
+
+            const quickUpdateProgressBtn = document.getElementById('quickUpdateProgress');
+            if (quickUpdateProgressBtn) {
+                quickUpdateProgressBtn.onclick = () => window.location.href = '/Portal/Tasks?role=' + role;
+            }
+
+            const quickCreateReportBtn = document.getElementById('quickCreateReport');
+            if (quickCreateReportBtn) {
+                quickCreateReportBtn.onclick = () => window.location.href = '/Portal/CreateReport';
+            }
+
+        }
+
+        function attachChartDrillDown(chart, title) {
+            chart.canvas.onclick = function (evt) {
+                const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                if (!points || points.length === 0) return;
+                const idx = points[0].index;
+                const label = chart.data.labels[idx];
+                alert(`Drill-down: ${title} - ${label}`);
+            };
+        }
+
+        function renderCharts(payload) {
+            destroyCharts();
+            const bar = new Chart(document.getElementById('dashBarChart'), {
+                type: 'bar',
+                data: {
+                    labels: payload.bar.labels,
+                    datasets: [{
+                        label: payload.bar.label,
+                        data: payload.bar.values,
+                        backgroundColor: '#2563EB',
+                        barThickness: 18,
+                        borderRadius: 6
+                    }]
+                },
+                options: { ...commonScale, plugins: { legend: { display: false } } }
+            });
+
+            const risk = new Chart(document.getElementById('dashRiskChart'), {
+                type: 'line',
+                data: {
+                    labels: payload.risk.labels,
+                    datasets: [{
+                        label: payload.risk.label || 'Rủi ro',
+                        data: payload.risk.values,
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249,115,22,0.12)',
+                        fill: true,
+                        tension: 0.36,
+                        pointRadius: 3
+                    }]
+                },
+                options: { ...commonScale, plugins: { legend: { display: false } } }
+            });
+
+            const line = new Chart(document.getElementById('dashLineChart'), {
+                type: 'line',
+                data: {
+                    labels: payload.line.labels,
+                    datasets: [{
+                        label: payload.line.label,
+                        data: payload.line.values,
+                        borderColor: '#7C3AED',
+                        backgroundColor: 'rgba(124, 58, 237, 0.16)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }]
+                },
+                options: { ...commonScale, plugins: { legend: { display: false } } }
+            });
+            const donut = new Chart(document.getElementById('dashDonutChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: payload.employeeDist.labels,
+                    datasets: [{
+                        data: payload.employeeDist.values,
+                        backgroundColor: ['#16A34A', '#2563EB', '#DC2626', '#EAB308', '#6B7280', '#111111']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+            renderDonutLegend(donut.data.labels, donut.data.datasets[0].backgroundColor);
+
+            // topRisk chart removed per user request
+
+            attachChartDrillDown(bar, payload.bar.label);
+            attachChartDrillDown(risk, payload.risk.label || 'Risk trend');
+            attachChartDrillDown(line, payload.line.label);
+            attachChartDrillDown(donut, 'Phân bố nhân viên');
+
+            charts.push(bar, risk, line, donut);
+        }
+
+        function mapAdminPayload(apiData) {
+            const tongQuan = apiData.tongQuan || {};
+            const month = dashMonth.value;
+            const year = dashYear.value;
+            const selectedDepartment = dashDepartment.value;
+            const selectedTeam = dashTeam ? dashTeam.value : '';
+            const selectedProject = dashProject ? dashProject.value : '';
+
+            const filterDepartments = (apiData.filters && apiData.filters.departments) || (apiData.kpiTheoPhongBan || []).map(x => ({ id: x.maPhongBan, label: x.tenPhongBan || `phòng ${x.maPhongBan}` }));
+            dashDepartment.innerHTML = '<option value="">Tất cả phòng ban</option>' + filterDepartments.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
+            dashDepartment.value = selectedDepartment || (apiData.filters && apiData.filters.selectedDepartmentId ? String(apiData.filters.selectedDepartmentId) : '');
+
+            if (dashTeam) {
+                const teams = (apiData.filters && apiData.filters.teams) || [];
+                dashTeam.innerHTML = '<option value="">Tất cả nhóm</option>' + teams.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
+                dashTeam.value = selectedTeam || (apiData.filters && apiData.filters.selectedTeamId ? String(apiData.filters.selectedTeamId) : '');
+            }
+            if (dashProject) {
+                const projects = (apiData.filters && apiData.filters.projects) || [];
+                dashProject.innerHTML = '<option value="">Tất cả dự án</option>' + projects.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
+                dashProject.value = selectedProject || (apiData.filters && apiData.filters.selectedProjectId ? String(apiData.filters.selectedProjectId) : '');
+            }
+            updateDepartmentFilterStatus();
+
+            const sourceCards = apiData.summaryCards || [];
+            const cards = sourceCards.length > 0
+                ? sourceCards.map((c, idx) => ({
+                    label: c.label || c.key || 'Chỉ số',
+                    value: c.value || '0',
+                    icon: ['bi bi-people-fill', 'bi bi-kanban-fill', 'bi bi-list-task', 'bi bi-alarm-fill', 'bi bi-graph-up-arrow', 'bi bi-shield-exclamation'][idx] || 'bi bi-graph-up',
+                    theme: ['theme-blue', 'theme-violet', 'theme-cyan', 'theme-red', 'theme-amber', 'theme-deep-violet'][idx] || 'theme-cyan',
+                    delta: 0,
+                    trend: [Number((c.value || '0').toString().replace('%', '').split(' ')[0]) || 0]
+                }))
+                : [
+                    { label: 'Nhân sự quản lý', value: tongQuan.soNhanVien || 0, icon: 'bi bi-people-fill', theme: 'theme-blue', delta: 0, trend: [tongQuan.soNhanVien || 0] },
+                    { label: 'Dự án đang chạy', value: tongQuan.soDuAnDangChay || 0, icon: 'bi bi-kanban-fill', theme: 'theme-violet', delta: 0, trend: [tongQuan.soDuAnDangChay || 0] },
+                    { label: 'Công việc đang làm', value: tongQuan.soTaskDangLam || 0, icon: 'bi bi-list-task', theme: 'theme-cyan', delta: 0, trend: [tongQuan.soTaskDangLam || 0] },
+                    { label: 'Công việc trễ hạn', value: tongQuan.soTaskTreHan || 0, icon: 'bi bi-alarm-fill', theme: 'theme-red', delta: 0, trend: [tongQuan.soTaskTreHan || 0] },
+                    { label: 'KPI trung bình', value: `${Number(tongQuan.kpiTrungBinh || 0).toFixed(1)}%`, icon: 'bi bi-graph-up-arrow', theme: 'theme-amber', delta: 0, trend: [Number(tongQuan.kpiTrungBinh || 0)] }
+                ];
+
+            const barLabels = apiData.kpiTheoPhongBan.map(x => x.tenPhongBan || 'Chưa rõ');
+            const barValues = apiData.kpiTheoPhongBan.map(x => x.kpi || 0);
+
+            const lineLabels = ((apiData.kpiTrend && apiData.kpiTrend.labels) || (apiData.topNhanVien || []).map(x => x.hoTen || `NV ${x.maNhanVien}`));
+            const lineValues = ((apiData.kpiTrend && apiData.kpiTrend.values) || (apiData.topNhanVien || []).map(x => x.kpi || 0));
+
+            const tasks = (apiData.urgentTasks || apiData.taskTreHan || []).slice(0, 12).map(task => ({
+                name: task.tenCongViec || task.tenTask || '(Không rõ task)',
+                owner: task.nguoiPhuTrach || (task.nhanViens || []).join(', ') || '(Chưa gán)',
+                deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('vi-VN') : '-',
+                daysLeft: task.deadline ? Math.ceil((new Date(task.deadline) - new Date()) / 86400000) : 99,
+                progress: Number(task.tienDo || Math.max(0, 100 - ((task.soNgayTre || 0) * 12))),
+                status: task.trangThai || (task.soNgayTre > 0 ? 'Quá hạn' : 'Đang thực hiện'),
+                aiHint: task.priorityReason || 'Cần theo dõi xử lý'
+            }));
+
+            const aiEntries = (apiData.insights || []).map(x => ({
+                type: x.type || 'info',
+                icon: x.type === 'danger' ? '⛔' : (x.type === 'warning' ? '⚠️' : '💡'),
+                title: x.title || 'Gợi ý hệ thống',
+                content: x.content || ''
+            }));
+
+            const timeline = [
+                ...((apiData.activityTimeline || []).map(x => ({
+                    avatar: (x.actor || 'HT').slice(0, 2).toUpperCase(),
+                    actor: x.actor || 'Hệ thống',
+                    action: x.action || '',
+                    time: x.time ? new Date(x.time).toLocaleString('vi-VN') : `${month}/${year}`
+                })))
+            ];
+
+                    return {
+                cards,
+                bar: { labels: barLabels, values: barValues, label: 'KPI theo phòng ban' },
+                line: { labels: lineLabels.length ? lineLabels : ['Không có dữ liệu'], values: lineValues.length ? lineValues : [0], label: 'KPI top nhân viên' },
+                pie: apiData.taskStatusDistribution
+                    ? {
+                        labels: ['Chưa bắt đầu', 'Đang thực hiện', 'Chờ duyệt', 'Hoàn thành', 'Quá hạn'],
+                        values: [
+                            apiData.taskStatusDistribution.chuaBatDau || 0,
+                            apiData.taskStatusDistribution.dangThucHien || 0,
+                            apiData.taskStatusDistribution.choDuyet || 0,
+                            apiData.taskStatusDistribution.hoanThanh || 0,
+                            apiData.taskStatusDistribution.quaHan || 0
+                        ]
+                    }
+                    : { labels: ['Hoàn thành', 'Đang thực hiện', 'Overdue'], values: [tongQuan.soTaskHoanThanh || 0, tongQuan.soTaskDangLam || 0, tongQuan.soTaskTreHan || 0] },
+                    risk: {
+                        labels: ['Mức rủi ro'],
+                        values: [Number((apiData.risk && apiData.risk.score) || 0)],
+                        label: (apiData.risk && apiData.risk.label) || 'Mức rủi ro'
+                    },
+                    employeeDist: {
+                        labels: ['Hoàn thành', 'Đang thực hiện', 'Quá hạn', 'Chờ duyệt', 'Chưa bắt đầu', 'Tạm ngừng'],
+                        values: apiData.taskStatusDistribution
+                            ? [
+                                apiData.taskStatusDistribution.hoanThanh || 0,
+                                apiData.taskStatusDistribution.dangThucHien || 0,
+                                apiData.taskStatusDistribution.quaHan || 0,
+                                apiData.taskStatusDistribution.choDuyet || 0,
+                                apiData.taskStatusDistribution.chuaBatDau || 0,
+                                apiData.taskStatusDistribution.tamNgung || 0
+                            ]
+                            : [56, 24, 6, 12, 8, 0]
+                    },
+                    // topRisk removed
+                tasks,
+                aiEntries,
+                timeline,
+                attentionEmployees: apiData.attentionEmployees || [],
+                teamWorkload: apiData.teamWorkload || [],
+                pendingApprovals: apiData.pendingApprovals || null,
+                projectHealth: apiData.projectHealth || [],
+                insightSource: apiData.insightSource || 'fallback',
+                ownerHeader: 'Nhân viên'
+            };
+        }
+
+        function mapEmployeePayload(apiData) {
+            const tongQuan = apiData.tongQuan || {};
+            const ctx = apiData.nhanVienContext || {};
+            const myName = ctx.hoTen || 'Tôi';
+            const myDepartment = ctx.tenPhongBan || (ctx.maPhongBan ? `Phòng ${ctx.maPhongBan}` : 'Chưa phân phòng ban');
+            const myTeams = Array.isArray(ctx.nhomThamGia) ? ctx.nhomThamGia : [];
+            const myAlerts = Array.isArray(ctx.canhBaoCaNhan) ? ctx.canhBaoCaNhan : [];
+            const myKpi = Number(ctx.kpiCaNhan || tongQuan.kpiTrungBinh || 0);
+            const deptKpi = Number((apiData.kpiTheoPhongBan && apiData.kpiTheoPhongBan[0] && apiData.kpiTheoPhongBan[0].kpi) || myKpi);
+
+            const cards = [
+                { label: 'KPI cá nhân', value: `${myKpi.toFixed(1)}%`, icon: 'bi bi-person-check-fill', theme: 'theme-blue', delta: 0, trend: [myKpi] },
+                { label: 'Phòng ban của tôi', value: myDepartment, icon: 'bi bi-building', theme: 'theme-violet', delta: 0, trend: [deptKpi] },
+                { label: 'Nhóm đang tham gia', value: myTeams.length, icon: 'bi bi-people-fill', theme: 'theme-cyan', delta: 0, trend: [myTeams.length] },
+                { label: 'Công việc đang làm', value: Number(tongQuan.soTaskDangLam || 0), icon: 'bi bi-list-task', theme: 'theme-amber', delta: 0, trend: [Number(tongQuan.soTaskDangLam || 0)] },
+                { label: 'Công việc trễ hạn', value: Number(tongQuan.soTaskTreHan || 0), icon: 'bi bi-alarm-fill', theme: 'theme-red', delta: 0, trend: [Number(tongQuan.soTaskTreHan || 0)] },
+                { label: 'Cảnh báo chưa đọc', value: Number(ctx.soCanhBaoChuaDoc || 0), icon: 'bi bi-bell-fill', theme: 'theme-deep-violet', delta: 0, trend: [Number(ctx.soCanhBaoChuaDoc || 0)] }
+            ];
+
+            const barLabels = ['KPI cá nhân', 'KPI phòng ban'];
+            const barValues = [myKpi, deptKpi];
+
+            const lineLabels = ['KPI cá nhân', 'Mục tiêu nội bộ', 'KPI phòng ban'];
+            const lineValues = [myKpi, Math.max(75, myKpi), deptKpi];
+
+            const tasks = (apiData.taskTreHan || []).slice(0, 6).map(task => ({
+                name: task.tenTask || '(Không rõ task)',
+                owner: myName,
+                deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('vi-VN') : '-',
+                daysLeft: (task.soNgayTre || 0) > 0 ? 0 : 4,
+                progress: (task.soNgayTre || 0) > 0 ? 35 : 75,
+                status: (task.soNgayTre || 0) > 0 ? 'Đang thực hiện' : 'Đúng tiến độ',
+                aiHint: (task.soNgayTre || 0) > 0
+                    ? `Cảnh báo cá nhân: trễ hạn ${task.soNgayTre} ngày.`
+                    : 'Cảnh báo cá nhân: cần theo dõi deadline gần nhất.'
+            }));
+
+            const aiEntries = myAlerts.length > 0
+                ? myAlerts.slice(0, 3).map(item => ({
+                    type: item.daDoc ? 'info' : 'warn',
+                    icon: item.daDoc ? '🔔' : '⚠️',
+                    title: item.loai || 'Cảnh báo cá nhân',
+                    content: item.noiDung || 'Không có nội dung.'
+                }))
+                : [{ type: 'info', icon: '✅', title: 'Không có cảnh báo mới', content: 'Hiện chưa có cảnh báo cá nhân cần xử lý.' }];
+
+            const timeline = [
+                {
+                    avatar: (myName || 'NV').slice(0, 2).toUpperCase(),
+                    actor: myName,
+                    action: `KPI cá nhân tháng này đạt ${myKpi.toFixed(1)}%.`,
+                    time: 'Kỳ hiện tại'
+                },
+                {
+                    avatar: 'PB',
+                    actor: 'Phòng ban',
+                    action: `Bạn đang tham gia: ${myDepartment}.`,
+                    time: 'Hiện tại'
+                },
+                {
+                    avatar: 'NH',
+                    actor: 'Nhóm',
+                    action: myTeams.length > 0
+                        ? `Đang tham gia ${myTeams.length} nhóm: ${myTeams.join(', ')}.`
+                        : 'Hiện chưa tham gia nhóm nào.',
+                    time: 'Hiện tại'
+                },
+                ...myAlerts.slice(0, 2).map(item => ({
+                    avatar: 'CB',
+                    actor: item.loai || 'Cảnh báo',
+                    action: item.noiDung || 'Không có nội dung.',
+                    time: item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : 'Gần đây'
+                }))
+            ];
+
+            return {
+                cards,
+                bar: { labels: barLabels, values: barValues, label: 'Đánh giá cá nhân / phòng ban' },
+                line: { labels: lineLabels, values: lineValues, label: 'Hiệu suất cá nhân' },
+                pie: {
+                    labels: ['Task hoàn thành', 'Task đang làm', 'Task trễ hạn'],
+                    values: [Number(tongQuan.soTaskHoanThanh || 0), Number(tongQuan.soTaskDangLam || 0), Number(tongQuan.soTaskTreHan || 0)]
+                },
+                risk: {
+                    labels: ['Mức ổn định', 'Mức cảnh báo', 'Mức trễ hạn'],
+                    values: [Math.max(0, 100 - Number(tongQuan.soTaskTreHan || 0) * 10), Number(ctx.soCanhBaoChuaDoc || 0) * 10, Number(tongQuan.soTaskTreHan || 0) * 12],
+                    label: 'Rủi ro cá nhân (%)'
+                },
+                employeeDist: {
+                    labels: ['Nhóm tham gia', 'Cảnh báo chưa đọc', 'Task trễ hạn', 'Task đang làm'],
+                    values: [myTeams.length, Number(ctx.soCanhBaoChuaDoc || 0), Number(tongQuan.soTaskTreHan || 0), Number(tongQuan.soTaskDangLam || 0)]
+                },
+                tasks,
+                aiEntries,
+                timeline,
+                ownerHeader: 'Cá nhân'
+            };
+        }
+
+        function getDashboardQueryParams() {
+            const now = new Date();
+            const monthValue = dashMonth ? dashMonth.value : '';
+            return {
+                month: monthValue ? Number(monthValue) : null,
+                year: dashYear ? Number(dashYear.value) : now.getFullYear(),
+                department: dashDepartment ? dashDepartment.value : '',
+                team: dashTeam ? dashTeam.value : '',
+                project: dashProject ? dashProject.value : ''
+            };
+        }
+
+        async function loadAdminFromApi() {
+            const { month, year, department, team, project } = getDashboardQueryParams();
+
+            const monthQuery = month ? `thang=${month}&` : '';
+            const departmentQuery = department ? `&maPhongBan=${encodeURIComponent(department)}` : '';
+            const teamQuery = team ? `&maNhom=${encodeURIComponent(team)}` : '';
+            const projectQuery = project ? `&maDuAn=${encodeURIComponent(project)}` : '';
+            const response = await fetch(`/dashboard?${monthQuery}nam=${year}&maKpi=1&top=5${departmentQuery}${teamQuery}${projectQuery}`);
+            const rawText = await response.text();
+            let payload = null;
+            if (rawText && rawText.trim().length > 0) {
+                try {
+                    payload = JSON.parse(rawText);
+                } catch {
+                    if (!response.ok) {
+                        throw new Error(`API dashboard trả lỗi ${response.status}.`);
+                    }
+                    throw new Error('Dữ liệu dashboard không hợp lệ.');
+                }
+            }
+
+            if (!response.ok) {
+                const serverMessage = payload && payload.message ? payload.message : `API dashboard trả lỗi ${response.status}.`;
+                throw new Error(serverMessage);
+            }
+
+            if (!payload) {
+                throw new Error('API dashboard không trả dữ liệu.');
+            }
+
+            if (!payload.success) {
+                throw new Error(payload.message || 'Không tải được dữ liệu dashboard');
+            }
+            const isEmployeePayload = roleKey === 'employee' || payload.data.isPersonalDashboard === true;
+            return isEmployeePayload ? mapEmployeePayload(payload.data) : mapAdminPayload(payload.data);
+        }
+
+        async function loadDashboardData() {
+            return await loadAdminFromApi();
+        }
+
+        async function renderDashboard() {
+            try {
+                currentDashPayload = await loadDashboardData();
+
+                if (isEmployeeDashboard) {
+                    if (dashboardFilterBar) dashboardFilterBar.style.display = 'none';
+                    renderEmployeeDashboard(currentDashPayload);
+                    return;
+                }
+
+                if (taskOwnerHeader) {
+                    taskOwnerHeader.textContent = currentDashPayload.ownerHeader;
+                }
+
+                if (dashboardFilterBar) dashboardFilterBar.style.display = '';
+                if (dashboardMainGrid) dashboardMainGrid.style.display = '';
+                if (dashboardBottomGrid) dashboardBottomGrid.style.display = '';
+                if (employeeDashboardGrid) employeeDashboardGrid.style.display = 'none';
+
+                barChartTitle.textContent = currentDashPayload.bar.label;
+                lineChartTitle.textContent = currentDashPayload.line.label;
+                if (insightPanelTitle) {
+                    insightPanelTitle.textContent = currentDashPayload.insightSource === 'ai' ? 'Phân tích AI' : 'Gợi ý hệ thống';
+                }
+
+                renderKpiCards(currentDashPayload.cards);
+                renderCharts(currentDashPayload);
+                renderTaskTable(currentDashPayload.tasks);
+                renderAiPanel(currentDashPayload.aiEntries);
+                renderTimeline(currentDashPayload.timeline);
+                renderAttentionEmployees(currentDashPayload.attentionEmployees);
+                renderWorkload(currentDashPayload.teamWorkload);
+                renderPendingApprovals(currentDashPayload.pendingApprovals);
+                renderProjectHealth(currentDashPayload.projectHealth);
+            } catch (error) {
+                if (isEmployeeDashboard) {
+                    if (employeeEvaluationContent) {
+                        employeeEvaluationContent.innerHTML = `<div class="text-danger">Lỗi tải dữ liệu: ${error.message}</div>`;
+                    }
+                    if (employeeOrgContent) {
+                        employeeOrgContent.innerHTML = '<div class="text-danger">Không thể tải dữ liệu phòng ban và nhóm.</div>';
+                    }
+                    if (employeeAlertContent) {
+                        employeeAlertContent.innerHTML = '<div class="text-danger">Không thể tải cảnh báo cá nhân.</div>';
+                    }
+                    return;
+                }
+
+                if (kpiGrid) kpiGrid.innerHTML = '<article class="panel text-danger">Không thể tải dữ liệu dashboard. Vui lòng thử lại.</article>';
+                if (taskBody) taskBody.innerHTML = `<tr><td colspan="5" class="text-danger">Lỗi tải dữ liệu: ${error.message}</td></tr>`;
+                if (aiInsightList) aiInsightList.innerHTML = `<p class="text-danger mb-0">${error.message}</p>`;
+                if (activityTimeline) activityTimeline.innerHTML = '<div class="timeline-item muted text-danger">Không tải được timeline.</div>';
+                if (attentionEmployeeBody) attentionEmployeeBody.innerHTML = '<tr><td colspan="6" class="text-danger">Không tải được dữ liệu nhân sự cần chú ý.</td></tr>';
+                if (workloadList) workloadList.innerHTML = '<div class="timeline-item muted text-danger">Không tải được dữ liệu workload.</div>';
+                if (pendingApprovalGrid) pendingApprovalGrid.innerHTML = '<article class="panel text-danger">Không tải được pending approvals.</article>';
+                if (projectHealthBody) projectHealthBody.innerHTML = '<tr><td colspan="6" class="text-danger">Không tải được dữ liệu tiến độ dự án.</td></tr>';
+            }
+        }
+
+        if (dashMonth) {
+            dashMonth.addEventListener('change', () => {
+                updateDepartmentFilterStatus();
+                renderDashboard();
+            });
+        }
+        if (dashYear) {
+            dashYear.addEventListener('change', () => {
+                updateDepartmentFilterStatus();
+                renderDashboard();
+            });
+        }
+        if (dashDepartment) {
+            dashDepartment.addEventListener('change', () => {
+                updateDepartmentFilterStatus();
+                renderDashboard();
+            });
+        }
+        if (dashTeam) {
+            dashTeam.addEventListener('change', () => {
+                updateDepartmentFilterStatus();
+                renderDashboard();
+            });
+        }
+        if (dashProject) {
+            dashProject.addEventListener('change', () => {
+                updateDepartmentFilterStatus();
+                renderDashboard();
+            });
+        }
+        if (btnRefreshDash) {
+            window.UiButtonLoading?.bind(btnRefreshDash, renderDashboard, { profile: 'reload' });
+        }
+        if (btnExportDash) {
+            btnExportDash.addEventListener('click', () => {
+                const { month, year, department, team, project } = getDashboardQueryParams();
+                const params = new URLSearchParams({ nam: String(year), maKpi: '1', top: '5' });
+                if (month) params.set('thang', String(month));
+                if (department) params.set('maPhongBan', department);
+                if (team) params.set('maNhom', team);
+                if (project) params.set('maDuAn', project);
+
+                const downloadAction = async () => {
+                    try {
+                        const res = await fetch(`/dashboard/export?${params.toString()}`, { method: 'GET', credentials: 'same-origin' });
+                        if (!res.ok) {
+                            const txt = await res.text();
+                            window.UiToast?.error(txt || 'Lỗi khi xuất báo cáo');
+                            return;
+                        }
+
+                        const blob = await res.blob();
+                        const disposition = res.headers.get('content-disposition') || '';
+                        let fileName = `dashboard_export_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '_')}.xlsx`;
+                        const match = /filename="?([^";]+)"?/.exec(disposition);
+                        if (match) fileName = match[1];
+
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+
+                        window.UiToast?.success('Tải xuống hoàn tất');
+                    } catch (err) {
+                        console.error(err);
+                        window.UiToast?.error('Lỗi khi tải báo cáo');
+                    }
+                };
+
+                if (window.UiButtonLoading?.run) {
+                    window.UiButtonLoading.run(btnExportDash, downloadAction, { profile: 'export' });
+                } else {
+                    downloadAction();
+                }
+            });
+        }
+
+        initFilterOptions();
+        renderDashboard();
+
+        setInterval(() => {
+            renderDashboard();
+        }, 60000);
+    </script>
+}
+
+
+
+
+
+

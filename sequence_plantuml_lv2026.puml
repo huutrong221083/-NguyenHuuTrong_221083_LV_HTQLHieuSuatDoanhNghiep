@@ -1,0 +1,337 @@
+@startuml
+title 1) Dang nhap (AccountController + Identity)
+actor "Nguoi dung" as U
+boundary "Login View" as V
+control "AccountController" as C
+control "SignInManager/UserManager" as I
+database "SQL Server" as DB
+boundary "Portal Dashboard" as D
+
+U -> V: Nhap user/email + password
+V -> C: POST /Account/Login
+C -> I: FindByEmail/FindByName
+I -> DB: Query user + trang thai nhan vien
+DB --> I: user/profile
+I --> C: auth context
+
+alt user khong ton tai
+  C --> V: Sai tai khoan hoac mat khau
+else tai khoan bi khoa/vo hieu hoa
+  C --> V: Tai khoan bi khoa hoac vo hieu hoa
+else hop le
+  C -> I: CheckPasswordSignInAsync
+  alt sai mat khau
+    C -> I: AccessFailedAsync
+    C --> V: Sai mat khau / co the bi khoa tam
+  else dung mat khau
+    C -> I: ResetAccessFailed + SignInAsync
+    C --> V: Login success
+    V -> D: Redirect /Portal/Dashboard
+  end
+end
+@enduml
+
+@startuml
+title 2) Tao cong viec + phan cong (CongViecController)
+actor "Quan ly" as M
+boundary "UI Cong viec" as V
+control "CongViecController" as C
+database "SQL Server" as DB
+control "NotificationService" as N
+
+M -> V: Nhap thong tin cong viec
+V -> C: POST /congviec
+alt du lieu khong hop le
+  C --> V: 400 BadRequest
+else hop le
+  C -> DB: Insert CONGVIEC
+  opt auto trang thai theo ngay bat dau
+    C -> C: ResolveTaskStatusForCreate()
+  end
+  C --> V: Tao cong viec thanh cong
+end
+
+group Phan cong
+  V -> C: POST /congviec/assignments/nhanvien
+  C -> DB: Upsert PHANCONGNHANVIEN
+  V -> C: POST /congviec/{id}/assignments/nhom
+  C -> DB: Upsert PHANCONGNHOM
+  V -> C: POST /congviec/{id}/assignments/phongban
+  C -> DB: Upsert PHANCONGPHONGBAN
+end
+
+opt co nguoi nhan hop le
+  C -> N: Gui thong bao giao viec
+end
+@enduml
+
+@startuml
+title 3) Cap nhat tien do (POST /tiendo)
+actor "Nhan vien" as E
+boundary "UI Cong viec ca nhan" as V
+control "CongViecController" as C
+database "SQL Server" as DB
+control "NotificationService" as N
+
+E -> V: Nhap % + ghi chu
+V -> C: POST /tiendo
+C -> DB: Check actor scope + quyen
+alt khong co quyen/ngoai pham vi
+  C --> V: 403
+else hop le
+  C -> DB: Insert TIENDOCONGVIEC
+  alt can duyet
+    C -> DB: TrangThaiPheDuyet = "Cho duyet"
+    C -> N: Notify quan ly
+  else khong can duyet
+    C -> DB: TrangThaiPheDuyet = "Da duyet"
+  end
+  C -> DB: Insert NHATKYCONGVIEC
+  C --> V: Cap nhat thanh cong
+end
+@enduml
+
+@startuml
+title 4) Duyet/Tu choi tien do
+actor "Quan ly" as M
+boundary "UI Duyet tien do" as V
+control "CongViecController" as C
+database "SQL Server" as DB
+
+alt duyet
+  V -> C: PUT /tiendo/{id}/approve
+else tu choi
+  V -> C: PUT /tiendo/{id}/reject
+end
+
+C -> DB: Load TIENDOCONGVIEC
+alt khong ton tai
+  C --> V: 404
+else trang thai != "Cho duyet"
+  C --> V: 400 Da xu ly truoc do
+else ngoai pham vi quan ly
+  C --> V: 403
+else hop le
+  alt approve
+    C -> DB: update TrangThaiPheDuyet = "Da duyet"
+    C -> DB: update CONGVIEC.PhanTramHoanThanh + MaTrangThai
+  else reject
+    C -> DB: update TrangThaiPheDuyet = "Tu choi" + LyDoTuChoi
+  end
+  C --> V: Xu ly thanh cong
+end
+@enduml
+
+@startuml
+title 5) Tinh KPI theo ky (KpiController + KpiService)
+actor "Admin/Quan ly" as A
+boundary "Giao dien KPI" as V
+control "KpiController" as C
+control "KpiService" as S
+database "SQL Server" as DB
+
+A -> V: Chon thang/nam/ky
+alt tinh mot KPI
+  V -> C: POST /kpi/calculate
+else tinh all active
+  V -> C: POST /kpi/calculate-all
+end
+
+C -> DB: Kiem tra KPI catalog + trang thai
+alt KPI khong ton tai / tam dung / ky khong hop le
+  C --> V: loi du lieu
+else hop le
+  C -> S: CalculateAsync(request)
+  loop tung nhan vien thuoc scope
+    S -> DB: doc task/progress/weight
+    S -> DB: upsert KETQUAKPI + KETQUAKPI_TONG
+  end
+  S --> C: result tong hop
+  C --> V: Tinh KPI thanh cong
+end
+@enduml
+
+@startuml
+title 6) De xuat KPI + review de xuat
+actor "Quan ly/Admin de xuat" as P
+actor "Admin duyet" as R
+boundary "Giao dien de xuat KPI" as V
+control "KpiController" as C
+database "SQL Server" as DB
+control "NotificationService" as N
+
+P -> V: Nhap de xuat KPI
+V -> C: POST /kpi/proposals
+C -> DB: validate + check duplicate pending
+alt du lieu khong hop le / trung pending
+  C --> V: 400/409
+else hop le
+  C -> DB: insert DE_XUAT_KPI (ChoDuyet)
+  opt gui notify admin
+    C -> N: KPI_PROPOSAL
+  end
+  C --> V: Tao de xuat thanh cong
+end
+
+R -> V: duyet / tu choi / yeu cau chinh sua
+V -> C: POST /kpi/proposals/{id}/review
+C -> DB: begin transaction + load proposal
+alt khong ton tai / da dong
+  C --> V: loi trang thai
+else action = YeuCauChinhSua
+  C -> DB: TrangThai = CanChinhSua
+else action = TuChoi
+  C -> DB: TrangThai = TuChoi
+else action = Duyet
+  C -> DB: ApplyApprovedProposalAsync()
+  C -> DB: TrangThai = DaDuyet
+end
+C -> DB: commit
+opt gui notify nguoi de xuat
+  C -> N: ket qua review
+end
+@enduml
+
+@startuml
+title 7) AI du bao rui ro tre han
+actor "Quan ly" as M
+boundary "Giao dien AI" as V
+control "AiController" as C
+control "AiPredictionService" as S
+database "SQL Server" as DB
+control "NotificationService" as N
+
+M -> V: Mo du bao
+V -> C: POST /ai/predict-delay
+alt payload null/khong hop le
+  C --> V: 400
+else hop le
+  C -> S: PredictDelayAsync(command)
+  S -> DB: build feature + validate data
+  alt AI runtime tat / du lieu thieu
+    S --> C: Fail
+    C --> V: 400 fail message
+  else loi model
+    S -> S: fallback prediction
+    S -> DB: save DUDOANAI
+    S --> C: success (fallback)
+  else du bao chuan
+    S -> DB: save DUDOANAI + feature snapshots
+    S --> C: success
+  end
+  opt risk level cao
+    C -> N: gui canh bao
+  end
+  C --> V: tra ket qua du bao
+end
+@enduml
+
+@startuml
+title 8) Feedback AI + HITL intervention
+actor "Quan ly/Nhan vien" as U
+boundary "Giao dien AI" as V
+control "AiController" as C
+database "SQL Server" as DB
+control "NotificationService" as N
+
+U -> V: Gui feedback
+V -> C: POST /ai/feedback
+alt thieu du lieu bat buoc
+  C --> V: 400
+else hop le
+  C -> DB: validate range (DoChinhXac/MucHuuIch)
+  C -> DB: insert AI_FEEDBACK
+  C --> V: ghi nhan feedback
+end
+
+opt quan ly can thiep HITL
+  U -> V: Gui can thiep
+  V -> C: POST /ai/intervention-log
+  alt thieu MaDuDoan va MaDanhGia
+    C --> V: 400
+  else hop le
+    C -> DB: insert AI_NHATKY_CAN_THIEP
+    C --> V: can thiep thanh cong
+    opt tuy chon notify
+      C -> N: notify parties lien quan
+    end
+  end
+end
+@enduml
+
+@startuml
+title 9) Tao bao cao + xuat PDF/Excel
+actor "Nguoi dung" as U
+boundary "Giao dien bao cao" as V
+control "ReportController" as C
+database "SQL Server" as DB
+control "ExportService" as E
+
+alt luu nhap
+  U -> V: Luu nhap
+  V -> C: POST /report/save-draft
+else nop bao cao
+  U -> V: Nop bao cao
+  V -> C: POST /report/submit
+end
+
+C -> DB: validate tieu de/loai/ngay + trung ten + nguoi nhan
+alt validation fail
+  C --> V: 400/409
+else hop le
+  C -> DB: insert BAOCAO_PORTAL
+  opt submit co MaYeuCau
+    C -> DB: update YEUCAUBAOCAO trang thai
+  end
+  opt gui thong bao nguoi nhan
+    C -> DB: tao thong bao nhan bao cao
+  end
+  C --> V: luu thanh cong
+end
+
+opt xuat file
+  alt Excel
+    V -> C: POST /report/export-excel
+    C -> E: generate excel
+    E --> V: file .xlsx
+  else PDF
+    V -> C: POST /report/export-pdf
+    C -> E: generate pdf
+    E --> V: file .pdf
+  end
+end
+@enduml
+
+@startuml
+title 10) Trung tam thong bao + danh dau da doc
+actor "Nguoi dung" as U
+boundary "Giao dien thong bao" as V
+control "ThongBaoController" as C
+database "SQL Server" as DB
+
+U -> V: Mo danh sach thong bao
+V -> C: GET /thongbao?tab=all-or-unread
+C -> DB: query THONGBAO + THONGBAO_NHANVIEN theo scope
+alt khong co du lieu
+  C --> V: danh sach rong
+else co du lieu
+  C --> V: danh sach + unreadCount
+end
+
+alt danh dau 1 thong bao
+  U -> V: Danh dau da doc
+  V -> C: POST /thongbao/{id}/mark-read
+else danh dau tat ca
+  U -> V: Danh dau tat ca
+  V -> C: POST /thongbao/mark-all-read
+end
+
+C -> DB: Resolve scope (Notifications.Receive)
+alt sai scope/khong xac dinh pham vi
+  C --> V: 400/403
+else hop le
+  C -> DB: ExecuteUpdate DaDoc=true
+  C --> V: so ban ghi da cap nhat
+end
+@enduml
+

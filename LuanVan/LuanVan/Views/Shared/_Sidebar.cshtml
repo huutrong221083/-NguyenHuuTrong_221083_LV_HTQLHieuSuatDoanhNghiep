@@ -1,0 +1,76 @@
+@{
+    var currentController = ViewData["LayoutCurrentController"]?.ToString() ?? ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewData["LayoutCurrentAction"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var displayRole = ViewData["LayoutDisplayRole"]?.ToString() ?? (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+    var navItems = ViewData["LayoutSidebarNavItems"] as IEnumerable<dynamic>;
+    var currentMine = (Context?.Request?.Query["mine"].ToString() ?? "").Trim().ToLowerInvariant();
+
+    string IsActive(string controller, string action)
+    {
+        return currentController == controller && currentAction == action ? "active" : "";
+    }
+}
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo-badge" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img" focusable="false">
+                <defs>
+                    <linearGradient id="perfLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#2563eb" />
+                        <stop offset="100%" stop-color="#0ea5e9" />
+                    </linearGradient>
+                </defs>
+                <rect x="5" y="5" width="38" height="38" rx="11" fill="url(#perfLogoGrad)" />
+                <path d="M15 31h4V21h-4v10zm7 0h4V17h-4v14zm7 0h4V24h-4v7z" fill="#f8fafc" />
+                <path d="M13 34h22" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round" />
+            </svg>
+        </div>
+        <div>
+            <h1>Quản lý hiệu suất</h1>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        @if (navItems != null)
+        {
+            foreach (var item in navItems)
+            {
+                bool itemMine = false;
+                try
+                {
+                    var mineObj = item.Mine;
+                    itemMine = mineObj is bool b ? b : string.Equals(mineObj?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+                }
+                catch
+                {
+                    itemMine = false;
+                }
+
+                var isReportAction = string.Equals((string?)item.Action, "ReportManagement", StringComparison.OrdinalIgnoreCase);
+                var isActive = IsActive("Portal", item.Action);
+                if (isReportAction)
+                {
+                    if (itemMine)
+                    {
+                        isActive = (currentController == "Portal" && currentAction == "ReportManagement" && currentMine == "1") ? "active" : "";
+                    }
+                    else
+                    {
+                        isActive = (currentController == "Portal" && currentAction == "ReportManagement" && currentMine != "1") ? "active" : "";
+                    }
+                }
+
+                <a class="nav-item @isActive" asp-controller="Portal" asp-action="@item.Action" asp-route-role="@displayRole" asp-route-mine="@(itemMine ? "1" : null)">
+                    <i class="@item.Icon"></i>
+                    <span>@item.Label</span>
+                </a>
+            }
+        }
+    </nav>
+
+    <button class="btn btn-sidebar-collapse" id="btnCollapseSidebar" type="button">
+        <i class="bi bi-layout-sidebar-inset"></i>
+        <span>Thu gọn menu</span>
+    </button>
+</aside>

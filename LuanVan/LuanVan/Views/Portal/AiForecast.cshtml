@@ -1,0 +1,1142 @@
+@{
+    ViewData["Title"] = "AI - Dự báo tiến độ";
+    var roleKey = (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+}
+
+<style>
+    .fc-shell {
+        display: grid;
+        gap: 16px;
+    }
+
+    .fc-toolbar {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 120px auto;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .fc-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .fc-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .fc-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .fc-card .label {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 6px;
+    }
+
+    .fc-card strong {
+        display: block;
+        color: #0f172a;
+        font-size: 1.5rem;
+        line-height: 1.1;
+    }
+
+    .fc-card small,
+    .fc-hint,
+    .fc-empty,
+    .fc-status {
+        color: #64748b;
+    }
+
+    .fc-grid {
+        display: grid;
+        grid-template-columns: 1.45fr .95fr;
+        gap: 16px;
+        align-items: start;
+    }
+
+    .fc-panel {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .fc-panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .fc-panel-head h4 {
+        margin: 0;
+        font-size: 1.05rem;
+    }
+
+    .fc-chart-wrap {
+        position: relative;
+        min-height: 320px;
+    }
+    .fc-chart-wrap.timeline-mode {
+        min-height: 220px;
+    }
+    .fc-timeline {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        background: #f8fafc;
+        color: #334155;
+    }
+    .fc-timeline-track {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .fc-timeline-node {
+        background: #fff;
+        border: 1px solid #dbeafe;
+        color: #1e3a8a;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .fc-timeline-line {
+        flex: 1;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #93c5fd, #7c3aed);
+        position: relative;
+    }
+    .fc-timeline-gap {
+        font-size: 12px;
+        font-weight: 700;
+        color: #7c2d12;
+        background: #ffedd5;
+        border: 1px solid #fdba74;
+        border-radius: 999px;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
+
+    .fc-side-list {
+        display: grid;
+        gap: 12px;
+        position: sticky;
+        top: 84px;
+    }
+
+    .fc-signal {
+        border-radius: 14px;
+        padding: 14px;
+        border: 1px solid #e5e7eb;
+        background: #f8fafc;
+    }
+
+    .fc-signal.ok { border-left: 4px solid #22c55e; }
+    .fc-signal.warn { border-left: 4px solid #f59e0b; }
+    .fc-signal.danger { border-left: 4px solid #ef4444; }
+
+    .fc-signal .title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+    .fc-signal-item {
+        margin-bottom: 10px;
+    }
+    .fc-signal-item:last-child {
+        margin-bottom: 0;
+    }
+    .fc-factor-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .fc-factor-chip {
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border: 1px solid transparent;
+    }
+    .fc-factor-chip.high { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .fc-factor-chip.medium { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .fc-factor-chip.low { background: #ecfdf3; color: #166534; border-color: #bbf7d0; }
+
+    .fc-table td,
+    .fc-table th {
+        vertical-align: middle;
+    }
+    .fc-feedback-cell {
+        min-width: 200px;
+    }
+    .fc-feedback-actions {
+        display: inline-flex;
+        gap: 6px;
+    }
+    .fc-icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .fc-icon-btn.correct { color: #15803d; border-color: #86efac; background: #f0fdf4; }
+    .fc-icon-btn.wrong { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+    .fc-feedback-form {
+        margin-top: 8px;
+        display: grid;
+        gap: 6px;
+    }
+    .fc-feedback-form textarea {
+        min-height: 56px;
+        resize: vertical;
+    }
+    /* menu actions removed: related styles deleted */
+
+    .fc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .fc-pill.ok { background: #ecfdf3; color: #166534; border-color: #bbf7d0; }
+    .fc-pill.warn { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .fc-pill.danger { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+    .fc-muted-box {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        padding: 14px;
+    }
+
+    @@media (max-width: 1200px) {
+        .fc-toolbar,
+        .fc-grid,
+        .fc-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .fc-badges {
+            justify-content: flex-start;
+        }
+        .fc-side-list {
+            position: static;
+        }
+    }
+</style>
+
+<section class="panel ai-page-hero mt-2 fc-shell">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <h2 class="mb-1">📈 Dự báo tiến độ</h2>
+            <p class="text-muted mb-0">So sánh tiến độ thực tế với dự đoán AI theo từng dự án, nhân sự và khoảng thời gian.</p>
+        </div>
+        <div class="fc-badges">
+            <span class="pill ok">Ổn định</span>
+            <span class="pill warning">Cần chú ý</span>
+            <span class="pill danger">Rủi ro trễ</span>
+        </div>
+    </div>
+
+    <div class="fc-stats mt-1">
+        <article class="fc-card">
+            <span class="label">Công việc theo dõi</span>
+            <strong id="fcStatTasks">0</strong>
+            <small id="fcStatTasksHint">Đang tải dữ liệu...</small>
+        </article>
+        <article class="fc-card">
+            <span class="label">Độ trễ trung bình</span>
+            <strong id="fcStatDelay">0 ngày</strong>
+            <small id="fcStatDelayHint">Dựa trên dự báo hiện tại</small>
+        </article>
+        <article class="fc-card">
+            <span class="label">Độ tin cậy dự báo</span>
+            <strong id="fcStatAccuracy">0%</strong>
+            <small id="fcStatAccuracyHint">Ước lượng theo độ lệch tiến độ</small>
+        </article>
+        <article class="fc-card">
+            <span class="label">Mức rủi ro AI</span>
+            <strong id="fcStatWarning">-</strong>
+            <small id="fcStatWarningHint">Theo tracking dự án</small>
+        </article>
+    </div>
+
+    <div class="fc-panel">
+        <div class="fc-toolbar">
+            <select id="fcProject" class="form-select form-select-sm">
+                <option value="">Chọn dự án</option>
+            </select>
+            <select id="fcEmployee" class="form-select form-select-sm">
+                <option value="">Chọn nhân viên</option>
+            </select>
+            <select id="fcRange" class="form-select form-select-sm">
+                <option value="30">30 ngày</option>
+                <option value="90">90 ngày</option>
+                <option value="180">180 ngày</option>
+            </select>
+            <button id="btnFcReload" class="btn btn-outline-secondary btn-sm">Tải lại</button>
+        </div>
+        <p class="fc-hint mb-0 mt-2" id="fcRoleHint"></p>
+    </div>
+
+    <div class="fc-grid">
+        <article class="fc-panel">
+            <div class="fc-panel-head">
+                <div>
+                    <h4>Xu hướng dự báo</h4>
+                    <small id="fcChartSubtitle" class="text-muted">Chưa có dữ liệu</small>
+                </div>
+                <span id="fcChartTag" class="fc-pill warn">Đợi dữ liệu</span>
+            </div>
+            <div class="fc-chart-wrap" id="fcChartWrap">
+                <canvas id="forecastMainChart" height="160"></canvas>
+            </div>
+        </article>
+
+        <aside class="fc-side-list">
+            <div class="fc-signal warn">
+                <div class="title">Thông tin dự báo AI</div>
+                <div class="fc-signal-item">
+                    <strong>Dự báo:</strong>
+                    <div id="fcNextSignal">Chọn một dự án để xem dự báo hoàn thành và rủi ro trễ hạn.</div>
+                </div>
+                <div class="fc-signal-item">
+                    <strong>Yếu tố rủi ro:</strong>
+                    <div id="fcRiskFactors" class="fc-factor-chips"></div>
+                </div>
+                <div class="fc-signal-item">
+                    <strong>Đánh giá AI:</strong>
+                    <div id="fcRiskSignal">Chưa có dự báo nào được chọn.</div>
+                </div>
+                <div class="fc-signal-item">
+                    <strong>Hành động đề xuất:</strong>
+                    <div id="fcSuggestedAction">Ưu tiên các công việc có rủi ro cao trong 7 ngày tới.</div>
+                </div>
+                <div class="small text-muted mt-2">Dữ liệu phân tích từ: KPI, tiến độ công việc, hạn hoàn thành và khối lượng thực hiện.</div>
+                <div class="small text-muted" id="fcGeneratedAt">Thời điểm tạo dự báo: --</div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="fc-panel">
+        <div class="fc-panel-head mb-3">
+            <div>
+                <h4>Chi tiết theo công việc</h4>
+                <small class="text-muted">Dự đoán hoàn thành, độ trễ và xác suất rủi ro cho từng công việc.</small>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm fc-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Công việc</th>
+                        <th>Hạn hoàn thành</th>
+                        <th>Dự đoán hoàn thành</th>
+                        <th>Trễ</th>
+                        <th>Xác suất</th>
+                        <th>Nguyên nhân AI</th>
+                        <th>Phản hồi AI</th>
+                    </tr>
+                </thead>
+                <tbody id="forecastBody">
+                    <tr><td colspan="7" class="fc-empty">Chưa có dữ liệu.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const roleKey = '@roleKey';
+            const fcProject = document.getElementById('fcProject');
+            const fcEmployee = document.getElementById('fcEmployee');
+            const fcRange = document.getElementById('fcRange');
+            const btnFcReload = document.getElementById('btnFcReload');
+            const forecastBody = document.getElementById('forecastBody');
+            const fcRoleHint = document.getElementById('fcRoleHint');
+            const fcNextSignal = document.getElementById('fcNextSignal');
+            const fcRiskFactors = document.getElementById('fcRiskFactors');
+            const fcRiskSignal = document.getElementById('fcRiskSignal');
+            const fcSuggestedAction = document.getElementById('fcSuggestedAction');
+            const fcGeneratedAt = document.getElementById('fcGeneratedAt');
+            const fcChartSubtitle = document.getElementById('fcChartSubtitle');
+            const fcChartTag = document.getElementById('fcChartTag');
+            const fcChartWrap = document.getElementById('fcChartWrap');
+            const statTasks = document.getElementById('fcStatTasks');
+            const statTasksHint = document.getElementById('fcStatTasksHint');
+            const statDelay = document.getElementById('fcStatDelay');
+            const statDelayHint = document.getElementById('fcStatDelayHint');
+            const statAccuracy = document.getElementById('fcStatAccuracy');
+            const statAccuracyHint = document.getElementById('fcStatAccuracyHint');
+            const statWarning = document.getElementById('fcStatWarning');
+            const statWarningHint = document.getElementById('fcStatWarningHint');
+
+            const state = {
+                projects: [],
+                employees: [],
+                tasks: [],
+                tracking: null,
+                selectedProjectId: null,
+                selectedEmployeeId: '',
+                rangeDays: 30,
+                chart: null,
+                summaryRows: [],
+                generatedAt: null,
+                feedbackByTask: {}
+            };
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            const safeNum = (value, fallback = 0) => {
+                const number = Number(value);
+                return Number.isFinite(number) ? number : fallback;
+            };
+
+            const toDate = (value) => {
+                if (!value) return null;
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? null : date;
+            };
+
+            const formatDate = (value) => {
+                const date = toDate(value);
+                if (!date) return 'Chưa có';
+                return new Intl.DateTimeFormat('vi-VN').format(date);
+            };
+
+            const formatDays = (days) => {
+                if (!Number.isFinite(days)) return '0 ngày';
+                const rounded = Math.max(0, Math.round(days));
+                return `${rounded} ngày`;
+            };
+
+            const severityLabel = (severity) => {
+                if (severity === 'high') return 'Cao';
+                if (severity === 'medium') return 'Trung bình';
+                return 'Thấp';
+            };
+
+            const forecastTone = (delayDays, riskPercent) => {
+                if (delayDays <= 0 && riskPercent < 35) return 'ok';
+                if (delayDays <= 3 && riskPercent < 70) return 'warn';
+                return 'danger';
+            };
+
+            const forecastLabel = (delayDays, riskPercent) => {
+                if (delayDays <= 0 && riskPercent < 35) return 'Đúng tiến độ';
+                if (delayDays <= 3 && riskPercent < 70) return 'Có rủi ro';
+                return 'Dự báo trễ';
+            };
+
+            const riskLevelMeta = (warningText, lateCount) => {
+                const normalized = String(warningText || '').toLowerCase();
+                if (normalized.includes('critical') || lateCount >= 8) return { text: 'Nguy cấp', tone: 'danger' };
+                if (normalized.includes('warning') || lateCount >= 4) return { text: 'Cảnh báo', tone: 'warn' };
+                if (normalized.includes('attention') || lateCount >= 2) return { text: 'Cần chú ý', tone: 'warn' };
+                return { text: 'Ổn định', tone: 'ok' };
+            };
+
+            const confidenceMeta = (score) => {
+                if (score >= 80) return { text: 'Cao', hint: 'Mức tin cậy tốt trên dữ liệu hiện tại.' };
+                if (score >= 60) return { text: 'Trung bình', hint: 'Dự báo tương đối ổn định, vẫn cần theo dõi.' };
+                return { text: 'Thấp', hint: 'Độ tin cậy thấp: dữ liệu lịch sử chưa đủ mạnh để AI dự báo chính xác.' };
+            };
+
+            const predictionStatusMeta = (status) => {
+                if (status === 'Low confidence') {
+                    return {
+                        label: 'Độ tin cậy thấp',
+                        hint: 'Độ tin cậy thấp: dữ liệu lịch sử chưa đủ mạnh để AI dự báo chính xác.'
+                    };
+                }
+                if (status === 'Re-evaluating') {
+                    return {
+                        label: 'Đang đánh giá lại',
+                        hint: 'AI đang cần theo dõi thêm để ổn định dự báo.'
+                    };
+                }
+                if (status === 'Outdated') {
+                    return {
+                        label: 'Cần làm mới',
+                        hint: 'Dự báo đã cũ so với biến động tiến độ gần đây.'
+                    };
+                }
+                return {
+                    label: 'Mới',
+                    hint: 'Dự báo vừa được làm mới từ dữ liệu hiện tại.'
+                };
+            };
+
+            async function fetchJson(url, options, apiName) {
+                const label = apiName || url;
+                try {
+                    const response = await fetch(url, options);
+                    const raw = await response.text();
+                    const text = raw ? raw.trim() : '';
+                    let payload = null;
+                    if (text && (text.startsWith('{') || text.startsWith('['))) {
+                        try {
+                            payload = JSON.parse(text);
+                        } catch (parseError) {
+                            console.error('[Forecast]', label, parseError);
+                        }
+                    }
+
+                    if (!response.ok) {
+                        return { success: false, message: payload?.message || text || `Lỗi ${label}` };
+                    }
+
+                    if (payload && typeof payload.success === 'boolean') {
+                        return payload;
+                    }
+
+                    return { success: true, data: payload ?? raw };
+                } catch (error) {
+                    console.error('[Forecast]', label, error);
+                    return { success: false, message: `Không thể kết nối ${label}` };
+                }
+            }
+
+            function applyRolePolicy() {
+                if (roleKey === 'employee') {
+                    fcRoleHint.textContent = 'Phân quyền Employee: chỉ xem dữ liệu dự án được gán và không cho chọn toàn bộ nhân viên.';
+                    fcEmployee.disabled = true;
+                } else if (roleKey === 'manager') {
+                    fcRoleHint.textContent = 'Phân quyền Manager: theo dõi dự báo trong phạm vi dự án và nhân sự được phân quyền.';
+                } else {
+                    fcRoleHint.textContent = 'Phân quyền Admin: xem toàn bộ dữ liệu dự báo tiến độ.';
+                }
+            }
+
+            function getSelectedProject() {
+                return state.projects.find(project => project.maDuAn === state.selectedProjectId) || null;
+            }
+
+            function setChartTag(tone, text) {
+                fcChartTag.className = `fc-pill ${tone}`;
+                fcChartTag.textContent = text;
+            }
+
+            function destroyChart() {
+                if (state.chart) {
+                    state.chart.destroy();
+                    state.chart = null;
+                }
+            }
+
+            // menu handling removed
+
+            function populateProjectOptions() {
+                const options = ['<option value="">Chọn dự án</option>'];
+                for (const project of state.projects) {
+                    options.push(`<option value="${project.maDuAn}">${escapeHtml(project.tenDuAn || `Dự án ${project.maDuAn}`)}</option>`);
+                }
+                fcProject.innerHTML = options.join('');
+            }
+
+            function populateEmployeeOptions() {
+                const options = ['<option value="">Chọn nhân viên</option>'];
+                for (const employee of state.employees) {
+                    options.push(`<option value="${employee.maNhanVien}">${escapeHtml(employee.hoTen || `NV ${employee.maNhanVien}`)}</option>`);
+                }
+                fcEmployee.innerHTML = options.join('');
+            }
+
+            function daysBetween(start, end) {
+                if (!start || !end) return 0;
+                const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                return Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
+            }
+
+            function addDays(date, days) {
+                const copy = new Date(date);
+                copy.setDate(copy.getDate() + days);
+                return copy;
+            }
+
+            function buildRiskFactors(task, tracking, riskPercent, progress, deadline) {
+                const factors = [];
+                const daysToDeadline = deadline ? daysBetween(new Date(), deadline) : null;
+
+                if (daysToDeadline != null && daysToDeadline <= 3) {
+                    factors.push({ key: 'deadline', label: 'Hạn gần', severity: 'high' });
+                } else if (daysToDeadline != null && daysToDeadline <= 7) {
+                    factors.push({ key: 'deadline', label: 'Hạn gần', severity: 'medium' });
+                }
+
+                if (progress < 45) {
+                    factors.push({ key: 'progress', label: 'Tiến độ thấp', severity: 'high' });
+                } else if (progress < 65) {
+                    factors.push({ key: 'progress', label: 'Tiến độ thấp', severity: 'medium' });
+                }
+
+                const difficulty = safeNum(task.maDoKho, 2);
+                if (difficulty >= 4) {
+                    factors.push({ key: 'difficulty', label: 'Độ khó cao', severity: 'medium' });
+                }
+
+                const memberCount = (task.nguoiDuocGiao || []).length;
+                if (memberCount <= 1 && riskPercent >= 55) {
+                    factors.push({ key: 'workload', label: 'Quá tải nhân sự', severity: 'medium' });
+                } else if (memberCount <= 2 && riskPercent >= 40) {
+                    factors.push({ key: 'workload', label: 'Quá tải nhân sự', severity: 'low' });
+                }
+
+                const highRiskPeople = safeNum(tracking?.aiCanhBao?.soNhanVienRuiRoCao, 0);
+                if (highRiskPeople > 0 && riskPercent >= 50) {
+                    factors.push({ key: 'workload', label: 'Nguồn lực rủi ro', severity: 'medium' });
+                }
+
+                if (!factors.length) {
+                    factors.push({ key: 'stable', label: 'Dữ liệu ổn định', severity: 'low' });
+                }
+
+                return factors.slice(0, 3);
+            }
+
+            function buildForecastRow(task, tracking, rangeDays) {
+                const deadline = toDate(task.hanHoanThanh);
+                const progress = safeNum(task.phanTramHoanThanh);
+                const riskPercent = safeNum(tracking?.aiCanhBao?.tyLeRuiRoTreHan, 0);
+                const overdueBoost = task.laTreHan ? 3 : 0;
+                const lowProgressBoost = Math.max(0, (70 - progress) / 18);
+                const riskBoost = riskPercent / 20;
+                const deadlinePressure = deadline ? Math.max(0, -daysBetween(new Date(), deadline)) * 1.1 : 0;
+                const delayDays = Math.max(0, Math.round(overdueBoost + lowProgressBoost + riskBoost + deadlinePressure));
+                const predictedDate = deadline ? addDays(deadline, delayDays) : addDays(new Date(), Math.max(1, Math.round((100 - progress) / 18) + delayDays));
+                const confidence = Math.max(42, Math.min(97, Math.round(94 - delayDays * 3 - riskPercent * 0.25 - (task.laTreHan ? 5 : 0))));
+                const tone = forecastTone(delayDays, riskPercent);
+                const label = forecastLabel(delayDays, riskPercent);
+                const withinRange = !deadline || Math.abs(daysBetween(new Date(), deadline)) <= rangeDays;
+                const riskFactors = buildRiskFactors(task, tracking, riskPercent, progress, deadline);
+                const isOutdated = deadline ? daysBetween(deadline, new Date()) > 7 : false;
+                const predictionStatus = isOutdated
+                    ? 'Outdated'
+                    : (confidence < 60 ? 'Low confidence' : (delayDays > 4 ? 'Re-evaluating' : 'Fresh'));
+
+                return {
+                    task,
+                    deadline,
+                    predictedDate,
+                    delayDays,
+                    confidence,
+                    tone,
+                    label,
+                    withinRange,
+                    riskPercent,
+                    progress,
+                    riskFactors,
+                    predictionStatus
+                };
+            }
+
+            function renderSummary(rows, tracking) {
+                const total = rows.length;
+                const lateCount = rows.filter(row => row.delayDays > 0).length;
+                const onTrackCount = Math.max(0, total - lateCount);
+                const averageDelay = total ? rows.reduce((sum, row) => sum + row.delayDays, 0) / total : 0;
+                const averageConfidence = total ? rows.reduce((sum, row) => sum + row.confidence, 0) / total : 0;
+                const warning = tracking?.aiCanhBao?.mucCanhBao || 'Chưa có';
+                const confidence = confidenceMeta(averageConfidence);
+                const level = riskLevelMeta(warning, lateCount);
+
+                statTasks.textContent = String(total);
+                statTasksHint.textContent = `${onTrackCount} công việc đúng tiến độ, ${lateCount} công việc có nguy cơ trễ`;
+                statDelay.textContent = formatDays(averageDelay);
+                statDelayHint.textContent = 'Trung bình trên các công việc đang hiển thị';
+                statAccuracy.textContent = `${Math.round(averageConfidence)}%`;
+                statAccuracyHint.textContent = `Độ tin cậy: ${confidence.text}. ${confidence.hint}`;
+                statWarning.textContent = level.text;
+                statWarningHint.textContent = tracking?.aiCanhBao?.soNhanVienRuiRoCao != null
+                    ? `${tracking.aiCanhBao.soNhanVienRuiRoCao} nhân viên rủi ro cao`
+                    : 'Chưa có dữ liệu AI';
+
+                const selected = getSelectedProject();
+                const projectName = selected?.tenDuAn || `Dự án ${state.selectedProjectId || ''}`;
+                const progress = safeNum(tracking?.phanTramHoanThanh, 0);
+                fcChartSubtitle.textContent = `${projectName} - hoàn thành ${progress.toFixed(1)}%`;
+
+                const hotRows = rows.filter(row => row.delayDays > 0).slice(0, 3);
+                fcNextSignal.textContent = hotRows.length
+                    ? `${hotRows.length} công việc có nguy cơ trễ trong ${state.rangeDays} ngày tới.`
+                    : `${projectName} chưa ghi nhận công việc trễ trong phạm vi theo dõi.`;
+
+                const factorMap = new Map();
+                for (const row of rows) {
+                    for (const factor of row.riskFactors || []) {
+                        const key = `${factor.key}:${factor.severity}`;
+                        factorMap.set(key, (factorMap.get(key) || 0) + 1);
+                    }
+                }
+                const topFactors = Array.from(factorMap.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([key, count]) => {
+                        const [name, severity] = key.split(':');
+                        const mapping = {
+                            deadline: 'Hạn gần',
+                            progress: 'Tiến độ thấp',
+                            difficulty: 'Độ khó cao',
+                            workload: 'Quá tải nhân sự',
+                            stable: 'Dữ liệu ổn định'
+                        };
+                        return { label: mapping[name] || name, severity, count };
+                    });
+
+                fcRiskFactors.innerHTML = topFactors.length
+                    ? topFactors.map(f => `<span class="fc-factor-chip ${f.severity}">${escapeHtml(f.label)} (${severityLabel(f.severity)}) x${f.count}</span>`).join('')
+                    : '<span class="small text-muted">Chưa có dữ liệu nguyên nhân.</span>';
+
+                fcRiskSignal.textContent = `Mức cảnh báo: ${level.text}. Dữ liệu confidence: ${confidence.text}.`;
+
+                if (lateCount > 0) {
+                    const topProject = projectName || 'nhóm dự án';
+                    fcSuggestedAction.textContent = `Ưu tiên ${lateCount} công việc rủi ro cao của ${topProject} trong 7 ngày tới, phân bổ thêm nhân sự cho công việc có hạn hoàn thành gần.`;
+                } else {
+                    fcSuggestedAction.textContent = 'Duy trì nhịp cập nhật tiến độ và theo dõi các công việc có độ khó cao.';
+                }
+
+                state.generatedAt = new Date();
+                fcGeneratedAt.textContent = `Thời điểm tạo dự báo: ${state.generatedAt.toLocaleString('vi-VN')}`;
+            }
+
+            function renderTable(rows) {
+                if (!rows.length) {
+                    forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Không có công việc phù hợp với bộ lọc hiện tại.</td></tr>';
+                    return;
+                }
+
+                forecastBody.innerHTML = rows.map(row => {
+                    const taskName = escapeHtml(row.task.tenCongViec || `Công việc ${row.task.maCongViec}`);
+                    const assignees = row.task.nguoiThucHien?.length ? escapeHtml(row.task.nguoiThucHien.join(', ')) : 'Chưa phân công';
+                    const taskId = String(row.task.maCongViec);
+                    const feedback = state.feedbackByTask[taskId];
+                    const statusMeta = predictionStatusMeta(row.predictionStatus);
+                    const factorsHtml = (row.riskFactors || [])
+                        .map(f => `<span class="fc-factor-chip ${f.severity}" title="${escapeHtml(f.label)} - ${severityLabel(f.severity)}">${escapeHtml(f.label)} (${severityLabel(f.severity)})</span>`)
+                        .join('');
+                    const feedbackStatus = feedback?.isCorrect === true
+                        ? '<span class="small text-success">Đã xác nhận AI đúng</span>'
+                        : (feedback?.isCorrect === false ? '<span class="small text-warning">Đã phản hồi AI chưa chính xác</span>' : '<span class="small text-muted">Chưa phản hồi</span>');
+                    const showWrongForm = feedback?.editing === true;
+                    return `
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">${taskName}</div>
+                                <div class="small text-muted">${assignees}</div>
+                            </td>
+                            <td>${formatDate(row.deadline)}</td>
+                            <td>${formatDate(row.predictedDate)}</td>
+                            <td><span class="fc-pill ${row.tone}">${row.delayDays > 0 ? `${row.delayDays} ngày` : 'Đúng hẹn'}</span></td>
+                            <td>
+                                <div class="fw-semibold">${row.confidence}%</div>
+                                <div class="small text-muted" title="${escapeHtml(statusMeta.hint)}">${row.label} - ${statusMeta.label}</div>
+                            </td>
+                            <td><div class="fc-factor-chips">${factorsHtml}</div></td>
+                            <td class="fc-feedback-cell">
+                                <div class="fc-feedback-actions">
+                                    <button type="button" class="fc-icon-btn correct" data-feedback="correct" data-task-id="${taskId}" title="AI đúng">✓</button>
+                                    <button type="button" class="fc-icon-btn wrong" data-feedback="wrong" data-task-id="${taskId}" title="AI chưa chính xác">✗</button>
+                                </div>
+                                <div class="mt-1">${feedbackStatus}</div>
+                                ${showWrongForm ? `
+                                <div class="fc-feedback-form">
+                                    <select class="form-select form-select-sm" data-feedback-reason data-task-id="${taskId}">
+                                        <option value="">Chọn lý do</option>
+                                        <option value="deadline_change">Hạn hoàn thành thay đổi</option>
+                                        <option value="progress_update_delay">Tiến độ cập nhật trễ</option>
+                                        <option value="resource_unexpected">Nguồn lực phát sinh</option>
+                                        <option value="data_not_enough">Dữ liệu chưa đủ</option>
+                                    </select>
+                                    <textarea class="form-control form-control-sm" data-feedback-note data-task-id="${taskId}" placeholder="Ghi chú ngắn"></textarea>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-feedback="save-wrong" data-task-id="${taskId}">Gửi phản hồi</button>
+                                </div>` : ''}
+                            </td>
+                        </tr>`;
+                }).join('');
+            }
+
+            function renderChart(rows) {
+                destroyChart();
+
+                if (!fcChartWrap) return;
+
+                if (rows.length < 3) {
+                    fcChartWrap.classList.add('timeline-mode');
+                    const timelineRow = rows[0] || null;
+                    const plannedDate = timelineRow?.deadline ? formatDate(timelineRow.deadline) : 'Chưa có';
+                    const forecastDate = timelineRow?.predictedDate ? formatDate(timelineRow.predictedDate) : 'Chưa có';
+                    const gap = timelineRow ? `${timelineRow.delayDays >= 0 ? '+' : ''}${timelineRow.delayDays} ngày` : '+0 ngày';
+                    fcChartWrap.innerHTML = `
+                        <div class="fc-timeline">
+                            <div class="small text-muted">Dữ liệu thời gian còn ít, hiển thị timeline trực quan.</div>
+                            <div class="fc-timeline-track">
+                                <span class="fc-timeline-node">Kế hoạch: ${plannedDate}</span>
+                                <div class="fc-timeline-line"></div>
+                                <span class="fc-timeline-gap">${gap}</span>
+                                <div class="fc-timeline-line"></div>
+                                <span class="fc-timeline-node">Dự báo: ${forecastDate}</span>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                fcChartWrap.classList.remove('timeline-mode');
+                fcChartWrap.innerHTML = '<canvas id="forecastMainChart" height="160"></canvas>';
+                const canvas = document.getElementById('forecastMainChart');
+
+                const labels = rows.map(row => row.task.tenCongViec || `Công việc ${row.task.maCongViec}`);
+                const actualData = rows.map(row => Math.max(0, Math.min(100, safeNum(row.task.phanTramHoanThanh, 0))));
+                const predictedData = rows.map(row => {
+                    const base = safeNum(row.task.phanTramHoanThanh, 0);
+                    return Math.max(0, Math.min(100, row.delayDays > 0 ? base - Math.min(25, row.delayDays * 4) : base + Math.min(10, row.confidence / 12)));
+                });
+
+                if (!canvas || !window.Chart) {
+                    return;
+                }
+
+                state.chart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Tiến độ thực tế',
+                                data: actualData,
+                                borderColor: '#0ea5e9',
+                                backgroundColor: 'rgba(14, 165, 233, 0.14)',
+                                borderWidth: 2,
+                                tension: 0.35,
+                                fill: true,
+                                pointRadius: 3
+                            },
+                            {
+                                label: 'Dự đoán AI',
+                                data: predictedData,
+                                borderColor: '#7c3aed',
+                                backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                                borderWidth: 2,
+                                tension: 0.35,
+                                fill: true,
+                                pointRadius: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${safeNum(context.parsed.y, 0).toFixed(1)}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { callback: value => `${value}%` }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function applyEmployeeFilter(items) {
+                if (!state.selectedEmployeeId) {
+                    return items;
+                }
+
+                const employee = state.employees.find(item => String(item.maNhanVien) === String(state.selectedEmployeeId));
+                const keyword = employee?.hoTen ? employee.hoTen.toLowerCase() : '';
+                if (!keyword) {
+                    return items;
+                }
+
+                return items.filter(item => {
+                    const assignees = item.task.nguoiThucHien || [];
+                    return assignees.some(name => String(name || '').toLowerCase().includes(keyword));
+                });
+            }
+
+            function applyRangeFilter(items) {
+                return items.filter(item => item.withinRange);
+            }
+
+            function updateView() {
+                const tracking = state.tracking;
+                const rows = state.tasks.map(task => buildForecastRow(task, tracking, state.rangeDays));
+                const filteredRows = applyRangeFilter(applyEmployeeFilter(rows));
+
+                state.summaryRows = filteredRows;
+                renderSummary(filteredRows, tracking);
+                renderChart(filteredRows);
+                renderTable(filteredRows);
+
+                const selected = getSelectedProject();
+                const selectedName = selected?.tenDuAn || 'dự án hiện tại';
+                const riskLevel = tracking?.aiCanhBao?.mucCanhBao || 'Chưa có';
+                const completion = safeNum(tracking?.phanTramHoanThanh, 0);
+
+                if (!filteredRows.length) {
+                    setChartTag('warn', 'Không có dữ liệu');
+                } else {
+                    const worstDelay = Math.max(...filteredRows.map(row => row.delayDays), 0);
+                    const tone = worstDelay <= 0 ? 'ok' : (worstDelay <= 3 ? 'warn' : 'danger');
+                    setChartTag(tone, worstDelay <= 0 ? 'Ổn định' : `${worstDelay} ngày trễ`);
+                }
+
+            }
+
+            async function loadProjectsAndEmployees() {
+                const [projectRes, employeeRes] = await Promise.all([
+                    fetchJson('/duan?page=1&size=200', undefined, 'GET /duan'),
+                    fetchJson('/nhanvien?page=1&size=200', undefined, 'GET /nhanvien')
+                ]);
+
+                state.projects = projectRes.success ? (projectRes.data?.items || []) : [];
+                state.employees = employeeRes.success ? (employeeRes.data?.items || []) : [];
+
+                populateProjectOptions();
+                populateEmployeeOptions();
+
+                if (!state.projects.length) {
+                    fcProject.innerHTML = '<option value="">Không có dự án khả dụng</option>';
+                    forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Chưa có dự án nào để dự báo.</td></tr>';
+                    fcChartSubtitle.textContent = 'Chưa có dự án';
+                    setChartTag('warn', 'Chưa có dữ liệu');
+                    return false;
+                }
+
+                return true;
+            }
+
+            async function loadProjectForecast(projectId) {
+                const [trackingRes, taskRes] = await Promise.all([
+                    fetchJson(`/duan/${projectId}/tracking`, undefined, `GET /duan/${projectId}/tracking`),
+                    fetchJson(`/duan/${projectId}/tasks`, undefined, `GET /duan/${projectId}/tasks`)
+                ]);
+
+                state.tracking = trackingRes.success ? (trackingRes.data || null) : null;
+                state.tasks = taskRes.success ? (taskRes.data || []) : [];
+
+                const project = getSelectedProject();
+                if (!trackingRes.success) {
+                    fcRiskSignal.textContent = trackingRes.message || 'Không tải được tracking dự án.';
+                }
+
+                    if (!taskRes.success) {
+                    forecastBody.innerHTML = `<tr><td colspan="7" class="fc-empty">${escapeHtml(taskRes.message || 'Không tải được danh sách công việc.')} </td></tr>`;
+                }
+
+                await loadForecastFeedbackStatuses();
+                updateView();
+            }
+
+            async function loadForecastFeedbackStatuses() {
+                const taskIds = state.tasks
+                    .map(task => Number(task.maCongViec || 0))
+                    .filter(id => id > 0);
+
+                state.feedbackByTask = {};
+                if (!taskIds.length) {
+                    return;
+                }
+
+                const res = await fetchJson(`/ai/feedback/forecast?taskIds=${encodeURIComponent(taskIds.join(','))}`, undefined, 'GET /ai/feedback/forecast');
+                if (!res.success) {
+                    return;
+                }
+
+                const items = res.data || [];
+                for (const item of items) {
+                    const taskKey = String(item.taskId || 0);
+                    if (!taskKey || taskKey === '0') continue;
+                    state.feedbackByTask[taskKey] = {
+                        isCorrect: item.isCorrect,
+                        editing: false,
+                        reason: item.wrongReason || '',
+                        note: item.note || '',
+                        loadedFromServer: true,
+                        feedbackId: item.maFeedback,
+                        updatedAt: item.ngayPhanHoi || null
+                    };
+                }
+            }
+
+            async function sendForecastFeedback(taskId, isCorrect, reason = '', note = '') {
+                const payload = {
+                    taskId: Number(taskId),
+                    isCorrect,
+                    wrongReason: reason || null,
+                    note: note || null,
+                    context: 'forecast'
+                };
+                const res = await fetchJson('/ai/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 'POST /ai/feedback');
+                if (res.success) {
+                    await loadForecastFeedbackStatuses();
+                }
+                return !!res.success;
+            }
+
+            function wireEvents() {
+                fcProject.addEventListener('change', async () => {
+                    state.selectedProjectId = Number(fcProject.value || 0) || null;
+                    if (state.selectedProjectId) {
+                        await loadProjectForecast(state.selectedProjectId);
+                    }
+                });
+
+                fcEmployee.addEventListener('change', () => {
+                    state.selectedEmployeeId = fcEmployee.value;
+                    updateView();
+                });
+
+                fcRange.addEventListener('change', () => {
+                    state.rangeDays = Number(fcRange.value || 30);
+                    updateView();
+                });
+
+                const reloadForecast = async () => {
+                    await initializeForecastPage();
+                };
+
+                if (window.UiButtonLoading?.bind) {
+                    window.UiButtonLoading.bind(btnFcReload, reloadForecast, { profile: 'reload' });
+                } else {
+                    btnFcReload.addEventListener('click', reloadForecast);
+                }
+
+                forecastBody.addEventListener('click', async (event) => {
+                    const btn = event.target.closest('button');
+                    if (!btn) return;
+
+                        // menu toggles removed; buttons now require data-task-id or data-feedback/data-action
+
+                    const taskId = btn.getAttribute('data-task-id');
+                    // For other buttons we require taskId
+                    if (!taskId) return;
+
+                    const feedbackAction = btn.getAttribute('data-feedback');
+                    if (feedbackAction === 'correct') {
+                        const ok = await sendForecastFeedback(taskId, true);
+                        if (!ok) {
+                            alert('Không gửi được phản hồi AI. Vui lòng thử lại.');
+                            return;
+                        }
+                        state.feedbackByTask[taskId] = { isCorrect: true, editing: false };
+                        renderTable(state.summaryRows);
+                        return;
+                    }
+                    if (feedbackAction === 'wrong') {
+                        state.feedbackByTask[taskId] = { ...(state.feedbackByTask[taskId] || {}), isCorrect: false, editing: true };
+                        renderTable(state.summaryRows);
+                        return;
+                    }
+                    if (feedbackAction === 'save-wrong') {
+                        const reasonEl = forecastBody.querySelector(`[data-feedback-reason][data-task-id="${taskId}"]`);
+                        const noteEl = forecastBody.querySelector(`[data-feedback-note][data-task-id="${taskId}"]`);
+                        const reason = reasonEl?.value || '';
+                        const note = noteEl?.value || '';
+                        if (!reason) {
+                            alert('Vui lòng chọn lý do AI chưa chính xác.');
+                            return;
+                        }
+                        const ok = await sendForecastFeedback(taskId, false, reason, note);
+                        if (!ok) {
+                            alert('Không gửi được phản hồi AI. Vui lòng thử lại.');
+                            return;
+                        }
+                        state.feedbackByTask[taskId] = { isCorrect: false, editing: false, reason, note };
+                        renderTable(state.summaryRows);
+                        return;
+                    }
+
+                    const action = btn.getAttribute('data-action');
+                    if (action) {
+                        if (action === 'detail') {
+                            // Điều hướng sang trang quản lý công việc và truyền id để mở chi tiết
+                            window.location.href = `/Portal/Tasks?openTaskId=${encodeURIComponent(taskId)}`;
+                            return;
+                        }
+                        if (action === 'priority') alert(`Đã gắn nhãn ưu tiên cho công việc #${taskId}`);
+                        if (action === 'alert') alert(`Đã tạo cảnh báo bổ sung cho công việc #${taskId}`);
+                    }
+                });
+
+                // removed global click listener for menu closing
+            }
+
+            async function initializeForecastPage() {
+                applyRolePolicy();
+                const hasProjects = await loadProjectsAndEmployees();
+                if (!hasProjects) {
+                    destroyChart();
+                    return;
+                }
+
+                state.selectedProjectId = state.selectedProjectId || state.projects[0]?.maDuAn || null;
+                fcProject.value = state.selectedProjectId ? String(state.selectedProjectId) : '';
+                state.selectedEmployeeId = fcEmployee.value;
+                state.rangeDays = Number(fcRange.value || 30);
+
+                if (state.selectedProjectId) {
+                    await loadProjectForecast(state.selectedProjectId);
+                }
+            }
+
+            wireEvents();
+            initializeForecastPage().catch(error => {
+                console.error('[Forecast] init failed', error);
+                forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Không thể tải dữ liệu dự báo.</td></tr>';
+                fcRiskSignal.textContent = 'Không thể khởi tạo trang dự báo từ API hiện tại.';
+                setChartTag('warn', 'Lỗi tải dữ liệu');
+            });
+        })();
+    </script>
+}

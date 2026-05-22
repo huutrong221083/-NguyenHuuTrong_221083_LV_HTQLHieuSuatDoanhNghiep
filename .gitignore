@@ -1,0 +1,34 @@
+# --- .NET ---
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+**/.vs/
+
+# ASP.NET logs/build artifacts
+**/logs/
+**/*.log
+
+# Local/development settings (do not commit secrets)
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# --- Python ---
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+
+# --- Workspace / generated outputs ---
+artifacts/
+tmp/
+tmp2/
+**/*.tmp
+**/~$*.docx
+
+# Rendered HTML exports / scratch outputs
+*_rendered.html
+out_*.html
+build_output*.txt

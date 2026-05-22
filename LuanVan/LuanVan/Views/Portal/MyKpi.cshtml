@@ -1,0 +1,324 @@
+@{
+    ViewData["Title"] = "KPI của tôi";
+}
+
+<style>
+    .mykpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .mykpi-card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 12px; }
+    .mykpi-card h6 { margin: 0; font-size: .82rem; color: #64748b; }
+    .mykpi-card p { margin: 6px 0 0; font-size: 1.2rem; font-weight: 700; color: #0f172a; }
+    .mykpi-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; max-width: 420px; }
+    .mykpi-empty { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; background: #f8fafc; color: #475569; }
+    .mykpi-source-table th { background: #f8fafc; font-size: .83rem; }
+    .mykpi-source-table td { font-size: .92rem; }
+    #historyChart { width: 100% !important; height: 180px !important; max-height: 180px; }
+    @@media (max-width: 768px) { #historyChart { height: 150px !important; max-height: 150px; } }
+    @@media (max-width: 992px) { .mykpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @@media (max-width: 576px) { .mykpi-grid { grid-template-columns: 1fr; } .mykpi-toolbar { grid-template-columns: 1fr; } }
+</style>
+
+<section class="panel mt-3">
+    <div class="mykpi-toolbar">
+        <div>
+            <label class="form-label">Tháng</label>
+            <select id="kpiMonth" class="form-select"></select>
+        </div>
+        <div>
+            <label class="form-label">Năm</label>
+            <select id="kpiYear" class="form-select"></select>
+        </div>
+    </div>
+</section>
+
+<section class="panel mt-3">
+    <div class="mykpi-grid">
+        <article class="mykpi-card"><h6>Điểm KPI tháng này</h6><p id="myScore">-</p></article>
+        <article class="mykpi-card"><h6>Xếp loại</h6><p id="myRank">-</p></article>
+        <article class="mykpi-card"><h6>Số KPI đang áp dụng</h6><p id="myCount">0</p></article>
+        <article class="mykpi-card"><h6>Cập nhật gần nhất</h6><p id="myUpdated">-</p></article>
+    </div>
+</section>
+
+<section class="panel mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4 class="mb-0">Danh sách KPI đang áp dụng</h4>
+        <button id="btnOpenFeedback" class="btn btn-outline-primary btn-sm" type="button">Phản hồi về điểm KPI</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Tên KPI</th>
+                    <th>Loại KPI</th>
+                    <th>Nguồn áp dụng</th>
+                    <th>Trọng số</th>
+                    <th>Điểm hiện tại</th>
+                    <th>Thời gian áp dụng</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="myKpiBody">
+                <tr><td colspan="8" class="text-muted">Đang tải dữ liệu...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="myKpiEmpty" class="mykpi-empty mt-2 d-none"></div>
+</section>
+
+<section class="panel mt-3">
+    <h4 class="mb-2">Lịch sử KPI theo tháng</h4>
+    <canvas id="historyChart" height="180"></canvas>
+    <div class="table-responsive mt-2">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr><th>Tháng</th><th>Điểm tổng</th><th>Xếp loại</th><th>Số KPI thành phần</th></tr>
+            </thead>
+            <tbody id="historyBody">
+                <tr><td colspan="4" class="text-muted">Đang tải lịch sử...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="modal fade" id="kpiDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kpiDetailTitle">Chi tiết KPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="kpiDetailContent"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kpiFeedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gửi thắc mắc KPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label">KPI liên quan (không bắt buộc)</label>
+                    <select id="feedbackKpi" class="form-select"><option value="">Chọn KPI</option></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Mức độ</label>
+                    <select id="feedbackLevel" class="form-select">
+                        <option value="BinhThuong">Bình thường</option>
+                        <option value="CanXemLai">Cần xem lại</option>
+                        <option value="KhanCap">Khẩn cấp</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Nội dung phản hồi</label>
+                    <textarea id="feedbackContent" class="form-control" rows="4" maxlength="500"></textarea>
+                </div>
+                <div id="feedbackHint" class="small text-muted"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSendFeedback">Gửi phản hồi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const monthEl = document.getElementById('kpiMonth');
+    const yearEl = document.getElementById('kpiYear');
+    const myKpiBody = document.getElementById('myKpiBody');
+    const emptyEl = document.getElementById('myKpiEmpty');
+    const feedbackKpi = document.getElementById('feedbackKpi');
+    const feedbackLevel = document.getElementById('feedbackLevel');
+    const feedbackContent = document.getElementById('feedbackContent');
+    const feedbackHint = document.getElementById('feedbackHint');
+    const historyBody = document.getElementById('historyBody');
+    const detailModal = new bootstrap.Modal(document.getElementById('kpiDetailModal'));
+    const feedbackModal = new bootstrap.Modal(document.getElementById('kpiFeedbackModal'));
+    let historyChart = null;
+    let appliedRows = [];
+
+    function esc(v) {
+        return String(v ?? '').replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    async function fetchJson(url, options) {
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => null);
+        return data ?? { success: false, message: `HTTP ${res.status}` };
+    }
+
+    function formatDate(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (Number.isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('vi-VN');
+    }
+
+    function statusLabel(key) {
+        return ({ HetHieuLuc: 'Hết hiệu lực', ChuaBatDau: 'Chưa bắt đầu', SapHetHan: 'Sắp hết hạn', DangApDung: 'Đang áp dụng' })[key] || key || '-';
+    }
+
+    function fillPeriod() {
+        const now = new Date();
+        monthEl.insertAdjacentHTML('beforeend', '<option value="">Tất cả các tháng</option>');
+        for (let m = 1; m <= 12; m++) monthEl.insertAdjacentHTML('beforeend', `<option value="${m}">Tháng ${m}</option>`);
+        for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) yearEl.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+        monthEl.value = String(now.getMonth() + 1);
+        yearEl.value = String(now.getFullYear());
+    }
+
+    function renderApplied() {
+        if (!appliedRows.length) {
+            myKpiBody.innerHTML = '<tr><td colspan="8" class="text-muted">Không có KPI áp dụng trong kỳ này.</td></tr>';
+            emptyEl.classList.remove('d-none');
+            emptyEl.textContent = `Chưa có kết quả KPI cho tháng ${monthEl.value}/${yearEl.value}. Bạn có thể chọn kỳ khác.`;
+            return;
+        }
+
+        emptyEl.classList.add('d-none');
+        myKpiBody.innerHTML = appliedRows.map((r, idx) => {
+            const weightText = (r.nguonApDung || []).length <= 1
+                ? `${Number((r.nguonApDung || [])[0]?.trongSoApDung || 0).toFixed(2)}%`
+                : 'Nhiều nguồn';
+            const scoreText = r.diemHienTai == null ? 'Chưa tính' : Number(r.diemHienTai).toFixed(2);
+            return `
+            <tr>
+                <td>${esc(r.tenKpi)}</td>
+                <td>${esc(r.tenLoaiKpi || '-')}</td>
+                <td>${esc(r.nguonApDungText || '-')}</td>
+                <td>${esc(weightText)}</td>
+                <td>${esc(scoreText)}</td>
+                <td>${formatDate(r.tuNgay)} - ${formatDate(r.denNgay)}</td>
+                <td>${esc(statusLabel(r.trangThaiHieuLuc))}</td>
+                <td><button class="btn btn-sm btn-outline-secondary btn-detail" data-idx="${idx}" type="button">Chi tiết</button></td>
+            </tr>`;
+        }).join('');
+
+        myKpiBody.querySelectorAll('.btn-detail').forEach(btn => {
+            btn.addEventListener('click', () => openDetail(Number(btn.dataset.idx)));
+        });
+
+        feedbackKpi.innerHTML = '<option value="">Chọn KPI</option>' + appliedRows.map(x => `<option value="${x.maKpi}">${esc(x.tenKpi)}</option>`).join('');
+    }
+
+    function openDetail(index) {
+        const r = appliedRows[index];
+        if (!r) return;
+        const sourceRows = (r.nguonApDung || []).map(s => `
+            <tr>
+                <td>${esc(statusLabel(s.loaiNguon))}</td>
+                <td>${esc(s.tenNguon || '-')}</td>
+                <td>${Number(s.trongSoApDung || 0).toFixed(2)}%</td>
+                <td>${formatDate(s.tuNgay)} - ${formatDate(s.denNgay)}</td>
+                <td>${esc(statusLabel(s.trangThaiHieuLuc))}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('kpiDetailTitle').textContent = r.tenKpi;
+        document.getElementById('kpiDetailContent').innerHTML = `
+            <div><strong>Loại KPI:</strong> ${esc(r.tenLoaiKpi || '-')}</div>
+            <div><strong>Điểm hiện tại:</strong> ${r.diemHienTai == null ? 'Chưa tính' : Number(r.diemHienTai).toFixed(2)}</div>
+            <div><strong>Trạng thái hiệu lực:</strong> ${esc(statusLabel(r.trangThaiHieuLuc))}</div>
+            <hr />
+            <h6>Nguồn áp dụng</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mykpi-source-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Loại nguồn</th>
+                            <th>Tên nguồn</th>
+                            <th>Trọng số</th>
+                            <th>Thời gian áp dụng</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sourceRows || '<tr><td colspan="5" class="text-muted">Không có nguồn áp dụng.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        detailModal.show();
+    }
+
+    async function loadOverview() {
+        const query = new URLSearchParams();
+        if (monthEl.value) query.set('thang', monthEl.value);
+        if (yearEl.value) query.set('nam', yearEl.value);
+        const res = await fetchJson(`/kpi/my/overview?${query.toString()}`);
+        if (!res.success || !res.data) return;
+        const d = res.data;
+        document.getElementById('myScore').textContent = d.diemTong == null ? 'Chưa tính' : Number(d.diemTong).toFixed(2);
+        document.getElementById('myRank').textContent = d.xepLoai || '-';
+        document.getElementById('myCount').textContent = d.soKpiDangApDung || 0;
+        document.getElementById('myUpdated').textContent = formatDate(d.ngayTinh);
+    }
+
+    async function loadApplied() {
+        const query = new URLSearchParams();
+        if (monthEl.value) query.set('thang', monthEl.value);
+        if (yearEl.value) query.set('nam', yearEl.value);
+        const res = await fetchJson(`/kpi/my/applied?${query.toString()}`);
+        appliedRows = (res.success && Array.isArray(res.data)) ? res.data : [];
+        renderApplied();
+    }
+
+    async function loadHistory() {
+        const res = await fetchJson('/kpi/my/history?months=6');
+        const rows = (res.success && Array.isArray(res.data)) ? res.data : [];
+        historyBody.innerHTML = rows.length
+            ? rows.map(x => `<tr><td>${x.thang}/${x.nam}</td><td>${Number(x.diemTong || 0).toFixed(2)}</td><td>${esc(x.xepLoai || '-')}</td><td>${x.soKpiThanhPhan || 0}</td></tr>`).join('')
+            : '<tr><td colspan="4" class="text-muted">Chưa có lịch sử KPI.</td></tr>';
+
+        if (historyChart) historyChart.destroy();
+        historyChart = new Chart(document.getElementById('historyChart'), {
+            type: 'line',
+            data: {
+                labels: rows.map(x => `${x.thang}/${x.nam}`),
+                datasets: [{ data: rows.map(x => Number(x.diemTong || 0)), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.15)', fill: true, tension: 0.35 }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    }
+
+    async function loadAll() {
+        await loadOverview();
+        await loadApplied();
+        await loadHistory();
+    }
+
+    monthEl.addEventListener('change', loadAll);
+    yearEl.addEventListener('change', loadAll);
+    document.getElementById('btnOpenFeedback').addEventListener('click', () => feedbackModal.show());
+    document.getElementById('btnSendFeedback').addEventListener('click', async () => {
+        feedbackHint.className = 'small text-muted';
+        feedbackHint.textContent = 'Đang gửi phản hồi...';
+        const payload = {
+            thang: Number(monthEl.value),
+            nam: Number(yearEl.value),
+            maKpi: feedbackKpi.value ? Number(feedbackKpi.value) : null,
+            mucDo: feedbackLevel.value,
+            noiDung: feedbackContent.value.trim()
+        };
+        const res = await fetchJson('/kpi/my/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        feedbackHint.className = `small ${res.success ? 'text-success' : 'text-danger'}`;
+        feedbackHint.textContent = res.message || (res.success ? 'Đã gửi phản hồi thành công.' : 'Không gửi được phản hồi.');
+        if (res.success) feedbackContent.value = '';
+    });
+
+    fillPeriod();
+    loadAll();
+})();
+</script>
+}

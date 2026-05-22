@@ -1,0 +1,306 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var roleKeyRaw = (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+    var roleRaw = (ViewData["Role"]?.ToString() ?? "Admin").Trim();
+    var isAdmin = User.IsInRole(Roles.Admin);
+    var canViewEmployees = ViewData["CanViewEmployees"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.EmployeesView));
+    var canViewDepartments = ViewData["CanViewDepartments"] as bool? ?? canViewEmployees;
+    var canViewProjects = ViewData["CanViewProjects"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.ProjectsView));
+    var canViewTasks = ViewData["CanViewTasks"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.TasksView));
+    var canApproveTasks = isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.TasksApprove);
+    var canViewKpi = ViewData["CanViewKpi"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.KpiView));
+    var canViewMyKpi = ViewData["CanViewMyKpi"] as bool? ?? (roleKeyRaw == "employee" && User.HasClaim(Permissions.PermissionClaimType, Permissions.MyKpiView));
+    var canViewReports = ViewData["CanViewReports"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.ReportsView));
+    var canViewSettings = ViewData["CanViewSettings"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.SettingsView));
+    var canManageAccounts = ViewData["CanManageAccounts"] as bool? ?? (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.SettingsEdit));
+    var canViewAi = ViewData["CanViewAi"] as bool? ?? (isAdmin
+        || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiViewAlerts)
+        || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiViewForecast)
+        || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiViewPerformance)
+        || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiSuggestResources));
+
+    var displayRole = roleKeyRaw switch
+    {
+        "manager" => "Manager",
+        "employee" => "Employee",
+        _ => "Admin"
+    };
+
+    var displayName = roleKeyRaw switch
+    {
+        "manager" => "Quản lý",
+        "employee" => "Nhân viên",
+        _ => "Quản trị viên"
+    };
+
+    var avatar = roleKeyRaw switch
+    {
+        "manager" => "QL",
+        "employee" => "NV",
+        _ => "QT"
+    };
+
+    var searchHint = roleKeyRaw switch
+    {
+        "manager" => "Tìm dự án, task, nhân viên...",
+        "employee" => "Tìm task của tôi, KPI cá nhân...",
+        _ => "Tìm nhân viên, task, phòng ban..."
+    };
+
+    var quickActionLabel = roleKeyRaw switch
+    {
+        "manager" => "Quản lý dự án",
+        "employee" => "Dự án & công việc",
+        _ => "Quản lý dự án"
+    };
+
+    var quickActionIcon = "bi bi-kanban-fill";
+    var quickActionTarget = "Projects";
+
+    var aiNavItems = new List<dynamic>();
+    if (canViewAi)
+    {
+        aiNavItems.Add(new { Action = "AiInsights", Icon = "bi bi-bar-chart-fill", Label = "Tổng quan AI" });
+
+        if (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiViewForecast))
+        {
+            aiNavItems.Add(new { Action = "AiForecast", Icon = "bi bi-graph-up-arrow", Label = "Dự báo tiến độ" });
+        }
+
+        if (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiViewPerformance))
+        {
+            aiNavItems.Add(new { Action = "AiPerformance", Icon = "bi bi-person-badge-fill", Label = "Hiệu suất nhân sự" });
+        }
+
+        if (isAdmin || User.HasClaim(Permissions.PermissionClaimType, Permissions.AiSuggestResources))
+        {
+            aiNavItems.Add(new { Action = "AiModels", Icon = "bi bi-arrow-repeat", Label = "Mô hình & huấn luyện" });
+            aiNavItems.Add(new { Action = "AiFeatureStore", Icon = "bi bi-collection-fill", Label = "Dữ liệu AI" });
+        }
+    }
+
+    var navItems = new List<dynamic>
+    {
+        new { Action = "Dashboard", Icon = "bi bi-grid-1x2-fill", Label = "Dashboard" }
+    };
+
+    if (roleKeyRaw != "employee" && canViewEmployees)
+    {
+        navItems.Add(new { Action = "Employees", Icon = "bi bi-people-fill", Label = "Quản lý nhân viên" });
+    }
+
+    if (roleKeyRaw != "employee" && canViewDepartments)
+    {
+        navItems.Add(new { Action = "Departments", Icon = "bi bi-diagram-3-fill", Label = "Quản lý phòng ban" });
+    }
+
+    if (canViewProjects)
+    {
+        navItems.Add(new { Action = "Projects", Icon = "bi bi-kanban-fill", Label = "Dự án" });
+    }
+
+    if (canViewTasks)
+    {
+        navItems.Add(new { Action = "Tasks", Icon = "bi bi-list-check", Label = "Công việc" });
+
+        if (canApproveTasks)
+        {
+            navItems.Add(new { Action = "ProgressApproval", Icon = "bi bi-patch-check-fill", Label = "Duyệt tiến độ" });
+        }
+    }
+
+    if (canViewReports)
+    {
+        if (roleKeyRaw == "employee")
+        {
+            navItems.Add(new { Action = "CreateReport", Icon = "bi bi-journal-check", Label = "Báo cáo của tôi" });
+        }
+        else
+        {
+            navItems.Add(new { Action = "ReportManagement", Icon = "bi bi-file-earmark-text-fill", Label = "Quản lý báo cáo", Mine = false });
+        }
+    }
+
+    if (roleKeyRaw != "employee" && canViewKpi)
+    {
+        navItems.Add(new { Action = "Kpi", Icon = "bi bi-bullseye", Label = "KPI" });
+    }
+
+    if (roleKeyRaw == "employee" && canViewMyKpi)
+    {
+        navItems.Add(new { Action = "MyKpi", Icon = "bi bi-bullseye", Label = "KPI của tôi" });
+    }
+
+    if (roleKeyRaw != "employee" && canViewAi)
+    {
+        navItems.Add(new { Action = "AiInsights", Icon = "bi bi-cpu-fill", Label = "AI phân tích" });
+    }
+
+    if (canManageAccounts)
+    {
+        navItems.Add(new { Action = "AccountManagement", Icon = "bi bi-shield-lock-fill", Label = "Quản lý tài khoản" });
+    }
+
+    if (canViewSettings)
+    {
+        navItems.Add(new { Action = "Settings", Icon = "bi bi-gear-fill", Label = "Cài đặt hệ thống" });
+    }
+
+    ViewData["LayoutCurrentController"] = currentController;
+    ViewData["LayoutCurrentAction"] = currentAction;
+    ViewData["LayoutDisplayRole"] = displayRole;
+    ViewData["LayoutDisplayName"] = displayName;
+    ViewData["LayoutAvatar"] = avatar;
+    ViewData["LayoutSearchHint"] = searchHint;
+    ViewData["LayoutQuickActionLabel"] = quickActionLabel;
+    ViewData["LayoutQuickActionIcon"] = quickActionIcon;
+    ViewData["LayoutQuickActionTarget"] = quickActionTarget;
+    ViewData["LayoutSidebarNavItems"] = navItems;
+    ViewData["LayoutAiNavItems"] = aiNavItems;
+
+    string IsActive(string controller, string action)
+    {
+        return currentController == controller && currentAction == action ? "active" : "";
+    }
+
+    string IsAiActive(string action)
+    {
+        return currentController == "Portal" && currentAction == action ? "active" : "";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - LuanVan KPI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/LuanVan.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ai-platform.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-shell" id="appShell">
+        <partial name="_Sidebar" />
+
+        <div class="main-wrap">
+            <partial name="_Topbar" />
+
+            <partial name="_AiLayoutNav" />
+
+            <main class="main-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        // Temporary client-side error reporter (remove after debugging)
+        (function () {
+            const sendReport = async (payload) => {
+                try {
+                    // always log locally
+                    console.groupCollapsed('ClientErrorReport');
+                    console.error(payload);
+                    console.groupEnd();
+
+                    // Attempt to POST to server endpoint (may 404 if server doesn't expose it)
+                    await fetch('/client-error-log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (ex) {
+                    // keep silent if reporting fails
+                    console.warn('ClientErrorReport send failed', ex);
+                }
+            };
+
+            window.addEventListener('error', function (ev) {
+                try {
+                    const payload = {
+                        type: 'error',
+                        message: ev.message,
+                        filename: ev.filename,
+                        lineno: ev.lineno,
+                        colno: ev.colno,
+                        stack: ev.error && ev.error.stack ? ev.error.stack : null,
+                        location: window.location.href,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString(),
+                        docTail: (document && document.documentElement) ? String(document.documentElement.outerHTML).slice(-2000) : null
+                    };
+                    sendReport(payload);
+                } catch (e) { console.warn('error reporter failed', e); }
+            }, true);
+
+            window.addEventListener('unhandledrejection', function (ev) {
+                try {
+                    const reason = ev.reason;
+                    const payload = {
+                        type: 'unhandledrejection',
+                        message: (reason && reason.message) || String(reason),
+                        stack: (reason && reason.stack) || null,
+                        location: window.location.href,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString(),
+                        docTail: (document && document.documentElement) ? String(document.documentElement.outerHTML).slice(-2000) : null
+                    };
+                    sendReport(payload);
+                } catch (e) { console.warn('rejection reporter failed', e); }
+            }, true);
+
+            // Wrap fetch to capture non-OK responses and JSON parse errors
+            try {
+                const _fetch = window.fetch.bind(window);
+                window.fetch = async function (...args) {
+                    try {
+                        const resp = await _fetch(...args);
+                        let bodyText = null;
+                        try { bodyText = await resp.clone().text(); } catch (e) { bodyText = null; }
+                        if (!resp.ok) {
+                            sendReport({
+                                type: 'fetch-nok',
+                                url: args[0],
+                                status: resp.status,
+                                statusText: resp.statusText,
+                                bodySnippet: bodyText ? bodyText.slice(0, 2000) : null,
+                                location: window.location.href,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                        return resp;
+                    } catch (err) {
+                        sendReport({
+                            type: 'fetch-exception',
+                            url: args[0],
+                            message: err && err.message,
+                            stack: err && err.stack,
+                            location: window.location.href,
+                            timestamp: new Date().toISOString()
+                        });
+                        throw err;
+                    }
+                };
+            } catch (e) {
+                console.warn('Failed to wrap fetch for error reporting', e);
+            }
+        })();
+    </script>
+</body>
+</html>
+
+
+
+

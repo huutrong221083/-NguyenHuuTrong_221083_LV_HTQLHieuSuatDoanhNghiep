@@ -1,0 +1,1576 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+}
+
+<style>
+    /* Prevent KPI canvases in dept drawer from overflowing and cap their height */
+    .dept-drawer .tab-pane { max-height: 420px; overflow: auto; }
+    #deptTabKpi .dept-chart { width: 100% !important; display: block; max-height: 320px; }
+    #deptKpiBarChart { max-height: 320px; }
+</style>
+
+@if (role == "employee")
+{
+    <section class="panel mt-3">
+        <h4>Không có quyền truy cập</h4>
+        <p class="text-muted mb-0">Vai trò Employee không được phép truy cập module Quản lý phòng ban.</p>
+    </section>
+}
+else
+{
+    <section class="panel mt-3">
+        <div class="dept-toolbar">
+            <div class="dept-toolbar-left">
+                <input id="deptKeyword" class="form-control" placeholder="Tìm theo tên phòng ban / trưởng phòng..." />
+                <select id="filterEmployeeSize" class="form-select">
+                    <option value="">Tất cả quy mô</option>
+                    <option value="lt5">&lt; 5 nhân viên</option>
+                    <option value="5to10">5 - 10 nhân viên</option>
+                    <option value="gt10">&gt; 10 nhân viên</option>
+                </select>
+                <select id="filterStatus" class="form-select">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Ngừng hoạt động</option>
+                </select>
+                <!-- Removed department filter button per request -->
+            </div>
+            <div class="dept-toolbar-right">
+                @if (role == "admin")
+                {
+                    <button id="btnAddDept" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Thêm phòng ban</button>
+                }
+                <button id="btnExportDept" class="btn btn-success"><i class="bi bi-file-earmark-arrow-down"></i> Xuất</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="deptCards" class="dept-card-grid mt-3">
+        <article class="panel mini"><p class="text-muted mb-0">Đang tải dữ liệu...</p></article>
+    </section>
+
+    <section id="nhomSection" class="panel mt-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h4 class="mb-0">Danh sách nhóm</h4>
+            <div class="d-flex gap-2 align-items-center">
+                <input id="nhomSearch" class="form-control form-control-sm" placeholder="Tìm tên nhóm..." />
+                @if (role == "admin" || role == "manager")
+                {
+                    <button id="btnCreateNhom" class="btn btn-outline-primary btn-sm" type="button"><i class="bi bi-plus-circle"></i> Tạo nhóm</button>
+                }
+            </div>
+        </div>
+        <div id="nhomResult" class="small mt-2 text-muted"></div>
+        <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Mã nhóm</th>
+                        <th>Tên nhóm</th>
+                        <th>Trưởng nhóm</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="nhomTableBody"><tr><td colspan="5" class="text-muted">Đang tải...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="modal fade" id="nhomModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nhomModalTitle">Cập nhật nhóm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tên nhóm</label>
+                            <input id="nhomEditName" class="form-control" placeholder="Nhập tên nhóm" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Trưởng nhóm</label>
+                            <select id="nhomEditLeader" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-5">
+                            <label class="form-label">Nhân viên</label>
+                            <select id="nhomAddMemberSelect" class="form-select">
+                                <option value="">Chọn nhân viên</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Vai trò trong nhóm</label>
+                            <input id="nhomAddMemberRole" class="form-control" placeholder="VD: Backend, Tester" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button id="btnNhomAddMember" type="button" class="btn btn-outline-primary w-100">Thêm</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Nhân viên</th>
+                                    <th>Vai trò</th>
+                                    <th>Ngày gia nhập</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nhomMemberBody">
+                                <tr><td colspan="4" class="text-muted">Chưa có dữ liệu</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="nhomModalResult" class="small mt-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveNhom">Lưu nhóm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end dept-drawer" tabindex="-1" id="deptDrawer" aria-labelledby="deptDrawerLabel">
+        <div class="offcanvas-header">
+            <h5 id="deptDrawerLabel" class="offcanvas-title">Chi tiết phòng ban</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <section class="panel mb-3 dept-mini-dashboard">
+                <div class="dept-mini-grid">
+                    <article>
+                        <small>KPI trung bình</small>
+                        <p id="miniKpi">--</p>
+                    </article>
+                    <article>
+                        <small>Số nhân viên</small>
+                        <p id="miniCount">--</p>
+                    </article>
+                    <article>
+                        <small>Task trễ hạn</small>
+                        <p id="miniOverdue">--</p>
+                    </article>
+                    <article>
+                        <small>AI cảnh báo</small>
+                        <p id="miniAi">--</p>
+                    </article>
+                </div>
+            </section>
+
+            <ul class="nav nav-tabs" id="deptTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#deptTabGeneral" type="button">Thông tin chung</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTabEmployees" type="button">Nhân viên</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTabKpi" type="button">KPI</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTabProjects" type="button">Dự án</button></li>
+            </ul>
+
+            <div class="tab-content pt-3">
+                <div class="tab-pane fade show active" id="deptTabGeneral">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="avatar" id="deptLeadAvatar">TP</span>
+                        <div>
+                            <strong id="deptLeadName">-</strong>
+                            <div class="text-muted">Trưởng phòng</div>
+                        </div>
+                    </div>
+
+                    <form id="deptGeneralForm" class="row g-2">
+                        <div class="col-12"><label class="form-label">Tên phòng ban</label><input id="deptName" class="form-control" placeholder="Nhập tên phòng ban" /></div>
+                        <div class="col-12"><label class="form-label">Mô tả</label><textarea id="deptDescription" class="form-control" rows="3" placeholder="Nhập mô tả phòng ban"></textarea></div>
+                        <div class="col-6"><label class="form-label">Trưởng phòng</label><select id="deptLeadSelect" class="form-select"></select></div>
+                        <div class="col-6"><label class="form-label">Ngày thành lập</label><input id="deptCreatedDate" type="date" class="form-control" /></div>
+                        <div class="col-6"><label class="form-label">Trạng thái</label><select id="deptStatusSelect" class="form-select"><option value="active">Hoạt động</option><option value="inactive">Ngừng hoạt động</option></select></div>
+                        <div class="col-6 d-flex align-items-end justify-content-end">
+                            @if (role == "admin")
+                            {
+                                <button type="button" id="btnUpdateDeptGeneral" class="btn btn-primary btn-sm">Cập nhật trưởng phòng</button>
+                            }
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tab-pane fade" id="deptTabEmployees">
+                    @if (role == "admin")
+                    {
+                        <div class="row g-2 mb-2">
+                            <div class="col-9"><select id="deptEmployeeAddSelect" class="form-select"><option value="">Chọn nhân viên để thêm vào phòng</option></select></div>
+                            <div class="col-3"><button id="btnAddEmployeeToDept" type="button" class="btn btn-primary btn-sm w-100">Thêm</button></div>
+                        </div>
+                    }
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Avatar</th><th>Họ tên</th><th>Chức vụ</th><th>KPI</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr></thead>
+                            <tbody id="deptEmployeeBody"><tr><td colspan="6" class="text-muted">Đang tải...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="deptTabKpi">
+                    <div class="d-flex justify-content-between mb-2">
+                        <div>KPI trung bình: <span id="deptAvgKpi" class="pill info">--</span></div>
+                        <small class="text-muted">Nguồn: KETQUAKPI</small>
+                    </div>
+                    <canvas id="deptKpiBarChart" class="dept-chart" height="220"></canvas>
+                </div>
+
+                <div class="tab-pane fade" id="deptTabProjects">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Dự án</th><th>Số task</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead>
+                            <tbody id="deptProjectBody"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group viewer modal -->
+    <div class="modal fade" id="nhomViewerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nhomViewerTitle">Chi tiết nhóm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <section class="mb-3">
+                        <h6>Thành viên</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Nhân viên</th><th>Vai trò</th><th>Ngày gia nhập</th></tr></thead>
+                                <tbody id="nhomViewerMemberBody"><tr><td colspan="3" class="text-muted">Đang tải...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="mb-3">
+                        <h6>KPI nhóm</h6>
+                        <div id="nhomViewerKpi">Chưa có dữ liệu KPI.</div>
+                    </section>
+
+                    <section class="mb-3">
+                        <h6>Dự án / Công việc đang phụ trách</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Dự án</th><th>Số task</th><th>Tiến độ</th><th>Trạng thái</th></tr></thead>
+                                <tbody id="nhomViewerProjectsBody"><tr><td colspan="4" class="text-muted">Chưa có dữ liệu dự án.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deptFormModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deptModalTitle">Thêm phòng ban</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="deptForm" class="row g-2">
+                        <div class="col-12"><label class="form-label">Tên phòng ban</label><input id="formDeptName" class="form-control" placeholder="Nhập tên phòng ban" required /></div>
+                        <div class="col-12"><label class="form-label">Mô tả</label><textarea id="formDeptDescription" class="form-control" rows="3" placeholder="Nhập mô tả phòng ban"></textarea></div>
+                        <div class="col-6"><label class="form-label">Trưởng phòng</label><select id="formDeptLead" class="form-select" required></select></div>
+                        <div class="col-6"><label class="form-label">Trạng thái</label><select id="formDeptStatus" class="form-select"><option value="active">Hoạt động</option><option value="inactive">Ngừng hoạt động</option></select></div>
+                    </form>
+                    <div id="deptFormResult" class="small mt-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveDept">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteDeptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-danger">Xác nhận xóa phòng ban</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <p class="mb-2">Bạn có chắc chắn muốn xóa phòng ban này không?</p>
+                    <p class="text-muted small mb-0">Bạn có thể hủy thao tác nếu chọn Hủy. Nếu phòng ban còn nhân viên đang làm việc, hệ thống sẽ không cho xóa.</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmDeleteDept">Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="transferEmployeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Chọn phòng ban đích</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <p class="text-muted small mb-2">Chọn phòng ban để chuyển nhân viên:</p>
+                    <select id="transferTargetDept" class="form-select"><option value="">-- Chọn phòng ban --</option></select>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnSelectTransferDept">Tiếp theo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="reviewTransferModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Xác nhận chuyển phòng ban</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <p class="mb-3">Nhân viên <strong id="transferEmpName"></strong> sẽ được chuyển từ <strong id="transferFromDept"></strong> sang <strong id="transferToDept"></strong>.</p>
+                    <p class="text-muted small mb-2">Các công việc đang thực hiện tại phòng ban cũ:</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Công việc</th><th>Tiến độ</th><th>Hạn chót</th></tr></thead>
+                            <tbody id="transferTasksBody"><tr><td colspan="3" class="text-muted text-center py-3">Đang tải công việc...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmTransfer">Xác nhận chuyển</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const role = '@role';
+        if (role === 'employee') {
+            // Employee cannot access this module.
+        } else {
+            const deptKeyword = document.getElementById('deptKeyword');
+            const filterEmployeeSize = document.getElementById('filterEmployeeSize');
+            const filterStatus = document.getElementById('filterStatus');
+            const btnAddDept = document.getElementById('btnAddDept');
+            const btnExportDept = document.getElementById('btnExportDept');
+            const deptCards = document.getElementById('deptCards');
+
+            const deptDrawer = new bootstrap.Offcanvas(document.getElementById('deptDrawer'));
+            const deptFormModal = new bootstrap.Modal(document.getElementById('deptFormModal'));
+            const deleteDeptModal = new bootstrap.Modal(document.getElementById('deleteDeptModal'));
+            const transferEmployeeModal = new bootstrap.Modal(document.getElementById('transferEmployeeModal'));
+            const reviewTransferModal = new bootstrap.Modal(document.getElementById('reviewTransferModal'));
+
+            const miniKpi = document.getElementById('miniKpi');
+            const miniCount = document.getElementById('miniCount');
+            const miniOverdue = document.getElementById('miniOverdue');
+            const miniAi = document.getElementById('miniAi');
+
+            const deptLeadAvatar = document.getElementById('deptLeadAvatar');
+            const deptLeadName = document.getElementById('deptLeadName');
+            const deptName = document.getElementById('deptName');
+            const deptDescription = document.getElementById('deptDescription');
+            const deptLeadSelect = document.getElementById('deptLeadSelect');
+            const deptCreatedDate = document.getElementById('deptCreatedDate');
+            const deptStatusSelect = document.getElementById('deptStatusSelect');
+            const btnUpdateDeptGeneral = document.getElementById('btnUpdateDeptGeneral');
+
+            const deptEmployeeAddSelect = document.getElementById('deptEmployeeAddSelect');
+            const btnAddEmployeeToDept = document.getElementById('btnAddEmployeeToDept');
+            const deptEmployeeBody = document.getElementById('deptEmployeeBody');
+
+            const deptAvgKpi = document.getElementById('deptAvgKpi');
+            const deptProjectBody = document.getElementById('deptProjectBody');
+
+            const deptModalTitle = document.getElementById('deptModalTitle');
+            const formDeptName = document.getElementById('formDeptName');
+            const formDeptDescription = document.getElementById('formDeptDescription');
+            const formDeptLead = document.getElementById('formDeptLead');
+            const formDeptStatus = document.getElementById('formDeptStatus');
+            const deptFormResult = document.getElementById('deptFormResult');
+            const btnSaveDept = document.getElementById('btnSaveDept');
+            const btnConfirmDeleteDept = document.getElementById('btnConfirmDeleteDept');
+            const transferTargetDept = document.getElementById('transferTargetDept');
+            const btnSelectTransferDept = document.getElementById('btnSelectTransferDept');
+            const btnConfirmTransfer = document.getElementById('btnConfirmTransfer');
+            const nhomSearch = document.getElementById('nhomSearch');
+            const btnCreateNhom = document.getElementById('btnCreateNhom');
+            const nhomSection = document.getElementById('nhomSection');
+            const nhomTableBody = document.getElementById('nhomTableBody');
+            const nhomResult = document.getElementById('nhomResult');
+            const nhomModal = new bootstrap.Modal(document.getElementById('nhomModal'));
+            const nhomModalTitle = document.getElementById('nhomModalTitle');
+            const nhomEditName = document.getElementById('nhomEditName');
+            const nhomEditLeader = document.getElementById('nhomEditLeader');
+            const nhomAddMemberSelect = document.getElementById('nhomAddMemberSelect');
+            const nhomAddMemberRole = document.getElementById('nhomAddMemberRole');
+            const btnNhomAddMember = document.getElementById('btnNhomAddMember');
+            const nhomMemberBody = document.getElementById('nhomMemberBody');
+            const nhomModalResult = document.getElementById('nhomModalResult');
+            const btnSaveNhom = document.getElementById('btnSaveNhom');
+
+            const nhomViewerModal = new bootstrap.Modal(document.getElementById('nhomViewerModal'));
+            const nhomViewerTitle = document.getElementById('nhomViewerTitle');
+            const nhomViewerMemberBody = document.getElementById('nhomViewerMemberBody');
+            const nhomViewerKpi = document.getElementById('nhomViewerKpi');
+            const nhomViewerProjectsBody = document.getElementById('nhomViewerProjectsBody');
+
+            // live filter for nhóm (Tên nhóm)
+            if (nhomSearch) {
+                const debounce = (fn, wait) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; };
+                const applyFilterNhom = debounce(() => {
+                    const q = (nhomSearch.value || '').trim().toLowerCase();
+                    if (!nhomTableBody) return;
+                    nhomTableBody.querySelectorAll('tr').forEach(row => {
+                        const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+                        row.style.display = q && name.indexOf(q) === -1 ? 'none' : '';
+                    });
+                }, 200);
+                nhomSearch.addEventListener('input', applyFilterNhom);
+            }
+
+            const state = {
+                departments: [],
+                filtered: [],
+                employees: [],
+                teams: [],
+                kpiByDepartment: new Map(),
+                selectedDept: null,
+                editingDeptId: null,
+                managerScopedDeptId: null,
+                selectedTeamId: null,
+                selectedTeamDetail: null,
+                barChart: null,
+                lineChart: null,
+                pendingDeleteDeptId: null,
+                pendingTransferEmpId: null,
+                pendingTransferEmpName: null,
+                pendingTransferFromDeptId: null,
+                pendingTransferToDeptId: null,
+                currentUserEmployeeId: null
+            };
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            const avatarText = (name) => {
+                const words = String(name || 'TP').trim().split(' ');
+                return (words[0]?.[0] || 'T') + (words[words.length - 1]?.[0] || 'P');
+            };
+
+            function deptTheme(name) {
+                const text = String(name || '').toLowerCase();
+                if (text.includes('it')) return 'dept-blue';
+                if (text.includes('hr') || text.includes('nhân sự') || text.includes('nhan su')) return 'dept-purple';
+                if (text.includes('marketing')) return 'dept-orange';
+                return 'dept-default';
+            }
+
+            function kpiBadge(value) {
+                if (value == null || Number.isNaN(value)) return '<span class="pill info" title="Chưa có dữ liệu KPI">--</span>';
+                if (value > 80) return `<span class="pill ok" title="KPI cao">${value.toFixed(1)}%</span>`;
+                if (value >= 50) return `<span class="pill warning" title="KPI trung bình">${value.toFixed(1)}%</span>`;
+                return `<span class="pill danger" title="KPI thấp">${value.toFixed(1)}%</span>`;
+            }
+
+            function statusFromDepartment(dept) {
+                return (dept.soNhanVien || 0) > 0 ? 'active' : 'inactive';
+            }
+
+            function toggleNhomSection(visible) {
+                if (!nhomSection) {
+                    return;
+                }
+
+                nhomSection.style.display = visible ? '' : 'none';
+            }
+
+            async function fetchJson(url, options) {
+                const response = await fetch(url, options);
+                const contentType = response.headers.get('content-type') || '';
+
+                if (!contentType.toLowerCase().includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`API ${url} không trả về JSON. HTTP ${response.status}. ${text.slice(0, 180)}`);
+                }
+
+                const payload = await response.json();
+                if (!response.ok) {
+                    return {
+                        success: false,
+                        message: payload?.message || `HTTP ${response.status}`,
+                        data: payload?.data
+                    };
+                }
+
+                return payload;
+            }
+
+            async function loadBaseData() {
+                try {
+                    const month = new Date().getMonth() + 1;
+                    const year = new Date().getFullYear();
+                    
+                    // For Manager, fetch current user to get their department
+                    let currentUserResult = null;
+                    if (role === 'manager') {
+                        currentUserResult = await fetchJson('/nhanvien/me');
+                    }
+                    
+                    const [deptResult, empResult] = await Promise.all([
+                        fetchJson('/phongban'),
+                        fetchJson('/nhanvien?page=1&size=300')
+                    ]);
+
+                    if (!deptResult.success) {
+                        deptCards.innerHTML = `<article class="panel mini"><p class="text-danger mb-0">${escapeHtml(deptResult.message || 'Không tải được dữ liệu phòng ban.')}</p></article>`;
+                        return;
+                    }
+
+                    state.departments = deptResult.data || [];
+                    state.employees = empResult.success ? (empResult.data?.items || []) : [];
+                    nhomEditLeader.innerHTML = '<option value="">Chọn trưởng nhóm</option>' + state.employees
+                        .filter(x => x.trangThai === 1)
+                        .map(x => `<option value="${x.maNhanVien}">${x.maNhanVien} - ${escapeHtml(x.hoTen || '')}</option>`)
+                        .join('');
+
+                    try {
+                        const dashboardResult = await fetchJson(`/dashboard?thang=${month}&nam=${year}&top=20`);
+                        state.kpiByDepartment = new Map(
+                            (dashboardResult.success ? (dashboardResult.data?.kpiTheoPhongBan || []) : [])
+                                .map(item => [item.maPhongBan, Number(item.kpi || 0)])
+                        );
+                    } catch {
+                        state.kpiByDepartment = new Map();
+                    }
+
+                    if (role === 'manager' && currentUserResult?.success && currentUserResult?.data) {
+                        state.currentUserEmployeeId = Number(currentUserResult.data.maNhanVien || 0) || null;
+                        if (currentUserResult.data.maPhongBan) {
+                            state.managerScopedDeptId = currentUserResult.data.maPhongBan;
+                        }
+                    }
+
+                    renderLeadOptions();
+                    applyFilters();
+                    await loadNhoms();
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Không tải được dữ liệu phòng ban.';
+                    deptCards.innerHTML = `<article class="panel mini"><p class="text-danger mb-0">${escapeHtml(message)}</p></article>`;
+                }
+            }
+
+            async function loadNhoms() {
+                const result = await fetchJson('/api/nhom');
+                if (!result.success) {
+                    nhomTableBody.innerHTML = `<tr><td colspan="5" class="text-danger">${escapeHtml(result.message || 'Không tải được danh sách nhóm.')}</td></tr>`;
+                    return;
+                }
+
+                const teams = result.data || [];
+                if (role === 'manager') {
+                    const managerId = Number(state.currentUserEmployeeId || 0);
+                    state.teams = teams.filter(item => Number(item.truongNhom || 0) === managerId);
+                    if (!state.teams.length) {
+                        toggleNhomSection(false);
+                        return;
+                    }
+
+                    toggleNhomSection(true);
+                } else {
+                    state.teams = teams;
+                    toggleNhomSection(true);
+                }
+
+                if (!state.teams.length) {
+                    nhomTableBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có nhóm nào.</td></tr>';
+                    return;
+                }
+
+                nhomTableBody.innerHTML = state.teams.map(item => `
+                    <tr>
+                        <td>${item.maNhom}</td>
+                        <td>${escapeHtml(item.tenNhom || '-')}</td>
+                        <td>${escapeHtml(item.tenTruongNhom || (item.truongNhom ? `NV ${item.truongNhom}` : '-'))}</td>
+                        <td>${item.ngayTao ? new Date(item.ngayTao).toLocaleDateString('vi-VN') : '-'}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light me-1" title="Xem" onclick="window.openNhomViewer(${item.maNhom})"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="window.openNhomModal(${item.maNhom})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="window.deleteNhom(${item.maNhom})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function openCreateNhomModal() {
+                if (role !== 'admin' && role !== 'manager') return;
+                state.selectedTeamId = null;
+                nhomModalTitle.textContent = 'Tạo nhóm';
+                nhomEditName.value = '';
+                renderNhomMemberOptions();
+                nhomMemberBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có thành viên.</td></tr>';
+                nhomModal.show();
+            }
+
+            function renderNhomMemberOptions(detail) {
+                const memberIds = new Set((detail?.thanhViens || []).map(x => x.maNhanVien));
+                const options = state.employees
+                    .filter(x => x.trangThai === 1 && !memberIds.has(x.maNhanVien))
+                    .map(x => `<option value="${x.maNhanVien}">${x.maNhanVien} - ${escapeHtml(x.hoTen || '')}</option>`)
+                    .join('');
+
+                nhomAddMemberSelect.innerHTML = '<option value="">Chọn nhân viên</option>' + options;
+                nhomEditLeader.innerHTML = state.employees
+                    .filter(x => x.trangThai === 1)
+                    .map(x => `<option value="${x.maNhanVien}">${x.maNhanVien} - ${escapeHtml(x.hoTen || '')}</option>`)
+                    .join('');
+            }
+
+            function renderNhomMembers(detail) {
+                const rows = detail?.thanhViens || [];
+                if (!rows.length) {
+                    nhomMemberBody.innerHTML = '<tr><td colspan="4" class="text-muted">Nhóm chưa có thành viên.</td></tr>';
+                    return;
+                }
+
+                nhomMemberBody.innerHTML = rows.map(item => {
+                    const isLeader = Number(detail?.truongNhom || 0) === Number(item.maNhanVien);
+                    return `
+                        <tr>
+                            <td>${escapeHtml(item.hoTen || `NV ${item.maNhanVien}`)}</td>
+                            <td>
+                                <input class="form-control form-control-sm" value="${escapeHtml(item.vaiTroTrongNhom || (isLeader ? 'Trưởng nhóm' : 'Thành viên'))}" onchange="window.updateTeamMemberRole(${detail.maNhom}, ${item.maNhanVien}, this.value)" ${isLeader ? 'disabled' : ''} />
+                            </td>
+                            <td>${item.ngayGiaNhap ? new Date(item.ngayGiaNhap).toLocaleDateString('vi-VN') : '-'}</td>
+                            <td class="text-end">
+                                ${isLeader ? '<span class="text-muted">Trưởng nhóm</span>' : `<button class="btn btn-sm btn-outline-danger" onclick="window.removeTeamMember(${detail.maNhom}, ${item.maNhanVien})"><i class="bi bi-person-dash"></i></button>`}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function setNhomModalResult(message, success = false) {
+                nhomModalResult.className = `small mt-2 ${success ? 'text-success' : 'text-danger'}`;
+                nhomModalResult.textContent = message || '';
+            }
+
+            async function openNhomModal(maNhom) {
+                state.selectedTeamId = maNhom;
+                nhomModalTitle.textContent = `Cập nhật nhóm #${maNhom}`;
+                setNhomModalResult('');
+
+                const result = await fetchJson(`/api/nhom/${maNhom}`);
+                if (!result.success) {
+                    setNhomModalResult(result.message || 'Không tải được chi tiết nhóm.');
+                    return;
+                }
+
+                state.selectedTeamDetail = result.data;
+                nhomEditName.value = result.data?.tenNhom || '';
+                renderNhomMemberOptions(result.data);
+                nhomEditLeader.value = String(result.data?.truongNhom || '');
+                renderNhomMembers(result.data);
+                nhomModal.show();
+            }
+
+            async function openNhomViewer(maNhom) {
+                nhomViewerTitle.textContent = `Chi tiết nhóm #${maNhom}`;
+                nhomViewerMemberBody.innerHTML = '<tr><td colspan="3" class="text-muted">Đang tải...</td></tr>';
+                nhomViewerProjectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Đang tải...</td></tr>';
+                nhomViewerKpi.textContent = 'Đang tải...';
+
+                try {
+                    const result = await fetchJson(`/api/nhom/${maNhom}`);
+                    if (!result.success) {
+                        nhomViewerMemberBody.innerHTML = `<tr><td colspan="3" class="text-danger">${escapeHtml(result.message || 'Không tải được chi tiết nhóm.')}</td></tr>`;
+                        nhomViewerKpi.textContent = 'Chưa có dữ liệu KPI.';
+                        nhomViewerProjectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có dữ liệu dự án.</td></tr>';
+                        nhomViewerModal.show();
+                        return;
+                    }
+
+                    const detail = result.data || {};
+                    nhomViewerTitle.textContent = detail.tenNhom
+                        ? `Chi tiết nhóm: ${detail.tenNhom}`
+                        : `Chi tiết nhóm #${maNhom}`;
+                    // render members
+                    const rows = (detail.thanhViens || []).map(m => `<tr><td>${escapeHtml(m.hoTen || `NV ${m.maNhanVien}`)}</td><td>${escapeHtml(m.vaiTroTrongNhom || '')}</td><td>${m.ngayGiaNhap ? new Date(m.ngayGiaNhap).toLocaleDateString('vi-VN') : '-'}</td></tr>`);
+                    nhomViewerMemberBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3" class="text-muted">Nhóm chưa có thành viên.</td></tr>';
+
+                    // Fetch KPI assignments for the team using new endpoint
+                    try {
+                        const kr = await fetchJson(`/api/nhom/${maNhom}/kpi`);
+                        if (kr.success && Array.isArray(kr.data) && kr.data.length) {
+                            const list = kr.data;
+                            nhomViewerKpi.innerHTML = `
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>KPI</th>
+                                                <th class="text-end">Trọng số (%)</th>
+                                                <th class="text-end">Điểm đánh giá</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${list.map(x => `
+                                                <tr>
+                                                    <td>${escapeHtml(x.tenKpi || ('KPI ' + x.maKpi))}</td>
+                                                    <td class="text-end">${Number(x.trongSoApDung ?? 0).toFixed(2)}</td>
+                                                    <td class="text-end">${x.diemDanhGia == null ? '-' : kpiBadge(Number(x.diemDanhGia))}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        } else {
+                            nhomViewerKpi.textContent = 'Chưa có dữ liệu KPI.';
+                        }
+                    } catch {
+                        nhomViewerKpi.textContent = 'Chưa có dữ liệu KPI.';
+                    }
+
+                    // Fetch projects for the team using new endpoint then enrich with project detail
+                    try {
+                        const pr = await fetchJson(`/api/nhom/${maNhom}/duan`);
+                        if (pr.success && Array.isArray(pr.data) && pr.data.length) {
+                            const list = pr.data.slice(0, 8);
+                            // fetch details for each project in parallel (best-effort)
+                            const details = await Promise.all(list.map(async p => {
+                                try {
+                                    const d = await fetchJson(`/duan/${p.maDuAn}`);
+                                    return d.success ? d.data : null;
+                                } catch { return null; }
+                            }));
+
+                            const rows = list.map((p, idx) => {
+                                const d = details[idx] || {};
+                                const name = p.tenDuAn || d.tenDuAn || '-';
+                                const soTask = Number(d.tongCongViec ?? d.soCongViec ?? 0);
+                                const tienDo = Number(d.phanTramHoanThanh ?? d.tienDoPhanTram ?? 0);
+                                const status = d.tenTrangThai || d.TenTrangThai || (p.trangThai ? (Number(p.trangThai) === 1 ? 'Đang chạy' : 'Khác') : 'Khác');
+                                return `<tr><td>${escapeHtml(name)}</td><td>${soTask}</td><td><div class="progress" style="height:9px"><div class="progress-bar ${tienDo >= 70 ? 'good' : (tienDo >= 45 ? 'warn' : 'bad') }" style="width:${tienDo}%"></div></div></td><td>${escapeHtml(status)}</td></tr>`;
+                            }).join('');
+
+                            nhomViewerProjectsBody.innerHTML = rows || '<tr><td colspan="4" class="text-muted">Chưa có dữ liệu dự án.</td></tr>';
+                        } else {
+                            nhomViewerProjectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có dữ liệu dự án.</td></tr>';
+                        }
+                    } catch {
+                        nhomViewerProjectsBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có dữ liệu dự án.</td></tr>';
+                    }
+
+                } catch (err) {
+                    nhomViewerMemberBody.innerHTML = `<tr><td colspan="3" class="text-danger">Lỗi tải nhóm.</td></tr>`;
+                    nhomViewerProjectsBody.innerHTML = '<tr><td colspan="4" class="text-danger">Lỗi tải dự án.</td></tr>';
+                    nhomViewerKpi.textContent = 'Lỗi tải KPI.';
+                }
+
+                nhomViewerModal.show();
+            }
+
+            // expose for inline onclick handlers
+            window.openNhomViewer = openNhomViewer;
+
+            async function saveNhom() {
+                const tenNhom = nhomEditName.value.trim();
+                const truongNhom = Number(nhomEditLeader.value || 0);
+                if (!tenNhom || !truongNhom) {
+                    setNhomModalResult('Vui lòng nhập tên nhóm và chọn trưởng nhóm.');
+                    return;
+                }
+
+                if (state.selectedTeamId) {
+                    const result = await fetchJson(`/api/nhom/${state.selectedTeamId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenNhom, truongNhom })
+                    });
+
+                    if (!result.success) {
+                        setNhomModalResult(result.message || 'Không thể cập nhật nhóm.');
+                        return;
+                    }
+
+                    setNhomModalResult('Cập nhật nhóm thành công.', true);
+                    await loadNhoms();
+                    await openNhomModal(state.selectedTeamId);
+                } else {
+                    const res = await fetchJson('/api/nhom', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenNhom, truongNhom })
+                    });
+
+                    if (!res.success) {
+                        setNhomModalResult(res.message || 'Không thể tạo nhóm.');
+                        return;
+                    }
+
+                    setNhomModalResult('Tạo nhóm thành công.', true);
+                    nhomModal.hide();
+                    await loadNhoms();
+                }
+            }
+
+            async function deleteNhom(maNhom) {
+                if (!confirm('Bạn có chắc chắn muốn xóa nhóm này?')) return;
+
+                const result = await fetchJson(`/api/nhom/${maNhom}`, { method: 'DELETE' });
+                if (!result.success) {
+                    alert(result.message || 'Không thể xóa nhóm.');
+                    return;
+                }
+
+                if (Number(state.selectedTeamId) === Number(maNhom)) {
+                    nhomModal.hide();
+                }
+                await loadNhoms();
+            }
+
+            async function addMemberToTeam() {
+                if (!state.selectedTeamId) return;
+                const maNhanVien = Number(nhomAddMemberSelect.value || 0);
+                const vaiTroTrongNhom = nhomAddMemberRole.value.trim() || 'Thành viên';
+
+                if (!maNhanVien) {
+                    setNhomModalResult('Vui lòng chọn nhân viên cần thêm.');
+                    return;
+                }
+
+                const result = await fetchJson('/api/nhom/add-member', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ maNhom: state.selectedTeamId, maNhanVien, vaiTroTrongNhom })
+                });
+
+                if (!result.success) {
+                    setNhomModalResult(result.message || 'Không thể thêm thành viên.');
+                    return;
+                }
+
+                nhomAddMemberSelect.value = '';
+                nhomAddMemberRole.value = '';
+                setNhomModalResult('Đã thêm thành viên vào nhóm.', true);
+                await loadNhoms();
+                await openNhomModal(state.selectedTeamId);
+            }
+
+            async function removeTeamMember(maNhom, maNhanVien) {
+                if (!confirm('Bạn có chắc chắn muốn xóa thành viên khỏi nhóm?')) return;
+
+                const result = await fetchJson(`/api/nhom/${maNhom}/members/${maNhanVien}`, {
+                    method: 'DELETE'
+                });
+
+                if (!result.success) {
+                    setNhomModalResult(result.message || 'Không thể xóa thành viên.');
+                    return;
+                }
+
+                setNhomModalResult('Đã xóa thành viên khỏi nhóm.', true);
+                await loadNhoms();
+                await openNhomModal(maNhom);
+            }
+
+            async function updateTeamMemberRole(maNhom, maNhanVien, vaiTroTrongNhom) {
+                const result = await fetchJson(`/api/nhom/${maNhom}/members/${maNhanVien}/role`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vaiTroTrongNhom })
+                });
+
+                if (!result.success) {
+                    setNhomModalResult(result.message || 'Không thể cập nhật vai trò thành viên.');
+                    await openNhomModal(maNhom);
+                    return;
+                }
+
+                setNhomModalResult('Cập nhật vai trò thành viên thành công.', true);
+                await openNhomModal(maNhom);
+            }
+
+            function renderLeadOptions() {
+                const options = state.employees
+                    .filter(x => x.trangThai === 1)
+                    .map(x => `<option value="${x.maNhanVien}">${x.maNhanVien} - ${escapeHtml(x.hoTen || '')}</option>`)
+                    .join('');
+
+                deptLeadSelect.innerHTML = options;
+                formDeptLead.innerHTML = options;
+
+                if (deptEmployeeAddSelect) {
+                    deptEmployeeAddSelect.innerHTML = '<option value="">Chọn nhân viên để thêm vào phòng</option>' + options;
+                }
+            }
+
+            function applyFilters() {
+                const keyword = deptKeyword.value.trim().toLowerCase();
+                const sizeFilter = filterEmployeeSize.value;
+                const statusFilter = filterStatus.value;
+
+                let items = [...state.departments];
+                if (role === 'manager' && state.managerScopedDeptId) {
+                    items = items.filter(x => x.maPhongBan === state.managerScopedDeptId);
+                }
+
+                if (keyword) {
+                    items = items.filter(item => {
+                        const managerName = getEmployeeName(item.maTruongPhong).toLowerCase();
+                        return String(item.tenPhongBan || '').toLowerCase().includes(keyword) || managerName.includes(keyword);
+                    });
+                }
+
+                if (sizeFilter) {
+                    items = items.filter(item => {
+                        const count = item.soNhanVien || 0;
+                        if (sizeFilter === 'lt5') return count < 5;
+                        if (sizeFilter === '5to10') return count >= 5 && count <= 10;
+                        if (sizeFilter === 'gt10') return count > 10;
+                        return true;
+                    });
+                }
+
+                if (statusFilter) {
+                    items = items.filter(item => statusFromDepartment(item) === statusFilter);
+                }
+
+                state.filtered = items;
+                renderCards();
+            }
+
+            function getEmployeeName(maNhanVien) {
+                const emp = state.employees.find(x => x.maNhanVien === maNhanVien);
+                return emp?.hoTen || (maNhanVien ? `NV ${maNhanVien}` : '-');
+            }
+
+            function renderCards() {
+                if (!state.filtered.length) {
+                    deptCards.innerHTML = '<article class="panel mini"><p class="text-muted mb-0">Không có phòng ban phù hợp.</p></article>';
+                    return;
+                }
+
+                deptCards.innerHTML = state.filtered.map(item => {
+                    const managerName = getEmployeeName(item.maTruongPhong);
+                    const theme = deptTheme(item.tenPhongBan);
+                    const status = statusFromDepartment(item);
+                    const deptKpi = state.kpiByDepartment.has(item.maPhongBan) ? state.kpiByDepartment.get(item.maPhongBan) : null;
+                    const progress = Math.max(0, Math.min(100, Number(deptKpi ?? 0)));
+
+                    return `
+                        <article class="dept-card ${theme}" title="KPI trung bình ${deptKpi == null ? '--' : Number(deptKpi).toFixed(1) + '%'}">
+                            <header class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <h4>${escapeHtml(item.tenPhongBan || `phòng ${item.maPhongBan}`)}</h4>
+                                    <p class="text-muted mb-1"><i class="bi bi-person-badge"></i> ${escapeHtml(managerName)}</p>
+                                </div>
+                                <span class="pill ${status === 'active' ? 'ok' : 'info'}">${status === 'active' ? 'Hoạt động' : 'Ngừng hoạt động'}</span>
+                            </header>
+                            <div class="dept-metrics">
+                                <div><span>👥 Số nhân viên</span><strong>${item.soNhanVien || 0}</strong></div>
+                                <div><span>📊 KPI TB</span><strong>${kpiBadge(deptKpi)}</strong></div>
+                            </div>
+                            <div>
+                                <small class="text-muted">📈 Tiến độ công việc</small>
+                                <div class="progress" style="height:8px"><div class="progress-bar ${progress >= 70 ? 'good' : (progress >= 45 ? 'warn' : 'bad')}" style="width:${progress}%"></div></div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-2">
+                                <button class="btn btn-sm btn-light" onclick="window.openDeptDetail(${item.maPhongBan})"><i class="bi bi-eye"></i></button>
+                                ${role === 'admin' ? `<button class="btn btn-sm btn-outline-primary" onclick="window.openDeptForm(${item.maPhongBan})"><i class="bi bi-pencil"></i></button>` : ''}
+                                ${role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="window.deleteDept(${item.maPhongBan})"><i class="bi bi-trash"></i></button>` : ''}
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+            }
+
+            async function openDeptDetail(deptId) {
+                const dept = state.departments.find(x => x.maPhongBan === deptId);
+                if (!dept) return;
+                state.selectedDept = dept;
+
+                deptDrawer.show();
+
+                const month = new Date().getMonth() + 1;
+                const year = new Date().getFullYear();
+                const [employeesResult, kpiResult, projectResult, projectListResult] = await Promise.all([
+                    fetchJson(`/phongban/${deptId}/nhanvien`),
+                    fetchJson(`/kpi/phongban/${deptId}?thang=${month}&nam=${year}`),
+                    fetchJson(`/phongban/${deptId}/duan`),
+                    fetchJson('/duan?page=1&size=100')
+                ]);
+
+                const employees = employeesResult.success ? (employeesResult.data || []) : [];
+                const kpiData = kpiResult.success ? kpiResult.data : null;
+
+                // Tính số task trễ hạn từ danh sách nhân viên
+                let overdueCount = 0;
+                if (employees.length > 0) {
+                    const overdueTasks = await Promise.all(employees.map(emp => 
+                        fetchJson(`/congviec?nhanvien=${emp.maNhanVien}&trangthai=3&page=1&size=100`)
+                    ));
+                    overdueCount = overdueTasks.reduce((sum, result) => 
+                        sum + (result.success ? (result.data?.items || []).length : 0), 0
+                    );
+                }
+                const avgKpi = kpiData?.kpiTrungBinh ?? null;
+                const aiWarning = avgKpi != null && avgKpi < 65
+                    ? 'Cần cảnh báo giảm KPI'
+                    : (overdueCount > 1 ? `${overdueCount} task trễ hạn` : 'Đúng tiến độ');
+
+                miniKpi.innerHTML = kpiBadge(avgKpi);
+                miniCount.textContent = String(employees.length);
+                miniOverdue.textContent = String(overdueCount);
+                miniAi.textContent = aiWarning;
+
+                deptName.value = dept.tenPhongBan || '';
+                deptDescription.value = dept.moTa || '';
+                deptLeadSelect.value = dept.maTruongPhong || dept.maNhanVien || '';
+                deptCreatedDate.value = new Date(new Date().getFullYear(), Math.max(0, (dept.maPhongBan || 1) % 12), 1).toISOString().slice(0, 10);
+                deptStatusSelect.value = statusFromDepartment(dept);
+
+                const leadName = getEmployeeName(dept.maTruongPhong || dept.maNhanVien);
+                deptLeadName.textContent = leadName;
+                deptLeadAvatar.textContent = avatarText(leadName);
+
+                if (btnUpdateDeptGeneral) {
+                    btnUpdateDeptGeneral.disabled = role !== 'admin';
+                }
+
+                renderDeptEmployees(employees, kpiData);
+                renderDeptKpiCharts(kpiData, employees, month, year);
+                renderDeptProjects(
+                    projectResult.success ? (projectResult.data || []) : [],
+                    projectListResult.success ? (projectListResult.data?.items || []) : []
+                );
+                fillDeptEmployeeCandidate(employees);
+            }
+
+            function renderDeptEmployees(employees, kpiData) {
+                if (!employees.length) {
+                    deptEmployeeBody.innerHTML = '<tr><td colspan="6" class="text-muted">Phòng ban chưa có nhân viên.</td></tr>';
+                    return;
+                }
+
+                const kpiByEmployee = new Map((kpiData?.nhanViens || []).map(x => [x.maNhanVien, Number(x.diem || 0)]));
+
+                deptEmployeeBody.innerHTML = employees.map(emp => {
+                    const roleName = state.selectedDept && state.selectedDept.maTruongPhong === emp.maNhanVien ? 'Trưởng phòng' : 'Nhân viên';
+                    const kpiValue = kpiByEmployee.has(emp.maNhanVien) ? kpiByEmployee.get(emp.maNhanVien) : null;
+                    const rowClass = Number(kpiValue || 0) >= 80 ? 'dept-emp-highlight' : '';
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td><span class="avatar avatar-sm">${avatarText(emp.hoTen)}</span></td>
+                            <td>${escapeHtml(emp.hoTen || '-')}</td>
+                            <td>${roleName}</td>
+                            <td>${kpiBadge(kpiValue)}</td>
+                            <td>${emp.trangThai === 1 ? '<span class="pill ok">Đang làm việc</span>' : '<span class="pill info">Nghỉ việc</span>'}</td>
+                            <td class="text-end">
+                                ${role === 'admin' ? `
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="window.transferEmployee(${emp.maNhanVien}, '${escapeHtml(emp.hoTen || '')}')" title="Chuyển phòng ban"><i class="bi bi-arrow-left-right"></i></button>
+                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="window.leaveSecondaryDepartment(${emp.maNhanVien})" title="Rời phòng ban"><i class="bi bi-box-arrow-right"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="window.removeEmployeeFromDept(${emp.maNhanVien})" title="Chuyển sang nghỉ việc"><i class="bi bi-person-dash"></i></button>
+                                ` : '<span class="text-muted">-</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function renderDeptKpiCharts(kpiData, employees, month, year) {
+                deptAvgKpi.innerHTML = kpiBadge(kpiData?.kpiTrungBinh ?? null);
+
+                const labels = (kpiData?.nhanViens || []).map(x => x.hoTen || `NV ${x.maNhanVien}`);
+                const values = (kpiData?.nhanViens || []).map(x => x.diem || 0);
+
+                // destroy any existing line chart (we removed it from the UI)
+                if (state.lineChart) { state.lineChart.destroy(); state.lineChart = null; }
+
+                if (state.barChart) state.barChart.destroy();
+                // compute a reasonable aspect ratio based on number of labels
+                const aspect = Math.max(1.2, Math.min(4, Math.max(1, labels.length) / 2));
+                state.barChart = new Chart(document.getElementById('deptKpiBarChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels.length ? labels : ['Không có dữ liệu'],
+                        datasets: [{
+                            label: `KPI tháng ${month}/${year}`,
+                            data: values.length ? values : [0],
+                            backgroundColor: '#2563EB',
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8,
+                            maxBarThickness: 26
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: aspect,
+                        scales: { x: { beginAtZero: true, max: 100 }, y: { ticks: { autoSkip: false } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            function renderDeptProjects(projectLinks, projects) {
+                if (!projectLinks.length) {
+                    deptProjectBody.innerHTML = '<tr><td colspan="4" class="text-muted">Không có dự án.</td></tr>';
+                    return;
+                }
+
+                const projectById = new Map((projects || []).map(p => [p.maDuAn, p]));
+                const related = projectLinks
+                    .map(link => {
+                        const detail = projectById.get(link.maDuAn) || {};
+                        // prefer explicit status name if provided by API, otherwise map numeric code to friendly name
+                        const statusName = detail.tenTrangThai || detail.TenTrangThai || link.tenTrangThai || link.TenTrangThai;
+                        let computedStatus = statusName;
+                        if (!computedStatus) {
+                            const code = Number(detail.trangThai ?? link.trangThai);
+                            const statusMap = {
+                                1: 'Chưa bắt đầu',
+                                2: 'Đang thực hiện',
+                                3: 'Chờ phê duyệt',
+                                4: 'Hoàn thành',
+                                5: 'Trễ hạn',
+                                6: 'Tạm dừng'
+                            };
+                            computedStatus = statusMap[code] || 'Khác';
+                        }
+                        return {
+                            maDuAn: link.maDuAn,
+                            tenDuAn: link.tenDuAn || detail.tenDuAn,
+                            soTask: Number(detail.tongCongViec ?? detail.soCongViec ?? 0),
+                            tienDo: Number(detail.phanTramHoanThanh ?? detail.tienDoPhanTram ?? 0),
+                            trangThai: computedStatus
+                        };
+                    })
+                    .slice(0, 8)
+                    .filter(p => p.maDuAn);
+
+                if (!related.length) {
+                    deptProjectBody.innerHTML = '<tr><td colspan="4" class="text-muted">Không có dữ liệu task/dự án liên quan.</td></tr>';
+                    return;
+                }
+
+                deptProjectBody.innerHTML = related.map(item => `
+                    <tr>
+                        <td><a href="/Portal/Projects?role=${role}">${escapeHtml(item.tenDuAn || '-')}</a></td>
+                        <td>${item.soTask}</td>
+                        <td>
+                            <div class="progress" style="height:9px"><div class="progress-bar ${item.tienDo >= 70 ? 'good' : (item.tienDo >= 45 ? 'warn' : 'bad')}" style="width:${item.tienDo}%"></div></div>
+                        </td>
+                        <td>${item.trangThai}</td>
+                    </tr>
+                `).join('');
+            }
+
+            function fillDeptEmployeeCandidate(currentEmployees) {
+                if (!deptEmployeeAddSelect) return;
+                const inDeptIds = new Set(currentEmployees.map(x => x.maNhanVien));
+                const options = state.employees
+                    .filter(x => x.trangThai === 1 && !inDeptIds.has(x.maNhanVien))
+                    .map(x => `<option value="${x.maNhanVien}">${x.maNhanVien} - ${escapeHtml(x.hoTen || '')}</option>`)
+                    .join('');
+                deptEmployeeAddSelect.innerHTML = '<option value="">Chọn nhân viên để thêm vào phòng</option>' + options;
+            }
+
+            async function openDeptForm(deptId) {
+                state.editingDeptId = deptId || null;
+                deptFormResult.textContent = '';
+                deptFormResult.className = 'small mt-2';
+
+                if (!deptId) {
+                    deptModalTitle.textContent = 'Thêm phòng ban';
+                    formDeptName.value = '';
+                    formDeptDescription.value = '';
+                    formDeptLead.value = '';
+                    formDeptStatus.value = 'active';
+                } else {
+                    const dept = state.departments.find(x => x.maPhongBan === deptId);
+                    if (!dept) return;
+                    deptModalTitle.textContent = 'Sửa phòng ban';
+                    formDeptName.value = dept.tenPhongBan || '';
+                    formDeptDescription.value = dept.moTa || '';
+                    formDeptLead.value = dept.maTruongPhong || dept.maNhanVien || '';
+                    formDeptStatus.value = statusFromDepartment(dept);
+                }
+
+                deptFormModal.show();
+            }
+
+            async function saveDept() {
+                const payload = {
+                    tenPhongBan: formDeptName.value.trim(),
+                    moTa: formDeptDescription.value.trim(),
+                    maNhanVien: Number(formDeptLead.value),
+                    maTruongPhong: Number(formDeptLead.value)
+                };
+
+                const duplicate = state.departments.some(x => x.tenPhongBan?.toLowerCase() === payload.tenPhongBan.toLowerCase() && x.maPhongBan !== state.editingDeptId);
+                if (duplicate) {
+                    deptFormResult.className = 'small mt-2 text-danger';
+                    deptFormResult.textContent = 'Tên phòng ban đã tồn tại.';
+                    return;
+                }
+
+                const isEdit = !!state.editingDeptId;
+                const url = isEdit ? `/phongban/${state.editingDeptId}` : '/phongban';
+                const method = isEdit ? 'PUT' : 'POST';
+                const result = await fetchJson(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                deptFormResult.className = `small mt-2 ${result.success ? 'text-success' : 'text-danger'}`;
+                deptFormResult.textContent = result.message;
+                if (!result.success) return;
+
+                deptFormModal.hide();
+                await loadBaseData();
+            }
+
+            async function updateDeptGeneral() {
+                if (!state.selectedDept || role !== 'admin') return;
+
+                const payload = {
+                    tenPhongBan: deptName.value.trim(),
+                    moTa: deptDescription.value.trim(),
+                    maNhanVien: Number(deptLeadSelect.value),
+                    maTruongPhong: Number(deptLeadSelect.value)
+                };
+
+                const result = await fetchJson(`/phongban/${state.selectedDept.maPhongBan}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!result.success) {
+                    alert(result.message || 'Không thể cập nhật phòng ban.');
+                    return;
+                }
+
+                await loadBaseData();
+                await openDeptDetail(state.selectedDept.maPhongBan);
+            }
+
+            async function transferEmployee(empId, empName) {
+                if (role !== 'admin' || !state.selectedDept) return;
+                state.pendingTransferEmpId = empId;
+                state.pendingTransferEmpName = empName;
+                state.pendingTransferFromDeptId = state.selectedDept.maPhongBan;
+                transferTargetDept.innerHTML = '<option value="">-- Chọn phòng ban --</option>' + state.departments
+                    .filter(d => d.maPhongBan !== state.selectedDept.maPhongBan)
+                    .map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || '')}</option>`)
+                    .join('');
+                transferEmployeeModal.show();
+            }
+
+            async function selectTransferDept() {
+                const targetDeptId = Number(transferTargetDept.value);
+                if (!targetDeptId) {
+                    alert('Vui lòng chọn phòng ban đích.');
+                    return;
+                }
+                state.pendingTransferToDeptId = targetDeptId;
+                transferEmployeeModal.hide();
+                
+                const targetDeptName = state.departments.find(d => d.maPhongBan === targetDeptId)?.tenPhongBan || '';
+                const fromDeptName = state.selectedDept?.tenPhongBan || '';
+                document.getElementById('transferEmpName').textContent = escapeHtml(state.pendingTransferEmpName || '');
+                document.getElementById('transferFromDept').textContent = escapeHtml(fromDeptName);
+                document.getElementById('transferToDept').textContent = escapeHtml(targetDeptName);
+                
+                const tasksBody = document.getElementById('transferTasksBody');
+                tasksBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-3">Đang tải công việc...</td></tr>';
+                reviewTransferModal.show();
+                
+                const taskResult = await fetchJson(`/congviec?maNhanVien=${state.pendingTransferEmpId}&page=1&size=50`);
+                const allTasks = taskResult.success ? (taskResult.data?.items || []) : [];
+                const activeTasks = allTasks.filter(t => t.maTrangThai !== 5 && t.maTrangThai !== 6);
+                
+                if (!activeTasks.length) {
+                    tasksBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-3">Không có công việc đang thực hiện.</td></tr>';
+                } else {
+                    tasksBody.innerHTML = activeTasks.map(task => {
+                        const progress = task.phanTramHoanThanh || 0;
+                        const hanHoanThanh = task.hanHoanThanh ? new Date(task.hanHoanThanh).toLocaleDateString('vi-VN') : '-';
+                        return `<tr><td>${escapeHtml(task.tenCongViec || '')}</td><td><small>${progress}%</small></td><td><small>${hanHoanThanh}</small></td></tr>`;
+                    }).join('');
+                }
+            }
+
+            async function confirmTransfer() {
+                if (!state.pendingTransferEmpId || !state.pendingTransferToDeptId) return;
+                reviewTransferModal.hide();
+
+                const detailRes = await fetchJson(`/nhanvien/${state.pendingTransferEmpId}`);
+                if (!detailRes.success) {
+                    alert(detailRes.message || 'Không tải được thông tin nhân viên.');
+                    return;
+                }
+
+                const emp = detailRes.data;
+                
+                const payload = {
+                    hoTen: emp.hoTen,
+                    ngaySinh: emp.ngaySinh,
+                    cccd: emp.cccd,
+                    diaChi: emp.diaChi,
+                    gioiTinh: emp.gioiTinh,
+                    email: emp.email,
+                    sdt: emp.sdt,
+                    ngayVaoLam: emp.ngayVaoLam,
+                    maPhongBan: state.pendingTransferToDeptId,
+                    phoMaPhongBan: emp.phoMaPhongBan || state.pendingTransferToDeptId,
+                    maChucVu: emp.maChucVu,
+                    aspNetUserId: emp.aspNetUserId
+                };
+                
+                const result = await fetchJson(`/nhanvien/${state.pendingTransferEmpId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                state.pendingTransferEmpId = null;
+                state.pendingTransferEmpName = null;
+                state.pendingTransferFromDeptId = null;
+                state.pendingTransferToDeptId = null;
+                
+                if (!result.success) {
+                    alert(result.message || 'Không thể chuyển nhân viên.');
+                    return;
+                }
+                
+                await loadBaseData();
+                await openDeptDetail(state.selectedDept?.maPhongBan);
+            }
+
+            async function deleteDept(deptId) {
+                if (role !== 'admin') return;
+                state.pendingDeleteDeptId = deptId;
+                deleteDeptModal.show();
+            }
+
+            async function confirmDeleteDept() {
+                if (role !== 'admin' || !state.pendingDeleteDeptId) return;
+
+                const deptId = state.pendingDeleteDeptId;
+                state.pendingDeleteDeptId = null;
+                deleteDeptModal.hide();
+
+                const result = await fetchJson(`/phongban/${deptId}`, { method: 'DELETE' });
+                if (!result.success) {
+                    alert(result.message || 'Không thể xóa phòng ban.');
+                    return;
+                }
+
+                if (state.selectedDept?.maPhongBan === deptId) {
+                    deptDrawer.hide();
+                }
+
+                await loadBaseData();
+            }
+
+            async function addEmployeeToDept() {
+                if (!state.selectedDept || !deptEmployeeAddSelect || !deptEmployeeAddSelect.value) return;
+
+                const employeeId = Number(deptEmployeeAddSelect.value);
+                const detailRes = await fetchJson(`/nhanvien/${employeeId}`);
+                if (!detailRes.success) {
+                    alert('Không tải được thông tin nhân viên.');
+                    return;
+                }
+
+                const d = detailRes.data;
+                const payload = {
+                    hoTen: d.hoTen,
+                    ngaySinh: d.ngaySinh,
+                    cccd: d.cccd,
+                    diaChi: d.diaChi,
+                    gioiTinh: d.gioiTinh,
+                    email: d.email,
+                    sdt: d.sdt,
+                    ngayVaoLam: d.ngayVaoLam,
+                    maPhongBan: state.selectedDept.maPhongBan,
+                    phoMaPhongBan: d.maPhongBan || state.selectedDept.maPhongBan,
+                    maChucVu: d.maChucVu,
+                    aspNetUserId: d.aspNetUserId
+                };
+
+                const updateRes = await fetchJson(`/nhanvien/${employeeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!updateRes.success) {
+                    alert(updateRes.message || 'Không thể thêm nhân viên vào phòng ban.');
+                    return;
+                }
+
+                await loadBaseData();
+                await openDeptDetail(state.selectedDept.maPhongBan);
+            }
+
+            async function removeEmployeeFromDept(employeeId) {
+                if (!state.selectedDept || role !== 'admin') return;
+                if (!confirm('Bạn có chắc chắn muốn chuyển nhân viên sang trạng thái nghỉ việc?')) return;
+
+                const updateRes = await fetchJson(`/nhanvien/${employeeId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trangThai: 0 })
+                });
+
+                if (!updateRes.success) {
+                    alert(updateRes.message || 'Không thể cập nhật nhân viên.');
+                    return;
+                }
+
+                await loadBaseData();
+                await openDeptDetail(state.selectedDept.maPhongBan);
+            }
+
+            async function leaveSecondaryDepartment(employeeId) {
+                if (!state.selectedDept || role !== 'admin') return;
+
+                const emp = state.selectedDept?.employees?.find?.(x => x.maNhanVien === employeeId);
+                const empName = emp?.hoTen || `NV ${employeeId}`;
+                if (!confirm(`Cho ${empName} rời phòng ban này?`)) return;
+
+                const result = await fetchJson(`/phongban/${state.selectedDept.maPhongBan}/nhanvien/${employeeId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!result.success) {
+                    alert(result.message || 'Không thể cho nhân viên rời phòng ban.');
+                    return;
+                }
+
+                await loadBaseData();
+                await openDeptDetail(state.selectedDept.maPhongBan);
+            }
+
+            
+            function exportDepartmentsCsv() {
+                const headers = ['Mã phòng', 'Tên phòng ban', 'Trưởng phòng', 'Số nhân viên', 'Trạng thái'];
+
+                const rows = state.filtered.map(d => ([
+                    d.maPhongBan,
+                    d.tenPhongBan || '',
+                    getEmployeeName(d.maTruongPhong),
+                    d.soNhanVien || 0,
+                    statusFromDepartment(d)
+                ]));
+
+                const BOM = '\uFEFF';
+
+                const formatCell = (value) => {
+                    let v = String(value ?? '');
+                    v = v.replace(/"/g, '""');
+                    return `"${v}"`;
+                };
+
+                const csvContent = [
+                    headers.map(formatCell).join(';'),   
+                    ...rows.map(r => r.map(formatCell).join(';'))
+                ].join('\r\n');
+
+                const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'phong-ban.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            function debounce(fn, delay = 300) {
+                let timer;
+                return (...args) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn(...args), delay);
+                };
+            }
+
+            const realtimeFilter = debounce(() => applyFilters(), 280);
+            deptKeyword.addEventListener('input', realtimeFilter);
+            filterEmployeeSize.addEventListener('change', applyFilters);
+            filterStatus.addEventListener('change', applyFilters);
+            // search button removed: applyFilters is triggered by inputs and other controls
+            btnExportDept.addEventListener('click', exportDepartmentsCsv);
+
+            if (btnAddDept) {
+                btnAddDept.addEventListener('click', () => openDeptForm());
+            }
+            if (btnCreateNhom) {
+                btnCreateNhom.addEventListener('click', openCreateNhomModal);
+            }
+            btnSaveNhom.addEventListener('click', saveNhom);
+            btnNhomAddMember.addEventListener('click', addMemberToTeam);
+            if (btnUpdateDeptGeneral) {
+                btnUpdateDeptGeneral.addEventListener('click', updateDeptGeneral);
+            }
+            if (btnAddEmployeeToDept) {
+                btnAddEmployeeToDept.addEventListener('click', addEmployeeToDept);
+            }
+            btnSaveDept.addEventListener('click', saveDept);
+            btnConfirmDeleteDept.addEventListener('click', confirmDeleteDept);
+            btnSelectTransferDept.addEventListener('click', selectTransferDept);
+            btnConfirmTransfer.addEventListener('click', confirmTransfer);
+
+            window.openDeptDetail = openDeptDetail;
+            window.openDeptForm = openDeptForm;
+            window.deleteDept = deleteDept;
+            window.transferEmployee = transferEmployee;
+            window.leaveSecondaryDepartment = leaveSecondaryDepartment;
+            window.removeEmployeeFromDept = removeEmployeeFromDept;
+            window.openNhomModal = openNhomModal;
+            window.deleteNhom = deleteNhom;
+            window.removeTeamMember = removeTeamMember;
+            window.updateTeamMemberRole = updateTeamMemberRole;
+
+            loadBaseData();
+        }
+    </script>
+}
+
+
+
+
+
+
+

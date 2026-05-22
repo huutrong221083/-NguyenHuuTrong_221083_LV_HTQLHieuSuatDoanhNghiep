@@ -1,0 +1,1870 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+}
+
+<style>
+    .ai-platform-grid {
+        display: block;
+    }
+
+    #aiAssistant {
+        background: linear-gradient(135deg, #eef2ff, #f8fafc);
+        border-left: 4px solid #6366f1;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    /* Panel & grid height constraints */
+    .panel { display: flex; flex-direction: column; overflow: visible; }
+    .aix-panel { max-height: none; }
+    .aix-panel canvas { max-height: none !important; }
+    .aix-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+    /* Canvas constraints */
+    canvas { width: 100% !important; max-height: 180px !important; }
+
+    /* Table responsive scrolling */
+    .table-responsive { max-height: 260px; overflow-y: auto; }
+
+    /* Main center area with scroll */
+    .ai-center { max-height: none; overflow: visible; padding-right: 10px; }
+
+    /* Summary / hero cards */
+    .aix-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        position: relative;
+        z-index: 1;
+        background: #fff;
+        padding: 10px 0 12px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        backdrop-filter: none;
+    }
+    .aix-summary-card { background: linear-gradient(135deg,#1e293b,#0f172a); color:#fff; border-radius:14px; padding:18px 18px 16px; box-shadow:0 10px 25px rgba(0,0,0,0.18); }
+    .aix-summary-card h5 { font-size: 14px; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.1px; }
+    .aix-summary-card .val { font-size: 30px; line-height: 1.05; font-weight: 800; margin-bottom: 8px; }
+    .aix-summary-card .tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.18); }
+    .aix-hero-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        gap: 16px;
+        align-items: stretch;
+    }
+    .aix-assistant-card {
+        background: #fff;
+        border: 1px solid #e5edf8;
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+    }
+    .aix-assistant-card h4 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    #aiAssistant { font-size: 13px; line-height: 1.6; }
+    #aiAssistant .text-muted { font-size: 12px; }
+
+    /* Main layout: left analysis */
+    .aix-main-layout { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+    .aix-left { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+    .aix-insight-pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        align-items: stretch;
+    }
+    .aix-insight-pair > .aix-panel {
+        height: 640px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Alert cards */
+    .aix-alert-card {
+        padding: 14px 14px 12px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        background: #ffffff;
+        border: 1px solid #e5edf8;
+        border-left: 5px solid #cbd5e1;
+        box-shadow: 0 4px 12px rgba(16, 24, 40, 0.06);
+        cursor: pointer;
+        transition: 0.18s ease;
+    }
+
+    .aix-alert-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(16, 24, 40, 0.1);
+    }
+
+    .aix-alert-card.high { border-left-color: #ef4444; background: #fff6f6; }
+    .aix-alert-card.medium { border-left-color: #f59e0b; background: #fffbf2; }
+    .aix-alert-card.low { border-left-color: #22c55e; background: #f3fff7; }
+
+    .aix-alert-card .aix-alert-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .aix-alert-card .aix-alert-name {
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .aix-alert-card .aix-alert-meta {
+        margin-top: 4px;
+        color: #475569;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .aix-alert-card .desc {
+        color: #1e293b;
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .aix-alert-card .btn { border-radius: 10px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
+
+    .aix-alert-detail {
+        border: 1px solid #dbe7f6;
+        border-radius: 10px;
+        background: #f8fbff;
+        padding: 10px 12px;
+        color: #1e293b;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .aix-alert-detail strong {
+        display: inline-block;
+        margin-bottom: 4px;
+    }
+
+    .aix-history-panel {
+        height: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .aix-history-panel .table-responsive {
+        flex: 1;
+        max-height: none;
+    }
+
+    /* Recommendation card priority */
+    .aix-recommend-card {
+        transition: 0.2s;
+        margin-bottom: 12px;
+        background: #fff;
+        border: 1px solid #e5edf8;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(16, 24, 40, 0.05);
+    }
+    .aix-recommend-card:hover { transform: translateY(-2px); }
+    .aix-recommend-card.high { border-left:5px solid #ef4444; }
+    .aix-recommend-card.medium { border-left:5px solid #f59e0b; }
+    .aix-recommend-card.low { border-left:5px solid #10b981; }
+    .aix-recommend-card h5 { font-size: 14px; margin-bottom: 8px; font-weight: 700; }
+    .aix-recommend-card p { margin-bottom: 8px; font-size: 13px; line-height: 1.45; }
+    .aix-recommend-card .btn { border-radius: 10px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
+
+    .ai-headline { background:#fff7ed; border-left:6px solid #f97316; padding:12px; border-radius:8px; font-weight:500; margin-top:12px; position: sticky; top: 0; z-index: 5; }
+
+    .ai-assistant { background:#f8fafc; padding:10px; border-radius:8px; font-size:13px; line-height: 1.5; }
+    .ai-assistant div { margin-bottom: 6px; }
+
+    /* Top actions and tab styles */
+    .aix-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .ai-view-tabs { display: flex; gap: 6px; margin-bottom: 0; flex-wrap: wrap; }
+    .ai-view-tabs button { margin-bottom: 0; border-radius: 999px; padding: 6px 12px; }
+    .ai-view-tabs button.active {
+        background-color: #1d4ed8;
+        color: #fff;
+        border-color: #1d4ed8;
+        box-shadow: 0 8px 20px rgba(29, 78, 216, 0.28);
+    }
+
+    .ai-view-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .ai-view-actions .btn { border-radius: 999px; padding-inline: 12px; font-weight: 600; }
+    .aix-panel-head h4 { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+    .aix-panel-head small { font-size: 12px; }
+    .aix-panel { border-radius: 14px; border: 1px solid #e5edf8; padding: 14px; box-shadow: 0 4px 12px rgba(16, 24, 40, 0.04); background: #fff; }
+    .table.table-sm thead th { font-size: 12px; font-weight: 700; color: #1e3a8a; }
+    .table.table-sm tbody td { font-size: 13px; vertical-align: middle; }
+    #aiAlertList,
+    #aiRecommendationList {
+        max-height: none;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 6px;
+    }
+    #aiAlertDetail {
+        max-height: 140px;
+        overflow-y: auto;
+    }
+    .aix-alert-inline-state {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #475569;
+    }
+    #aiAlertList::-webkit-scrollbar,
+    #aiRecommendationList::-webkit-scrollbar {
+        width: 8px;
+    }
+    #aiAlertList::-webkit-scrollbar-thumb,
+    #aiRecommendationList::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    /* View container styles */
+    .ai-view { display: none; }
+    .ai-view.active { display: block; }
+
+    /* HR Performance styles */
+    #aiHrPerformanceSection { display: none; }
+    .aix-performance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .aix-perf-card { background: #fff; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px; box-shadow: 0 4px 10px rgba(16,24,40,0.04); }
+    .aix-perf-card h6 { margin-bottom: 12px; font-weight: 600; }
+    .aix-perf-card .perf-label { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .aix-perf-card .perf-label.excellent { background: #dcfce7; color: #15803d; }
+    .aix-perf-card .perf-label.good { background: #dbeafe; color: #1e40af; }
+    .aix-perf-card .perf-label.average { background: #fef3c7; color: #92400e; }
+    .aix-perf-card .perf-label.poor { background: #fee2e2; color: #991b1b; }
+    .aix-perf-card .perf-score { font-size: 24px; font-weight: 700; margin: 8px 0; }
+    .aix-perf-card .perf-confidence { font-size: 12px; color: #64748b; margin-top: 8px; }
+
+    .aix-toolbar-wrap {
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        border: 1px solid #e5edf8;
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+
+    .aix-toolbar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px 10px;
+        align-items: end;
+    }
+
+    .aix-filter-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .aix-filter-label {
+        font-size: 11px;
+        line-height: 1;
+        color: #475569;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .aix-toolbar .form-select {
+        border-color: #d9e4f2;
+        background-color: #fff;
+    }
+
+    .aix-toolbar .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 0.15rem rgba(59, 130, 246, 0.2);
+    }
+
+    .aix-filter-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .aix-filter-actions .btn {
+        min-width: 96px;
+    }
+    .aix-filter-hidden {
+        display: none !important;
+    }
+
+    @@media (max-width: 1200px) {
+        .aix-hero-layout { grid-template-columns: 1fr; }
+        .aix-summary { grid-template-columns: repeat(2, 1fr); }
+        .aix-assistant-card { order: 2; }
+        .aix-hero-layout #aiSummaryCards { order: 1; }
+        .aix-main-layout { grid-template-columns: 1fr; }
+        .aix-left { min-height: auto; }
+        .aix-insight-pair { grid-template-columns: 1fr; }
+        .aix-insight-pair > .aix-panel { height: auto; }
+        .ai-center { max-height: none; overflow-y: visible; padding-right: 0; }
+        .panel { max-height: none; overflow: visible; }
+        .aix-panel { max-height: none; }
+        canvas { max-height: none !important; }
+        .table-responsive { max-height: none; overflow-y: visible; }
+        .aix-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .aix-filter-actions { justify-content: flex-start; }
+    }
+
+    @@media (max-width: 768px) {
+        .aix-summary { grid-template-columns: 1fr; }
+        .aix-toolbar { grid-template-columns: 1fr; }
+        #aiAlertList,
+        #aiRecommendationList { max-height: 300px; }
+        .aix-filter-actions {
+            justify-content: stretch;
+            flex-wrap: wrap;
+        }
+        .aix-filter-actions .btn {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+    }
+</style>
+
+<div class="ai-platform-grid">
+    <main class="ai-center">
+
+    <nav class="crumb">Trang chủ / AI phân tích</nav>
+
+    <div class="aix-topbar">
+        <div class="ai-view-tabs">
+            <button id="btnViewKpiAnalysis" class="btn btn-outline-primary btn-sm active">📊 Phân tích KPI</button>
+            <button id="btnViewHrPerformance" class="btn btn-outline-primary btn-sm">👨‍💼 Hiệu suất nhân sự (AI)</button>
+        </div>
+        <div class="ai-view-actions">
+            <button class="btn btn-light btn-sm" id="btnAiReload">Tải mới</button>
+            <button class="btn btn-outline-success btn-sm" id="btnRunAiEvaluation">Chạy AI</button>
+        </div>
+    </div>
+
+    <section class="panel mt-3 aix-toolbar-wrap">
+    <div class="aix-toolbar">
+        <div class="aix-filter-field">
+            <label class="aix-filter-label" for="aiTimePreset">Thời gian</label>
+            <select id="aiTimePreset" class="form-select form-select-sm" title="Chọn khoảng thời gian phân tích">
+                <option value="month" selected>Tháng này</option>
+                <option value="quarter">Quý này</option>
+                <option value="year">Năm nay</option>
+                <option value="custom">Tùy chỉnh</option>
+            </select>
+        </div>
+
+        <div class="aix-filter-field">
+            <label class="aix-filter-label" for="aiScope">Phạm vi</label>
+            <select id="aiScope" class="form-select form-select-sm">
+                <option value="all" selected>Toàn hệ thống</option>
+                <option value="department">Theo phòng ban</option>
+                <option value="project">Theo dự án</option>
+                <option value="employee">Theo nhân viên</option>
+            </select>
+        </div>
+
+        <div class="aix-filter-field" id="aiScopeValueField">
+            <label class="aix-filter-label" for="aiScopeValue">Giá trị phạm vi</label>
+            <select id="aiScopeValue" class="form-select form-select-sm"></select>
+        </div>
+
+        <div class="aix-filter-field aix-filter-hidden" id="aiCustomMonthField">
+            <label class="aix-filter-label" for="aiMonth">Tháng</label>
+            <select id="aiMonth" class="form-select form-select-sm"></select>
+        </div>
+        <div class="aix-filter-field aix-filter-hidden" id="aiCustomYearField">
+            <label class="aix-filter-label" for="aiYear">Năm</label>
+            <select id="aiYear" class="form-select form-select-sm"></select>
+        </div>
+        <select id="aiPeriodType" class="d-none">
+            <option value="month" selected>Theo tháng</option>
+            <option value="quarter">Theo quý</option>
+            <option value="year">Theo năm</option>
+        </select>
+        <select id="aiDepartment" class="d-none"></select>
+        <select id="aiProject" class="d-none"></select>
+        <select id="aiEmployee" class="d-none"></select>
+
+    </div>
+    <p id="aiRoleHint" class="small text-muted mb-0 mt-2"></p>
+    </section>
+
+    <section class="aix-hero-layout mt-3">
+        <div class="aix-summary" id="aiSummaryCards"></div>
+        <article class="aix-assistant-card">
+            <h4>AI Assistant</h4>
+            <div id="aiAssistant">Đang tải trợ lý AI...</div>
+        </article>
+    </section>
+
+    <!-- KPI Analysis View -->
+    <div class="ai-view active" id="aiKpiView">
+        <div class="aix-main-layout mt-3">
+            <div class="aix-left">
+        <section class="aix-insight-pair">
+            <article class="panel aix-panel">
+                <header class="aix-panel-head">
+                    <h4>Top cảnh báo AI quan trọng</h4>
+                    <small class="text-muted">AI phát hiện gì • Vì sao rủi ro • Gợi ý xử lý</small>
+                </header>
+                <div id="aiAlertList"><div class="small text-muted">Đang tải cảnh báo...</div></div>
+                <div id="aiAlertDetail" class="aix-alert-detail mt-2 d-none"></div>
+            </article>
+
+            <article class="panel aix-panel">
+                <header class="aix-panel-head">
+                    <h4>Đề xuất tối ưu từ AI</h4>
+                    <small class="text-muted">Có kèm giải thích lý do đề xuất.</small>
+                </header>
+                <div id="aiRecommendationList" class="aix-recommend-list"></div>
+            </article>
+        </section>
+
+        <section class="aix-grid mt-3">
+        <article class="panel aix-panel">
+            <header class="aix-panel-head">
+                <h4>Phân tích dữ liệu hỗ trợ AI</h4>
+                <span class="aix-explain" title="Dự đoán dựa trên xu hướng KPI, tiến độ công việc và lịch sử rủi ro.">Giải thích AI</span>
+            </header>
+            <canvas id="aiKpiForecastLine" height="180"></canvas>
+            <canvas id="aiKpiCompareBar" height="180" class="mt-3"></canvas>
+        </article>
+
+        </section>
+
+            </div> <!-- /.aix-left -->
+
+        </div> <!-- /.aix-main-layout -->
+    </div>
+
+    <!-- HR Performance View -->
+    <div class="ai-view" id="aiHrPerformanceView">
+        <div class="mt-4">
+            <section class="panel aix-panel">
+                <header class="aix-panel-head">
+                    <h4>👨‍💼 Hiệu suất nhân sự (AI)</h4>
+                    <small class="text-muted">Phân loại hiệu suất nhân viên dựa trên AI Random Forest</small>
+                </header>
+
+                <!-- Performance Summary Cards -->
+                <div class="aix-performance-grid" id="aiHrPerformanceSummary">
+                    <div class="aix-perf-card"><p class="text-muted">Đang tải dữ liệu hiệu suất...</p></div>
+                </div>
+
+                <!-- Performance Distribution Chart -->
+                <div class="row g-3 mt-2">
+                    <div class="col-lg-6">
+                        <article class="panel aix-panel">
+                            <header class="aix-panel-head">
+                                <h5 class="mb-0">Phân bố hiệu suất</h5>
+                            </header>
+                            <canvas id="aiHrPerformanceDistribution" height="200"></canvas>
+                        </article>
+                    </div>
+                    <div class="col-lg-6">
+                        <article class="panel aix-panel">
+                            <header class="aix-panel-head">
+                                <h5 class="mb-0">Xu hướng theo phòng ban</h5>
+                            </header>
+                            <canvas id="aiHrPerformanceByDept" height="200"></canvas>
+                        </article>
+                    </div>
+                </div>
+
+                <!-- Top Performers -->
+                <div class="row g-3 mt-2">
+                    <div class="col-lg-6">
+                        <article class="panel aix-panel">
+                            <header class="aix-panel-head">
+                                <h5 class="mb-0">🏆 Nhân viên xuất sắc</h5>
+                            </header>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr><th>Nhân viên</th><th>Phòng ban</th><th>Hiệu suất</th><th>Độ tin cậy</th></tr>
+                                    </thead>
+                                    <tbody id="aiHrTopPerformers">
+                                        <tr><td colspan="4" class="text-muted">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </div>
+                    <div class="col-lg-6">
+                        <article class="panel aix-panel">
+                            <header class="aix-panel-head">
+                                <h5 class="mb-0">⚠️ Cần hỗ trợ</h5>
+                            </header>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr><th>Nhân viên</th><th>Phòng ban</th><th>Hiệu suất</th><th>Hành động</th></tr>
+                                    </thead>
+                                    <tbody id="aiHrNeedSupport">
+                                        <tr><td colspan="4" class="text-muted">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="panel mt-3 aix-panel">
+    <header class="aix-panel-head">
+        <h4>Lịch sử AI & phản hồi</h4>
+        <small class="text-muted">Theo dõi prediction gần nhất, đánh giá mô hình và gửi phản hồi quản lý</small>
+    </header>
+    <div class="row g-3 align-items-stretch">
+        <div class="col-lg-7 d-flex">
+            <div class="aix-history-panel panel h-100 w-100">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Dự đoán</th>
+                            <th>Nhân viên</th>
+                            <th>Mô hình</th>
+                            <th>Rủi ro</th>
+                            <th>Phản hồi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aiHistoryBody">
+                        <tr><td colspan="5" class="text-muted">Đang tải lịch sử AI...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="aix-link-card h-100">
+                <h5>Phản hồi quản lý theo từng module</h5>
+                <p class="small text-muted mb-2">Phản hồi chi tiết đã được chuyển sang các trang chuyên biệt để đánh giá đúng ngữ cảnh từng loại AI.</p>
+                <div class="d-grid gap-2 mb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="/Portal/AiForecast?role=@role">Đi đến Dự báo tiến độ</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Portal/AiPerformance?role=@role">Đi đến Hiệu suất nhân sự</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Portal/AiModels?role=@role">Đi đến Mô hình & huấn luyện</a>
+                </div>
+                <hr />
+                <h6 class="mb-2">Đánh giá mô hình gần đây</h6>
+                <div id="aiEvaluationBody" class="small text-muted">Đang tải đánh giá mô hình...</div>
+            </div>
+        </div>
+    </div>
+        </section>
+
+    </main>
+
+</div>
+
+@section Scripts {
+    <script>
+        const role = '@role';
+
+        const aiPeriodType = document.getElementById('aiPeriodType');
+        const aiTimePreset = document.getElementById('aiTimePreset');
+        const aiScope = document.getElementById('aiScope');
+        const aiScopeValue = document.getElementById('aiScopeValue');
+        const aiScopeValueField = document.getElementById('aiScopeValueField');
+        const aiCustomMonthField = document.getElementById('aiCustomMonthField');
+        const aiCustomYearField = document.getElementById('aiCustomYearField');
+        const aiMonth = document.getElementById('aiMonth');
+        const aiYear = document.getElementById('aiYear');
+        const aiDepartment = document.getElementById('aiDepartment');
+        const aiProject = document.getElementById('aiProject');
+        const aiEmployee = document.getElementById('aiEmployee');
+        const btnAiReload = document.getElementById('btnAiReload');
+        const aiRoleHint = document.getElementById('aiRoleHint');
+
+        const aiSummaryCards = document.getElementById('aiSummaryCards');
+        const aiAlertList = document.getElementById('aiAlertList');
+        const aiAlertDetail = document.getElementById('aiAlertDetail');
+        const aiRecommendationList = document.getElementById('aiRecommendationList');
+        const aiAssistant = document.getElementById('aiAssistant');
+        const aiHistoryBody = document.getElementById('aiHistoryBody');
+        const aiEvaluationBody = document.getElementById('aiEvaluationBody');
+
+        // evaluation button
+        const btnRunAiEvaluation = document.getElementById('btnRunAiEvaluation');
+
+        const state = {
+            projects: [],
+            departments: [],
+            employees: [],
+            tasks: [],
+            alerts: [],
+            suggestions: [],
+            kpiScoreByEmployee: new Map(),
+            history: [],
+            evaluations: [],
+            selectedPredictionId: null,
+            charts: {
+                line: null,
+                bar: null
+            }
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        function setHtml(el, html) {
+            if (!el) return;
+            el.innerHTML = html;
+        }
+
+        function truncate(text, max = 80) {
+            if (text == null) return '';
+            const s = String(text);
+            return s.length > max ? s.substring(0, max) + '...' : s;
+        }
+
+        function safeNum(v, d = 0) {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : d;
+        }
+
+        function mapRiskLevel(percent) {
+            if (percent >= 75) return 'high';
+            if (percent >= 45) return 'medium';
+            return 'low';
+        }
+
+        function levelLabel(level) {
+            if (level === 'high') return '<span class="pill danger">Cao</span>';
+            if (level === 'medium') return '<span class="pill warning">Trung bình</span>';
+            return '<span class="pill ok">Thấp</span>';
+        }
+
+        function taskOverdue(task) {
+            if (!task.hanHoanThanh) return false;
+            const end = new Date(task.hanHoanThanh);
+            return !Number.isNaN(end.getTime()) && end < new Date() && task.maTrangThai !== 3;
+        }
+
+        async function fetchJson(url, options, apiName) {
+            const label = apiName || url;
+            try {
+                const response = await fetch(url, options);
+                const raw = await response.text();
+                const text = raw ? raw.trim() : '';
+                let payload = null;
+                if (text && (text.startsWith('{') || text.startsWith('['))) {
+                    try {
+                        payload = JSON.parse(text);
+                    } catch (parseError) {
+                        console.error('[AI]', label, parseError);
+                    }
+                }
+                if (!response.ok) {
+                    return { success: false, message: payload?.message || text || `Lỗi ${label}` };
+                }
+                if (payload && typeof payload.success === 'boolean') return payload;
+                return { success: true, data: payload ?? raw };
+            } catch (e) {
+                console.error('[AI]', label, e);
+                return { success: false, message: `Không thể kết nối ${label}` };
+            }
+        }
+
+        function initTimeFilters() {
+            const now = new Date();
+            for (let m = 1; m <= 12; m++) {
+                const o = document.createElement('option');
+                o.value = String(m);
+                o.textContent = `tháng ${m}`;
+                if (m === now.getMonth() + 1) o.selected = true;
+                aiMonth.appendChild(o);
+            }
+
+            for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) {
+                const o = document.createElement('option');
+                o.value = String(y);
+                o.textContent = `năm ${y}`;
+                if (y === now.getFullYear()) o.selected = true;
+                aiYear.appendChild(o);
+            }
+        }
+
+        function syncTimePreset() {
+            const now = new Date();
+            const month = String(now.getMonth() + 1);
+            const year = String(now.getFullYear());
+            const quarterEndMonth = String((Math.floor(now.getMonth() / 3) + 1) * 3);
+            const preset = aiTimePreset?.value || 'month';
+
+            if (preset === 'custom') {
+                aiCustomMonthField?.classList.remove('aix-filter-hidden');
+                aiCustomYearField?.classList.remove('aix-filter-hidden');
+                aiPeriodType.value = 'month';
+                return;
+            }
+
+            aiCustomMonthField?.classList.add('aix-filter-hidden');
+            aiCustomYearField?.classList.add('aix-filter-hidden');
+
+            if (preset === 'year') {
+                aiPeriodType.value = 'year';
+                aiMonth.value = month;
+                aiYear.value = year;
+                return;
+            }
+
+            if (preset === 'quarter') {
+                aiPeriodType.value = 'quarter';
+                aiMonth.value = quarterEndMonth;
+                aiYear.value = year;
+                return;
+            }
+
+            aiPeriodType.value = 'month';
+            aiMonth.value = month;
+            aiYear.value = year;
+        }
+
+        function syncScopeOptions() {
+            const scope = aiScope?.value || 'all';
+            const isAll = scope === 'all';
+            aiScopeValueField?.classList.toggle('aix-filter-hidden', isAll);
+
+            if (isAll) {
+                aiDepartment.value = '';
+                aiProject.value = '';
+                aiEmployee.value = '';
+                return;
+            }
+
+            let optionsHtml = '<option value="">Tất cả</option>';
+            if (scope === 'department') {
+                optionsHtml = '<option value="">Tất cả phòng ban</option>' +
+                    state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || `Phòng ban ${d.maPhongBan}`)}</option>`).join('');
+            } else if (scope === 'project') {
+                optionsHtml = '<option value="">Tất cả dự án</option>' +
+                    state.projects.map(p => `<option value="${p.maDuAn}">${escapeHtml(p.tenDuAn || `Dự án ${p.maDuAn}`)}</option>`).join('');
+            } else if (scope === 'employee') {
+                optionsHtml = '<option value="">Tất cả nhân viên</option>' +
+                    state.employees.map(e => `<option value="${e.maNhanVien}">${escapeHtml(e.hoTen || `NV ${e.maNhanVien}`)}</option>`).join('');
+            }
+
+            setHtml(aiScopeValue, optionsHtml);
+            aiScopeValue.value = '';
+            aiDepartment.value = '';
+            aiProject.value = '';
+            aiEmployee.value = '';
+        }
+
+        function syncScopeSelectionToHiddenFilters() {
+            const scope = aiScope?.value || 'all';
+            const selected = aiScopeValue?.value || '';
+            aiDepartment.value = '';
+            aiProject.value = '';
+            aiEmployee.value = '';
+
+            if (!selected) return;
+            if (scope === 'department') aiDepartment.value = selected;
+            if (scope === 'project') aiProject.value = selected;
+            if (scope === 'employee') aiEmployee.value = selected;
+        }
+
+        function applyRolePolicy() {
+            if (role === 'employee') {
+                aiScope.value = 'employee';
+                aiScope.disabled = true;
+                aiScopeValueField?.classList.remove('aix-filter-hidden');
+                aiScopeValue.disabled = true;
+                aiRoleHint.textContent = 'Phân quyền Employee: xem dữ liệu AI cá nhân.';
+            } else if (role === 'manager') {
+                aiScope.disabled = false;
+                aiScopeValue.disabled = false;
+                aiRoleHint.textContent = 'Phân quyền Manager: xem dữ liệu team và cảnh báo nội bộ.';
+            } else {
+                aiScope.disabled = false;
+                aiScopeValue.disabled = false;
+                aiRoleHint.textContent = 'Phân quyền Admin: xem toàn hệ thống.';
+            }
+        }
+
+        async function loadFilterData() {
+            const [duAnRes, pbRes, nvRes] = await Promise.all([
+                fetchJson('/duan?page=1&size=200', undefined, 'GET /duan'),
+                fetchJson('/phongban?page=1&size=200', undefined, 'GET /phongban'),
+                fetchJson('/nhanvien?page=1&size=200', undefined, 'GET /nhanvien')
+            ]);
+
+            state.projects = duAnRes.success ? (duAnRes.data?.items || []) : [];
+            state.departments = pbRes.success ? (pbRes.data?.items || pbRes.data || []) : [];
+            state.employees = nvRes.success ? (nvRes.data?.items || []) : [];
+
+            setHtml(aiProject, '<option value="">Tất cả dự án</option>' +
+                state.projects.map(p => `<option value="${p.maDuAn}">${escapeHtml(p.tenDuAn || `Dự án ${p.maDuAn}`)}</option>`).join(''));
+
+            setHtml(aiDepartment, '<option value="">Tất cả phòng ban</option>' +
+                state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || `Phòng ban ${d.maPhongBan}`)}</option>`).join(''));
+
+            setHtml(aiEmployee, '<option value="">Tất cả nhân viên</option>' +
+                state.employees.map(e => `<option value="${e.maNhanVien}">${escapeHtml(e.hoTen || `NV ${e.maNhanVien}`)}</option>`).join(''));
+
+            syncScopeOptions();
+
+            if (role === 'employee') {
+                const currentUserOption = state.employees.find(e => String(e.maNhanVien) === aiScopeValue.value);
+                if (!currentUserOption && aiScopeValue.options.length > 1) {
+                    aiScopeValue.value = aiScopeValue.options[1].value;
+                }
+            }
+            syncScopeSelectionToHiddenFilters();
+        }
+
+        async function loadTasks() {
+            const listRes = await fetchJson('/congviec?page=1&size=160', undefined, 'GET /congviec');
+            if (!listRes.success) {
+                state.tasks = [];
+                return;
+            }
+
+            state.tasks = listRes.data?.items || [];
+        }
+
+        async function loadKpiByEmployee() {
+            state.kpiScoreByEmployee.clear();
+            const month = safeNum(aiMonth.value, new Date().getMonth() + 1);
+            const year = safeNum(aiYear.value, new Date().getFullYear());
+            const sample = state.employees;
+
+            await Promise.all(sample.map(async e => {
+                const res = await fetchJson(`/kpi/nhanvien/${e.maNhanVien}?thang=${month}&nam=${year}`, undefined, `GET /kpi/nhanvien/${e.maNhanVien}`);
+                const score = res.success ? safeNum(res.data?.diemHienTai, 0) : 0;
+                state.kpiScoreByEmployee.set(e.maNhanVien, score);
+            }));
+        }
+
+        // Trigger evaluation run from UI
+        if (btnRunAiEvaluation) {
+            const runEvaluation = async () => {
+                const req = {
+                    maModel: 0,
+                    loaiMoHinh: 'Auto',
+                    tuNgay: null,
+                    denNgay: null,
+                    positiveLabel: 'Yeu'
+                };
+
+                const resp = await fetchJson('/api/ai/evaluate/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(req)
+                }, 'POST /api/ai/evaluate/run');
+
+                if (resp.success) {
+                    const runId = resp.runId ?? resp.data?.runId ?? 'n/a';
+                    alert((resp.message || 'Đã tạo lần đánh giá.') + '\nMã lần chạy: ' + runId);
+                    await loadAiMonitoring();
+                } else {
+                    alert('Lỗi khi chạy đánh giá: ' + (resp.message || JSON.stringify(resp)));
+                }
+
+            };
+
+            if (window.UiButtonLoading?.bind) {
+                window.UiButtonLoading.bind(btnRunAiEvaluation, runEvaluation, { profile: 'heavy' });
+            } else {
+                btnRunAiEvaluation.addEventListener('click', runEvaluation);
+            }
+        }
+
+        function filterByToolbar(items) {
+            return items.filter(x => {
+                if (aiProject.value && String(x.maDuAn || '') !== aiProject.value) return false;
+                if (aiDepartment.value) {
+                    const hasDept = (x.nguoiDuocGiao || []).some(nv =>
+                        String(nv.maPhongBan || nv.phongBanId || '') === aiDepartment.value
+                    );
+                    if (!hasDept) return false;
+                }
+                if (aiEmployee.value) {
+                    const has = (x.nguoiDuocGiao || []).some(nv => String(nv.maNhanVien) === aiEmployee.value);
+                    if (!has) return false;
+                }
+
+                if (role === 'employee') {
+                    return true;
+                }
+
+                return true;
+            });
+        }
+
+        async function buildAlerts(tasks) {
+            const alerts = [];
+            const topTasks = tasks.slice(0, 24);
+
+            for (const task of topTasks) {
+                const daysLeft = task.hanHoanThanh
+                    ? Math.ceil((new Date(task.hanHoanThanh) - new Date()) / 86400000)
+                    : 7;
+
+                const predictRes = await fetchJson('/ai/predict-delay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        maCongViec: task.maCongViec,
+                        doKho: safeNum(task.maDoKho, 2),
+                        doUuTien: safeNum(task.maDoUuTien, 2),
+                        soNguoiThamGia: (task.nguoiDuocGiao || []).length || 1,
+                        tienDo: safeNum(task.tienDoPhanTram, 0),
+                        soNgayConLai: daysLeft,
+                        maNhanVien: (task.nguoiDuocGiao || [])[0]?.maNhanVien
+                    })
+                }, 'POST /ai/predict-delay');
+
+                if (!predictRes.success) continue;
+                const p = predictRes.data;
+                const level = mapRiskLevel(safeNum(p.percent, 0));
+                alerts.push({
+                    id: `task-${task.maCongViec}`,
+                    objectName: task.tenCongViec || `Công việc ${task.maCongViec}`,
+                    type: 'Công việc trễ hạn',
+                    level,
+                    score: safeNum(p.percent, 0),
+                    description: `Xác suất trễ ${safeNum(p.percent, 0).toFixed(0)}% - ${p.reason || ''}`,
+                    explain: 'Dự đoán dựa trên độ khó, tiến độ hiện tại và số ngày còn lại.'
+                });
+            }
+
+            for (const [employeeId, score] of state.kpiScoreByEmployee.entries()) {
+                if (score >= 60) continue;
+                const emp = state.employees.find(x => x.maNhanVien === employeeId);
+                const level = score < 40 ? 'high' : 'medium';
+                alerts.push({
+                    id: `kpi-${employeeId}`,
+                    objectName: emp?.hoTen || `NV ${employeeId}`,
+                    type: 'KPI thấp',
+                    level,
+                    score: 100 - score,
+                    description: `KPI hiện tại ${score.toFixed(1)}%, cần cải thiện ngay.`,
+                    explain: 'Đánh giá từ kết quả KPI hiện tại và xu hướng gần nhất.'
+                });
+            }
+
+            state.alerts = alerts.sort((a, b) => b.score - a.score).slice(0, 16);
+        }
+
+        async function buildRecommendations(tasks) {
+            const highRisk = state.alerts.filter(x => x.level === 'high').slice(0, 6);
+            const rec = [];
+
+            for (const item of highRisk) {
+                if (item.type === 'Công việc trễ hạn') {
+                    rec.push({
+                        icon: '💡',
+                        title: `Ưu tiên lại ${item.objectName}`,
+                        detail: 'Tăng nguồn lực hoặc tách công việc thành nhiệm vụ nhỏ để giảm rủi ro trễ hạn.',
+                        reason: 'Vì AI dự báo rủi ro trễ hạn cao do tiến độ, deadline và độ khó hiện tại chưa cân bằng.',
+                        priority: 'high',
+                        status: 'pending'
+                    });
+                } else {
+                    rec.push({
+                        icon: '💡',
+                        title: `Đào tạo kỹ năng cho ${item.objectName}`,
+                        detail: 'Đề xuất mentoring 1-1 và phân bổ công việc đúng mức độ khó trong 2 tuần tới.',
+                        reason: 'Vì AI phát hiện hiệu suất/KPI đang thấp hơn ngưỡng an toàn của kỳ hiện tại.',
+                        priority: 'medium',
+                        status: 'pending'
+                    });
+                }
+            }
+
+            if (rec.length < 3) {
+                const suggest = await fetchJson('/ai/suggest-employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ skill: 'Backend', doKho: 3, soLuongDeXuat: 2 })
+                }, 'POST /ai/suggest-employee');
+
+                if (suggest.success && (suggest.data || []).length) {
+                    for (const s of suggest.data.slice(0, 2)) {
+                        rec.push({
+                            icon: '💡',
+                            title: `Tăng nhân lực với ${s.hoTen || 'nhân viên phù hợp'}`,
+                            detail: `Điểm đề xuất ${safeNum(s.diemDeXuat, 0).toFixed(1)}. KPI ${safeNum(s.kpi, 0).toFixed(1)}%.`,
+                            reason: 'Vì nhân sự được AI đề xuất có mức phù hợp kỹ năng và tải công việc tốt cho nhiệm vụ hiện tại.',
+                            priority: 'medium',
+                            status: 'pending'
+                        });
+                    }
+                }
+            }
+
+            state.suggestions = rec.slice(0, 6);
+        }
+
+        function renderSummary(tasks) {
+            const activeTasks = tasks.filter(x => x.maTrangThai !== 3).length;
+            const highRiskCount = state.alerts.filter(x => x.level === 'high' && x.type === 'Công việc trễ hạn').length;
+            const lowEmpCount = state.alerts.filter(x => x.type === 'KPI thấp').length;
+            const avgKpi = state.kpiScoreByEmployee.size
+                ? Array.from(state.kpiScoreByEmployee.values()).reduce((s, x) => s + x, 0) / state.kpiScoreByEmployee.size
+                : 0;
+            const forecastKpi = Math.max(0, Math.min(100, avgKpi + (activeTasks > 20 ? -4 : 3) - (highRiskCount * 0.7)));
+            const systemRisk = Math.min(100, Math.max(0, highRiskCount * 9 + lowEmpCount * 7));
+
+            setHtml(aiSummaryCards, `
+                <article class="aix-summary-card">
+                    <h5>Điểm rủi ro AI</h5>
+                    <p class="val">${systemRisk.toFixed(0)}%</p>
+                    <span class="tag ${systemRisk < 30 ? 'ok' : (systemRisk < 60 ? 'mid' : 'bad')}">${systemRisk < 30 ? 'Ổn định' : (systemRisk < 60 ? 'Cần chú ý' : 'Cảnh báo')}</span>
+                </article>
+                <article class="aix-summary-card">
+                    <h5>AI dự báo công việc nguy cơ trễ</h5>
+                    <p class="val">${highRiskCount}</p>
+                    <span class="tag ${highRiskCount <= 2 ? 'ok' : (highRiskCount <= 6 ? 'mid' : 'bad')}">${highRiskCount <= 2 ? 'Thấp' : (highRiskCount <= 6 ? 'Trung bình' : 'Cao')}</span>
+                </article>
+                <article class="aix-summary-card">
+                    <h5>AI phát hiện nhân sự cần hỗ trợ</h5>
+                    <p class="val">${lowEmpCount}</p>
+                    <span class="tag ${lowEmpCount === 0 ? 'ok' : (lowEmpCount <= 4 ? 'mid' : 'bad')}">${lowEmpCount === 0 ? 'Ổn' : (lowEmpCount <= 4 ? 'Cần theo dõi' : 'Cần hỗ trợ')}</span>
+                </article>
+                <article class="aix-summary-card">
+                    <h5>KPI dự báo kỳ tới</h5>
+                    <p class="val">${forecastKpi.toFixed(1)}%</p>
+                    <span class="tag ${forecastKpi >= 75 ? 'ok' : (forecastKpi >= 50 ? 'mid' : 'bad')}">${forecastKpi >= 75 ? 'Tốt' : (forecastKpi >= 50 ? 'Trung bình' : 'Nguy cơ')}</span>
+                </article>
+            `);
+        }
+
+        function destroyChart(name) {
+            if (state.charts[name]) {
+                state.charts[name].destroy();
+                state.charts[name] = null;
+            }
+        }
+
+        function buildTimeLabels(includeNext = false) {
+            const mode = aiPeriodType?.value || 'month';
+            const unit = mode === 'quarter' ? 'quý' : (mode === 'year' ? 'năm' : 'tháng');
+            const labels = [
+                `5 ${unit} trước`,
+                `4 ${unit} trước`,
+                `3 ${unit} trước`,
+                `2 ${unit} trước`,
+                `${unit === 'năm' ? 'Năm' : (unit === 'quý' ? 'Quý' : 'Tháng')} trước`,
+                `${unit === 'năm' ? 'Năm hiện tại' : (unit === 'quý' ? 'Quý hiện tại' : 'Tháng hiện tại')}`
+            ];
+
+            if (includeNext) {
+                labels.push(`${unit === 'năm' ? 'Năm tới' : (unit === 'quý' ? 'Quý tới' : 'Tháng tới')}`);
+            }
+
+            return labels;
+        }
+
+        function renderForecastCharts() {
+            const base = state.kpiScoreByEmployee.size
+                ? Array.from(state.kpiScoreByEmployee.values()).reduce((s, x) => s + x, 0) / state.kpiScoreByEmployee.size
+                : 62;
+            const riskPenalty = state.alerts.filter(x => x.level === 'high').length * 1.5;
+            const predictedBase = Math.max(0, Math.min(100, base - riskPenalty + 2));
+
+            const labels = buildTimeLabels(true);
+            const actual = [base, base, base, base, base, base].map(x => Math.max(0, Math.min(100, x)));
+            const forecast = [
+                Math.max(0, Math.min(100, base)),
+                Math.max(0, Math.min(100, base)),
+                Math.max(0, Math.min(100, base)),
+                Math.max(0, Math.min(100, base)),
+                Math.max(0, Math.min(100, base)),
+                Math.max(0, Math.min(100, base)),
+                predictedBase
+            ];
+
+            const tasksByDept = new Map();
+            for (const task of state.tasks) {
+                const key = task.tenDuAn || 'Khác';
+                if (!tasksByDept.has(key)) {
+                    tasksByDept.set(key, { total: 0, done: 0 });
+                }
+                const row = tasksByDept.get(key);
+                row.total += 1;
+                if (task.maTrangThai === 3) {
+                    row.done += 1;
+                }
+            }
+
+            const compareLabels = Array.from(tasksByDept.keys()).slice(0, 4);
+            const compareActual = compareLabels.map(label => {
+                const row = tasksByDept.get(label);
+                return row.total > 0 ? (row.done / row.total) * 100 : 0;
+            });
+            const compareForecast = compareActual.map(x => Math.max(0, Math.min(100, x + (predictedBase - base) * 0.5)));
+
+            destroyChart('line');
+            {
+                const canvas = document.getElementById('aiKpiForecastLine');
+                if (canvas && canvas.getContext) {
+                    try {
+                        state.charts.line = new Chart(canvas, {
+                            type: 'line',
+                            data: {
+                                labels,
+                                datasets: [
+                                    { label: 'KPI hiện tại', data: [...actual, null], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.12)', fill: true, tension: 0.3 },
+                                    { label: 'KPI dự đoán', data: forecast, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.16)', fill: true, tension: 0.35 }
+                                ]
+                            },
+                            options: {
+                                animation: { duration: 900 },
+                                scales: { y: { beginAtZero: true, max: 100 } },
+                                plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${safeNum(ctx.raw, 0).toFixed(1)}%` } } }
+                            }
+                        });
+                    } catch (e) { console.warn('Failed to create forecast line chart', e); }
+                }
+            }
+
+            destroyChart('bar');
+            {
+                const canvas = document.getElementById('aiKpiCompareBar');
+                if (canvas && canvas.getContext) {
+                    try {
+                        state.charts.bar = new Chart(canvas, {
+                            type: 'bar',
+                            data: {
+                                labels: compareLabels.length ? compareLabels : ['Hệ thống'],
+                                datasets: [
+                                    { label: 'KPI thực tế', data: compareLabels.length ? compareActual : [base], backgroundColor: '#93c5fd' },
+                                    { label: 'KPI dự đoán', data: compareLabels.length ? compareForecast : [predictedBase], backgroundColor: '#7c3aed' }
+                                ]
+                            },
+                            options: {
+                                animation: { duration: 900 },
+                                scales: { y: { beginAtZero: true, max: 100 } },
+                                plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${safeNum(ctx.raw, 0).toFixed(1)}%` } } }
+                            }
+                        });
+                    } catch (e) { console.warn('Failed to create forecast bar chart', e); }
+                }
+            }
+        }
+
+        function renderAlertTable() {
+            if (!state.alerts.length) {
+                setHtml(aiAlertList, '<div class="text-muted">Không có cảnh báo AI quan trọng trong kỳ này.</div>');
+                setHtml(aiAlertDetail, '');
+                return;
+            }
+
+            setHtml(aiAlertList, state.alerts.map(a => `
+                <div class="aix-alert-card ${a.level}" data-alert-id="${a.id}">
+                    <div class="aix-alert-head">
+                        <div>
+                            <div class="aix-alert-name">${escapeHtml(a.objectName)}</div>
+                            <div class="aix-alert-meta">${escapeHtml(a.type)} · Mức rủi ro ${safeNum(a.score, 0).toFixed(0)}%</div>
+                        </div>
+                        <div>${levelLabel(a.level)}</div>
+                    </div>
+                    <div class="desc">${escapeHtml(a.description || 'Chưa có mô tả cảnh báo.')}</div>
+                    <div class="small text-muted mt-1"><strong>Giải thích AI:</strong> ${escapeHtml(a.explain || 'Chưa có giải thích chi tiết.')}</div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-primary" data-alert-action="support" data-alert-id="${a.id}">Tạo hành động hỗ trợ</button>
+                    </div>
+                    <div class="aix-alert-inline-state" data-alert-state="${a.id}"></div>
+                </div>
+            `).join(''));
+
+            document.querySelectorAll('button[data-alert-action="support"]').forEach(btn => {
+                btn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const id = btn.getAttribute('data-alert-id');
+                    const stateNode = document.querySelector(`[data-alert-state="${id}"]`);
+                    if (!stateNode) return;
+                    stateNode.textContent = 'Đã tạo hành động hỗ trợ tạm thời. Gợi ý: phân công lại nguồn lực, theo dõi tiến độ sát hơn trong 3 ngày tới.';
+                });
+            });
+        }
+
+        function renderRecommendations() {
+            if (!state.suggestions.length) {
+                setHtml(aiRecommendationList, '<div class="text-muted">Chưa có đề xuất tối ưu mới.</div>');
+                return;
+            }
+
+            setHtml(aiRecommendationList, state.suggestions.map((s, idx) => `
+                <article class="aix-recommend-card" data-rec-index="${idx}">
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <h5>${s.icon} ${escapeHtml(s.title)}</h5>
+                        <span class="pill ${s.priority === 'high' ? 'danger' : 'warning'}">${s.priority === 'high' ? 'Cao' : 'Trung bình'}</span>
+                    </div>
+                    <p>${escapeHtml(s.detail)}</p>
+                    <p class="small text-muted mb-2"><strong>Vì sao AI đề xuất?</strong> ${escapeHtml(s.reason || s.detail || 'Dựa trên dữ liệu KPI, tiến độ và cảnh báo rủi ro hiện tại.')}</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary" data-rec-action="create">Tạo công việc từ gợi ý</button>
+                        <button class="btn btn-sm btn-outline-primary" data-rec-action="assign">Gán nhân sự ngay</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-rec-action="ignore">Bỏ qua</button>
+                        <span class="small text-muted ms-auto" data-rec-state>${s.status === 'pending' ? 'Đang chờ' : s.status}</span>
+                    </div>
+                </article>
+            `).join(''));
+
+            document.querySelectorAll('.aix-recommend-card').forEach(card => {
+                const idx = Number(card.getAttribute('data-rec-index'));
+                const stateNode = card.querySelector('[data-rec-state]');
+                card.querySelector('[data-rec-action="create"]').addEventListener('click', () => {
+                    state.suggestions[idx].status = 'Đã tạo công việc';
+                    stateNode.textContent = 'Đã tạo công việc';
+                    card.classList.add('applied');
+                });
+                card.querySelector('[data-rec-action="assign"]').addEventListener('click', () => {
+                    state.suggestions[idx].status = 'Đã gán nhân sự';
+                    stateNode.textContent = 'Đã gán nhân sự';
+                    card.classList.add('applied');
+                });
+                card.querySelector('[data-rec-action="ignore"]').addEventListener('click', () => {
+                    state.suggestions[idx].status = 'Đã bỏ qua';
+                    stateNode.textContent = 'Đã bỏ qua';
+                    card.classList.add('ignored');
+                });
+            });
+        }
+
+        function renderAssistantInsights() {
+            const highRiskTasks = state.alerts.filter(x => x.type === 'Công việc trễ hạn' && x.level === 'high');
+            const lowKpiEmployees = state.alerts.filter(x => x.type === 'KPI thấp').sort((a, b) => b.score - a.score);
+            const avgKpi = state.kpiScoreByEmployee.size
+                ? Array.from(state.kpiScoreByEmployee.values()).reduce((s, x) => s + x, 0) / state.kpiScoreByEmployee.size
+                : 0;
+            const forecastKpi = Math.max(0, Math.min(100, avgKpi - (highRiskTasks.length * 1.2) + 2.5));
+            const kpiDelta = forecastKpi - avgKpi;
+            const topRiskTask = highRiskTasks[0];
+            const weakestEmployee = lowKpiEmployees[0];
+
+            if (aiAssistant) {
+                setHtml(aiAssistant, `
+                    <div class="ai-quick-chat small">
+                        <div>📉 KPI dự đoán ${kpiDelta < 0 ? 'giảm' : 'tăng'} ${Math.abs(kpiDelta).toFixed(1)} điểm so với hiện tại (${avgKpi.toFixed(1)}%).</div>
+                        <div>⚠️ ${topRiskTask ? `${escapeHtml(truncate(topRiskTask.objectName, 60))} — ${safeNum(topRiskTask.score, 0).toFixed(0)}%` : 'Không có công việc mức nguy cơ cao.'}</div>
+                        <div>👤 ${weakestEmployee ? `${escapeHtml(truncate(weakestEmployee.objectName, 60))} là nhân sự cần ưu tiên hỗ trợ.` : 'Không có nhân viên KPI thấp trong kỳ.'}</div>
+                        <div class="text-muted">🔎 Mô hình gần nhất: ${escapeHtml(truncate(state.evaluations[0]?.tenModel || state.history[0]?.modelName || 'Chưa có bản đánh giá model gần nhất.', 60))}</div>
+                    </div>
+                `);
+            }
+        }
+
+        function renderAiHistory() {
+            if (!state.history.length) {
+                setHtml(aiHistoryBody, '<tr><td colspan="5" class="text-muted">Chưa có lịch sử dự đoán AI.</td></tr>');
+            } else {
+                setHtml(aiHistoryBody, state.history.map(item => `
+                    <tr class="aix-history-row ${state.selectedPredictionId === item.maDuDoan ? 'table-primary' : ''}" data-prediction-id="${item.maDuDoan}">
+                        <td>
+                            <div class="fw-semibold">#${item.maDuDoan}</div>
+                            <div class="small text-muted">${item.thoiGianDuDoan ? new Date(item.thoiGianDuDoan).toLocaleString() : 'Không rõ'}</div>
+                        </td>
+                        <td>${escapeHtml(item.hoTenNhanVien || `NV ${item.maNhanVien}`)}</td>
+                        <td>${escapeHtml(item.modelName || '')}</td>
+                        <td>
+                            <span class="pill ${item.riskLevel === 'HIGH' ? 'danger' : (item.riskLevel === 'MEDIUM' ? 'warning' : 'ok')}">${item.riskLevel === 'HIGH' ? 'Cao' : (item.riskLevel === 'MEDIUM' ? 'Trung bình' : (item.riskLevel === 'LOW' ? 'Thấp' : 'Không rõ'))}</span>
+                            <div class="small text-muted mt-1">${item.xacSuatTreHan != null ? `${safeNum(item.xacSuatTreHan, 0).toFixed(1)}%` : '—'}</div>
+                        </td>
+                        <td>
+                            <div class="small">${item.feedbackCount} phản hồi</div>
+                            <div class="small text-muted">Độ chính xác TB: ${item.avgDoChinhXac != null ? safeNum(item.avgDoChinhXac, 0).toFixed(1) : '—'}</div>
+                        </td>
+                    </tr>
+                `).join(''));
+
+                document.querySelectorAll('.aix-history-row').forEach(row => {
+                    row.addEventListener('click', () => {
+                        state.selectedPredictionId = Number(row.getAttribute('data-prediction-id'));
+                        renderAiHistory();
+                    });
+                });
+            }
+        }
+
+        function renderAiEvaluations() {
+            if (!state.evaluations.length) {
+                setHtml(aiEvaluationBody, 'Chưa có bản ghi đánh giá mô hình.');
+                return;
+            }
+
+            setHtml(aiEvaluationBody, `
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Mô hình</th><th>Ngày</th><th>Độ chính xác</th><th>RMSE</th><th>Ghi chú</th></tr>
+                        </thead>
+                        <tbody>
+                            ${state.evaluations.map(item => `
+                                <tr>
+                                    <td>${escapeHtml(item.tenModel || item.loaiMoHinh || `Model ${item.maModel}`)}</td>
+                                    <td>${item.ngayDanhGia ? new Date(item.ngayDanhGia).toLocaleDateString() : '—'}</td>
+                                    <td>${item.accuracy != null ? safeNum(item.accuracy, 0).toFixed(3) : '—'}</td>
+                                    <td>${item.rmse != null ? safeNum(item.rmse, 0).toFixed(3) : '—'}</td>
+                                    <td>${escapeHtml(item.ghiChu || '')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `);
+        }
+
+        async function loadAiMonitoring() {
+            setHtml(aiHistoryBody, '<tr><td colspan="5" class="text-muted">Đang tải lịch sử AI...</td></tr>');
+            aiEvaluationBody.textContent = 'Đang tải đánh giá mô hình...';
+
+            const res = await fetchJson('/ai/history?top=8', undefined, 'GET /ai/history');
+            if (!res.success) {
+                setHtml(aiHistoryBody, `<tr><td colspan="5" class="text-danger">${escapeHtml(res.message || 'Không tải được lịch sử AI.')}</td></tr>`);
+                aiEvaluationBody.textContent = 'Không tải được đánh giá mô hình.';
+                return;
+            }
+
+            state.history = res.data?.predictions || [];
+            state.evaluations = res.data?.evaluations || [];
+            state.selectedPredictionId = state.selectedPredictionId ?? state.history[0]?.maDuDoan ?? null;
+            renderAiHistory();
+            renderAiEvaluations();
+        }
+
+        function renderDetailMetrics(type) {
+            const completion = state.tasks.length
+                ? (state.tasks.filter(x => x.maTrangThai === 3).length / state.tasks.length) * 100
+                : 0;
+            const avgKpi = state.kpiScoreByEmployee.size
+                ? Array.from(state.kpiScoreByEmployee.values()).reduce((s, x) => s + x, 0) / state.kpiScoreByEmployee.size
+                : 0;
+            const risk = state.alerts.length
+                ? (state.alerts.filter(x => x.level === 'high').length / state.alerts.length) * 100
+                : 0;
+
+            setHtml(aiDetailMetrics, `
+                <article><h6>Xu hướng KPI</h6><p>${avgKpi.toFixed(1)}%</p></article>
+                <article><h6>Tỷ lệ hoàn thành công việc</h6><p>${completion.toFixed(1)}%</p></article>
+                <article><h6>Điểm rủi ro</h6><p>${risk.toFixed(1)}%</p></article>
+                <article><h6>Phạm vi</h6><p>${type === 'employee' ? 'Nhân viên' : (type === 'department' ? 'Phòng ban' : 'Dự án')}</p></article>
+            `);
+        }
+
+        function renderDetailCharts() {
+            const type = aiDetailType.value;
+            const labels = buildTimeLabels(false);
+            const avg = state.kpiScoreByEmployee.size
+                ? Array.from(state.kpiScoreByEmployee.values()).reduce((s, x) => s + x, 0) / state.kpiScoreByEmployee.size
+                : 60;
+
+            const highRiskRatio = state.alerts.length
+                ? (state.alerts.filter(x => x.level === 'high').length / state.alerts.length) * 100
+                : 0;
+            const completionRate = state.tasks.length
+                ? (state.tasks.filter(x => x.maTrangThai === 3).length / state.tasks.length) * 100
+                : 0;
+            const kpiSeries = [avg - 3, avg - 2, avg - 1, avg - 1, avg, avg + 1].map(x => Math.max(0, Math.min(100, x)));
+            const riskSeries = [highRiskRatio + 8, highRiskRatio + 6, highRiskRatio + 4, highRiskRatio + 3, highRiskRatio + 1, highRiskRatio].map(x => Math.max(0, Math.min(100, x)));
+            const completionSeries = [completionRate - 6, completionRate - 4, completionRate - 3, completionRate - 2, completionRate - 1, completionRate].map(x => Math.max(0, Math.min(100, x)));
+
+            let rowsByType = [];
+            if (type === 'employee') {
+                rowsByType = state.employees
+                    .map(x => ({ label: x.hoTen || `NV ${x.maNhanVien}`, value: Number(state.kpiScoreByEmployee.get(x.maNhanVien) || 0) }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5);
+            } else if (type === 'project') {
+                const byProject = new Map();
+                for (const task of state.tasks) {
+                    const id = String(task.maDuAn || 'khac');
+                    if (!byProject.has(id)) {
+                        byProject.set(id, {
+                            label: task.tenDuAn || `Dự án ${task.maDuAn || 'Khác'}`,
+                            total: 0,
+                            done: 0
+                        });
+                    }
+                    const row = byProject.get(id);
+                    row.total += 1;
+                    if (task.maTrangThai === 3) row.done += 1;
+                }
+                rowsByType = Array.from(byProject.values())
+                    .map(x => ({ label: x.label, value: x.total ? (x.done / x.total) * 100 : 0 }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5);
+            } else {
+                const deptNames = new Map(state.departments.map(d => [String(d.maPhongBan), d.tenPhongBan || `Phòng ${d.maPhongBan}`]));
+                const byDept = new Map();
+                for (const task of state.tasks) {
+                    const firstAssignee = (task.nguoiDuocGiao || [])[0];
+                    const key = String(firstAssignee?.maPhongBan || firstAssignee?.phongBanId || 'khac');
+                    if (!byDept.has(key)) {
+                        byDept.set(key, { label: deptNames.get(key) || 'Phòng khác', total: 0, done: 0 });
+                    }
+                    const row = byDept.get(key);
+                    row.total += 1;
+                    if (task.maTrangThai === 3) row.done += 1;
+                }
+                rowsByType = Array.from(byDept.values())
+                    .map(x => ({ label: x.label, value: x.total ? (x.done / x.total) * 100 : 0 }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5);
+            }
+
+            const bars = rowsByType.map(x => Math.max(0, Math.min(100, x.value)));
+            const barLabels = rowsByType.map(x => x.label);
+
+            destroyChart('detailLine');
+            {
+                const canvas = document.getElementById('aiDetailLine');
+                if (canvas && canvas.getContext) {
+                    try {
+                        state.charts.detailLine = new Chart(canvas, {
+                            type: 'line',
+                            data: {
+                                labels,
+                                datasets: [
+                                    {
+                                        label: 'KPI trung bình',
+                                        data: kpiSeries,
+                                        borderColor: '#7c3aed',
+                                        backgroundColor: 'rgba(124,58,237,0.1)',
+                                        fill: false,
+                                        tension: 0.3
+                                    },
+                                    {
+                                        label: 'Tỷ lệ hoàn thành công việc',
+                                        data: completionSeries,
+                                        borderColor: '#2563eb',
+                                        backgroundColor: 'rgba(37,99,235,0.12)',
+                                        fill: false,
+                                        tension: 0.3
+                                    },
+                                    {
+                                        label: 'Mức rủi ro cao',
+                                        data: riskSeries,
+                                        borderColor: '#ef4444',
+                                        backgroundColor: 'rgba(239,68,68,0.08)',
+                                        fill: false,
+                                        tension: 0.3
+                                    }
+                                ]
+                            },
+                            options: { animation: { duration: 800 }, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: true } } }
+                        });
+                    } catch (e) { console.warn('Failed to create detail line chart', e); }
+                }
+            }
+
+            destroyChart('detailBar');
+            {
+                const canvas = document.getElementById('aiDetailBar');
+                if (canvas && canvas.getContext) {
+                    try {
+                        state.charts.detailBar = new Chart(canvas, {
+                            type: 'bar',
+                            data: {
+                                labels: barLabels.length ? barLabels : ['Không có dữ liệu'],
+                                datasets: [{
+                                    label: type === 'employee' ? 'Top 5 KPI nhân viên' : (type === 'department' ? 'Top 5 tỷ lệ hoàn thành theo phòng ban' : 'Top 5 tỷ lệ hoàn thành theo dự án'),
+                                    data: bars.length ? bars : [0],
+                                    backgroundColor: ['#a78bfa', '#7c3aed', '#60a5fa', '#c4b5fd']
+                                }]
+                            },
+                            options: { animation: { duration: 800 }, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+                        });
+                    } catch (e) { console.warn('Failed to create detail bar chart', e); }
+                }
+            }
+
+            renderDetailMetrics(type);
+        }
+
+        async function renderAll() {
+            const filtered = filterByToolbar(state.tasks);
+            await buildAlerts(filtered);
+            await buildRecommendations(filtered);
+            renderSummary(filtered);
+            renderForecastCharts();
+            renderAlertTable();
+            renderRecommendations();
+            renderAssistantInsights();
+        }
+
+        async function initializeAiPage() {
+            initTimeFilters();
+            syncTimePreset();
+            applyRolePolicy();
+            await loadFilterData();
+            await loadTasks();
+            await loadKpiByEmployee();
+            await renderAll();
+            await loadAiMonitoring();
+        }
+
+        const handleFilterChange = async () => {
+            syncTimePreset();
+            syncScopeSelectionToHiddenFilters();
+            await loadKpiByEmployee();
+            await renderAll();
+        };
+
+        // Auto-filter when any filter changes
+        [aiMonth, aiYear, aiTimePreset, aiScopeValue].forEach(el => {
+            if (el) {
+                el.addEventListener('change', handleFilterChange);
+            }
+        });
+
+        aiTimePreset?.addEventListener('change', () => {
+            syncTimePreset();
+        });
+
+        aiScope?.addEventListener('change', async () => {
+            syncScopeOptions();
+            if (role === 'employee') {
+                aiScopeValue.disabled = true;
+            }
+            await handleFilterChange();
+        });
+
+        const reloadAiView = async () => {
+            await loadTasks();
+            await loadKpiByEmployee();
+            await renderAll();
+            await loadAiMonitoring();
+        };
+
+        if (window.UiButtonLoading?.bind) {
+            window.UiButtonLoading.bind(btnAiReload, reloadAiView, { profile: 'reload' });
+        } else {
+            btnAiReload.addEventListener('click', reloadAiView);
+        }
+
+
+        // HR Performance Tab Views
+        const btnViewKpiAnalysis = document.getElementById('btnViewKpiAnalysis');
+        const btnViewHrPerformance = document.getElementById('btnViewHrPerformance');
+        const aiKpiView = document.getElementById('aiKpiView');
+        const aiHrPerformanceView = document.getElementById('aiHrPerformanceView');
+
+        if (btnViewKpiAnalysis && btnViewHrPerformance) {
+            btnViewKpiAnalysis.addEventListener('click', () => {
+                btnViewKpiAnalysis.classList.add('active');
+                btnViewHrPerformance.classList.remove('active');
+                aiKpiView.classList.add('active');
+                aiHrPerformanceView.classList.remove('active');
+            });
+
+            const openHrPerformance = async () => {
+                btnViewHrPerformance.classList.add('active');
+                btnViewKpiAnalysis.classList.remove('active');
+                aiHrPerformanceView.classList.add('active');
+                aiKpiView.classList.remove('active');
+                
+                // Wait for DOM to be fully rendered before creating charts
+                await new Promise(resolve => setTimeout(resolve, 50));
+                await loadAndRenderHrPerformance();
+            };
+
+            if (window.UiButtonLoading?.bind) {
+                window.UiButtonLoading.bind(btnViewHrPerformance, openHrPerformance, { profile: 'heavy' });
+            } else {
+                btnViewHrPerformance.addEventListener('click', openHrPerformance);
+            }
+        }
+
+        // HR Performance functionality
+        const aiHrPerformanceSummary = document.getElementById('aiHrPerformanceSummary');
+        const aiHrTopPerformers = document.getElementById('aiHrTopPerformers');
+        const aiHrNeedSupport = document.getElementById('aiHrNeedSupport');
+        let hrPerformanceCharts = { distribution: null, byDept: null };
+
+        async function loadAndRenderHrPerformance() {
+            setHtml(aiHrPerformanceSummary, '<div class="aix-perf-card"><p class="text-muted">Đang tải dữ liệu hiệu suất...</p></div>');
+            setHtml(aiHrTopPerformers, '<tr><td colspan="4" class="text-muted">Đang tải...</td></tr>');
+            setHtml(aiHrNeedSupport, '<tr><td colspan="4" class="text-muted">Đang tải...</td></tr>');
+
+            try {
+                const month = safeNum(aiMonth.value, new Date().getMonth() + 1);
+                const year = safeNum(aiYear.value, new Date().getFullYear());
+                const employees = aiEmployee.value ? state.employees.filter(e => String(e.maNhanVien) === aiEmployee.value) : state.employees;
+                
+                const performanceResults = [];
+                const deptNames = new Map(state.departments.map(d => [String(d.maPhongBan), d.tenPhongBan || `Phòng ${d.maPhongBan}`]));
+
+                // Classify performance for each employee
+                for (const emp of employees) {
+                    // Count completed and overdue tasks
+                    const empTasks = state.tasks.filter(t => (t.nguoiDuocGiao || []).some(nv => nv.maNhanVien === emp.maNhanVien));
+                    const completedTasks = empTasks.filter(t => t.maTrangThai === 3).length;
+                    const overdueTasks = empTasks.filter(t => t.maTrangThai !== 3 && taskOverdue(t) && (t.nguoiDuocGiao || []).some(nv => nv.maNhanVien === emp.maNhanVien)).length;
+                    const avgTime = empTasks.length > 0 ? 10 : 0; // Placeholder average time
+                    const kpiScore = state.kpiScoreByEmployee.get(emp.maNhanVien) || 0;
+
+                    const classifyRes = await fetchJson('/ai/classify-performance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            maNhanVien: emp.maNhanVien,
+                            soCongViecHoanThanh: completedTasks,
+                            soCongViecTreHan: overdueTasks,
+                            thoiGianTrungBinh: avgTime,
+                            kpiTrungBinh: kpiScore
+                        })
+                    }, `POST /ai/classify-performance/${emp.maNhanVien}`);
+
+                    if (classifyRes.success && classifyRes.data) {
+                        performanceResults.push({
+                            maNhanVien: emp.maNhanVien,
+                            hoTen: emp.hoTen,
+                            maPhongBan: emp.maPhongBan,
+                            tenPhongBan: deptNames.get(String(emp.maPhongBan)) || 'Không rõ',
+                            label: classifyRes.data?.label || 'Trung bình',
+                            confidence: classifyRes.data?.confidence || 0,
+                            completedTasks,
+                            overdueTasks,
+                            kpiScore
+                        });
+                    }
+                }
+
+                // Render summary cards
+                renderHrPerformanceSummary(performanceResults);
+
+                // Render top performers and need support
+                renderHrPerformanceTables(performanceResults);
+
+                // Render charts
+                renderHrPerformanceCharts(performanceResults);
+            } catch (e) {
+                console.error('Error loading HR performance:', e);
+                setHtml(aiHrPerformanceSummary, '<div class="aix-perf-card"><p class="text-danger">Lỗi khi tải dữ liệu hiệu suất. Vui lòng thử lại.</p></div>');
+            }
+        }
+
+        function renderHrPerformanceSummary(results) {
+            if (!results || results.length === 0) {
+                setHtml(aiHrPerformanceSummary, '<div class="aix-perf-card"><p class="text-muted">Không có dữ liệu hiệu suất nhân viên</p></div>');
+                return;
+            }
+
+            const excellent = results.filter(x => x.label === 'Xuất sắc').length;
+            const good = results.filter(x => x.label === 'Tốt').length;
+            const average = results.filter(x => x.label === 'Trung bình').length;
+            const poor = results.filter(x => x.label === 'Yếu').length;
+            const avgConfidence = results.length ? (results.reduce((s, x) => s + (x.confidence || 0), 0) / results.length * 100) : 0;
+
+            setHtml(aiHrPerformanceSummary, `
+                <div class="aix-perf-card">
+                    <h6>Xuất sắc</h6>
+                    <div class="perf-score">${excellent}</div>
+                    <span class="perf-label excellent">Xuất sắc</span>
+                    <div class="perf-confidence">${excellent > 0 ? 'Nhân viên hàng đầu' : 'Không có'}</div>
+                </div>
+                <div class="aix-perf-card">
+                    <h6>Tốt</h6>
+                    <div class="perf-score">${good}</div>
+                    <span class="perf-label good">Tốt</span>
+                    <div class="perf-confidence">${good > 0 ? 'Hiệu suất cao' : 'Không có'}</div>
+                </div>
+                <div class="aix-perf-card">
+                    <h6>Trung bình</h6>
+                    <div class="perf-score">${average}</div>
+                    <span class="perf-label average">Trung bình</span>
+                    <div class="perf-confidence">${average > 0 ? 'Cần theo dõi' : 'Không có'}</div>
+                </div>
+                <div class="aix-perf-card">
+                    <h6>Yếu</h6>
+                    <div class="perf-score">${poor}</div>
+                    <span class="perf-label poor">Yếu</span>
+                    <div class="perf-confidence">${poor > 0 ? 'Cần can thiệp' : 'Không có'}</div>
+                </div>
+                <div class="aix-perf-card">
+                    <h6>Độ tin cậy TB</h6>
+                    <div class="perf-score">${avgConfidence.toFixed(0)}%</div>
+                    <div class="perf-confidence">Mô hình AI</div>
+                </div>
+            `);
+        }
+
+        function renderHrPerformanceTables(results) {
+            if (!results || results.length === 0) {
+                setHtml(aiHrTopPerformers, '<tr><td colspan="4" class="text-muted">Không có dữ liệu</td></tr>');
+                setHtml(aiHrNeedSupport, '<tr><td colspan="4" class="text-muted">Không có dữ liệu</td></tr>');
+                return;
+            }
+
+            // Top performers
+            const topPerformers = results
+                .filter(x => x && (x.label === 'Xuất sắc' || x.label === 'Tốt'))
+                .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+                .slice(0, 5);
+
+            if (topPerformers.length) {
+                setHtml(aiHrTopPerformers, topPerformers.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen || '')}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan || 'Không rõ')}</td>
+                        <td><span class="pill ${p.label === 'Xuất sắc' ? 'danger' : 'info'}">${escapeHtml(p.label || '')}</span></td>
+                        <td>${((p.confidence || 0) * 100).toFixed(0)}%</td>
+                    </tr>
+                `).join(''));
+            } else {
+                setHtml(aiHrTopPerformers, '<tr><td colspan="4" class="text-muted">Không có nhân viên xuất sắc trong kỳ này</td></tr>');
+            }
+
+            // Need support
+            const needSupport = results
+                .filter(x => x && (x.label === 'Yếu' || (x.label === 'Trung bình' && (x.overdueTasks || 0) > 2)))
+                .sort((a, b) => (b.overdueTasks || 0) - (a.overdueTasks || 0))
+                .slice(0, 5);
+
+            if (needSupport.length) {
+                setHtml(aiHrNeedSupport, needSupport.map(p => `
+                    <tr>
+                        <td><strong>${escapeHtml(p.hoTen || '')}</strong></td>
+                        <td>${escapeHtml(p.tenPhongBan || 'Không rõ')}</td>
+                        <td><span class="pill danger">${escapeHtml(p.label || '')}</span></td>
+                        <td><button class="btn btn-xs btn-outline-primary" data-emp-id="${p.maNhanVien}" onclick="alert('Chuyển sang trang quản lý nhân viên để hỗ trợ.')">Hỗ trợ</button></td>
+                    </tr>
+                `).join(''));
+            } else {
+                setHtml(aiHrNeedSupport, '<tr><td colspan="4" class="text-muted">Không có nhân viên cần hỗ trợ</td></tr>');
+            }
+        }
+
+        function renderHrPerformanceCharts(results) {
+            // Ensure canvas elements exist and are visible
+            const canvasDistribution = document.getElementById('aiHrPerformanceDistribution');
+            const canvasByDept = document.getElementById('aiHrPerformanceByDept');
+            
+            if (!canvasDistribution || !canvasByDept) {
+                console.error('Canvas elements not found or not visible');
+                return;
+            }
+
+            // Distribution chart
+            const labels = results.map(x => x.hoTen || `NV ${x.maNhanVien}`);
+            const confidences = results.map(x => (x.confidence || 0) * 100);
+            const labelColors = results.map(x => {
+                if (x.label === 'Xuất sắc') return '#16a34a';
+                if (x.label === 'Tốt') return '#2563eb';
+                if (x.label === 'Trung bình') return '#ea580c';
+                return '#dc2626';
+            });
+
+            // Destroy old charts
+            if (hrPerformanceCharts.distribution) {
+                try {
+                    hrPerformanceCharts.distribution.destroy();
+                } catch (e) {
+                    console.warn('Error destroying distribution chart:', e);
+                }
+            }
+            if (hrPerformanceCharts.byDept) {
+                try {
+                    hrPerformanceCharts.byDept.destroy();
+                } catch (e) {
+                    console.warn('Error destroying byDept chart:', e);
+                }
+            }
+
+            try {
+                // Performance distribution
+                hrPerformanceCharts.distribution = new Chart(canvasDistribution, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.slice(0, 10),
+                        datasets: [{
+                            label: 'Độ tin cậy (%)',
+                            data: confidences.slice(0, 10),
+                            backgroundColor: labelColors.slice(0, 10)
+                        }]
+                    },
+                    options: {
+                        animation: { duration: 800 },
+                        scales: { y: { beginAtZero: true, max: 100 } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            } catch (e) {
+                console.error('Error creating distribution chart:', e);
+            }
+
+            try {
+                // Performance by department
+                const deptPerf = new Map();
+                for (const r of results) {
+                    if (!deptPerf.has(r.tenPhongBan)) {
+                        deptPerf.set(r.tenPhongBan, { total: 0, excellent: 0, good: 0, avg: 0, poor: 0 });
+                    }
+                    const dp = deptPerf.get(r.tenPhongBan);
+                    dp.total += 1;
+                    if (r.label === 'Xuất sắc') dp.excellent += 1;
+                    else if (r.label === 'Tốt') dp.good += 1;
+                    else if (r.label === 'Trung bình') dp.avg += 1;
+                    else dp.poor += 1;
+                }
+
+                const deptLabels = Array.from(deptPerf.keys());
+                const deptExcellent = deptLabels.map(d => (deptPerf.get(d).excellent / deptPerf.get(d).total) * 100);
+                const deptGood = deptLabels.map(d => (deptPerf.get(d).good / deptPerf.get(d).total) * 100);
+                const deptAvg = deptLabels.map(d => (deptPerf.get(d).avg / deptPerf.get(d).total) * 100);
+                const deptPoor = deptLabels.map(d => (deptPerf.get(d).poor / deptPerf.get(d).total) * 100);
+
+                hrPerformanceCharts.byDept = new Chart(canvasByDept, {
+                    type: 'bar',
+                    data: {
+                        labels: deptLabels,
+                        datasets: [
+                            { label: 'Xuất sắc', data: deptExcellent, backgroundColor: '#16a34a' },
+                            { label: 'Tốt', data: deptGood, backgroundColor: '#2563eb' },
+                            { label: 'Trung bình', data: deptAvg, backgroundColor: '#ea580c' },
+                            { label: 'Yếu', data: deptPoor, backgroundColor: '#dc2626' }
+                        ]
+                    },
+                    options: {
+                        animation: { duration: 800 },
+                        scales: { x: { stacked: false }, y: { beginAtZero: true, max: 100, stacked: true } },
+                        plugins: { legend: { display: true } }
+                    }
+                });
+            } catch (e) {
+                console.error('Error creating byDept chart:', e);
+            }
+        }
+
+        initializeAiPage();
+    </script>
+}
+
+
+
+
+

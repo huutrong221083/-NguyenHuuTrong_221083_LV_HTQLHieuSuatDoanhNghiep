@@ -1,0 +1,445 @@
+@{
+    ViewData["Title"] = "AI - Mô hình";
+}
+
+<style>
+    .ai-model-wrap { display: grid; gap: 14px; }
+    .ai-mini-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .ai-mini-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: #fff; }
+    .ai-mini-card .label { display: block; color: #64748b; font-size: 12px; margin-bottom: 6px; }
+    .ai-mini-card strong { font-size: 22px; color: #0f172a; display: block; line-height: 1.2; }
+    .ai-mini-card small { color: #64748b; }
+    .ai-lifecycle-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: linear-gradient(135deg, #f8fafc, #eff6ff); }
+    .ai-flow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .ai-flow-step { border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 11px; font-weight: 600; padding: 3px 9px; }
+    .ai-eval-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .ai-eval-item { border: 1px solid #dbeafe; border-radius: 8px; background: #fff; padding: 8px 10px; }
+    .ai-eval-item .k { font-size: 11px; color: #64748b; display: block; }
+    .ai-eval-item .v { margin-top: 3px; color: #0f172a; font-weight: 600; display: block; }
+    .ai-freshness { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .ai-status-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .ai-status-stable { background: #dcfce7; color: #166534; }
+    .ai-status-monitoring { background: #fef3c7; color: #92400e; }
+    .ai-status-retraining { background: #dbeafe; color: #1d4ed8; }
+    .ai-status-drift { background: #fee2e2; color: #b91c1c; }
+    .ai-status-review { background: #ffedd5; color: #9a3412; }
+    .ai-status-archived { background: #e2e8f0; color: #334155; }
+    .ai-row-clickable { cursor: pointer; }
+    .ai-row-clickable:hover { background: #f8fafc; }
+    .ai-timeline { border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; padding: 10px; }
+    .ai-timeline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .ai-timeline-item { border-left: 3px solid #94a3b8; background: #f8fafc; border-radius: 8px; padding: 7px 10px; }
+    .ai-timeline-item strong { color: #0f172a; }
+    .ai-timeline-item .meta { font-size: 12px; color: #64748b; }
+    .ai-chart-card { border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; padding: 10px; }
+    .ai-chart-card h6 { margin-bottom: 8px; }
+    .ai-chart-card canvas { max-height: 200px; }
+    @@media (max-width: 992px) {
+        .ai-mini-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .ai-eval-grid { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 576px) {
+        .ai-mini-stats { grid-template-columns: 1fr; }
+    }
+</style>
+
+<section class="panel ai-page-hero mt-2">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <h2 class="mb-1">🔁 Quản lý Mô hình AI</h2>
+            <p class="text-muted mb-0">Bảng điều khiển vòng đời mô hình AI: huấn luyện, đánh giá, triển khai và giám sát.</p>
+        </div>
+    </div>
+
+    <div class="ai-model-wrap mt-3">
+        <div class="ai-mini-stats">
+            <article class="ai-mini-card">
+                <span class="label">Mô hình AI đang hoạt động</span>
+                <strong id="statActiveModels">0</strong>
+                <small id="statModelsHint">Theo từng mục tiêu AI</small>
+            </article>
+            <article class="ai-mini-card">
+                <span class="label">Độ chính xác trung bình</span>
+                <strong id="statAvgAccuracy">--</strong>
+                <small id="statAccuracyHint">Theo lần đánh giá gần nhất</small>
+            </article>
+            <article class="ai-mini-card">
+                <span class="label">Lần huấn luyện gần nhất</span>
+                <strong id="statLastTraining">--</strong>
+                <small>Cập nhật theo dữ liệu mô hình</small>
+            </article>
+            <article class="ai-mini-card">
+                <span class="label">Trạng thái giám sát</span>
+                <strong id="statMonitoring">--</strong>
+                <small id="statMonitoringHint">Theo trạng thái hiển thị</small>
+            </article>
+        </div>
+
+        <div class="ai-lifecycle-card">
+            <h6 class="mb-2">AI Lifecycle Summary</h6>
+            <div class="ai-flow">
+                <span class="ai-flow-step">Dữ liệu</span>
+                <span class="ai-flow-step">Huấn luyện</span>
+                <span class="ai-flow-step">Đánh giá</span>
+                <span class="ai-flow-step">Triển khai</span>
+                <span class="ai-flow-step">Giám sát</span>
+            </div>
+            <div class="ai-eval-grid">
+                <article class="ai-eval-item">
+                    <span class="k">🏆 Mô hình tốt nhất</span>
+                    <span class="v" id="evalBestModel">--</span>
+                </article>
+                <article class="ai-eval-item">
+                    <span class="k">👁 Đang theo dõi</span>
+                    <span class="v" id="evalMonitoringNote">--</span>
+                </article>
+                <article class="ai-eval-item">
+                    <span class="k">💡 Khuyến nghị</span>
+                    <span class="v" id="evalRecommendation">--</span>
+                </article>
+            </div>
+            <div id="evalFreshness" class="ai-freshness">Lần đánh giá gần nhất: --</div>
+        </div>
+
+        <div class="d-flex gap-2 mb-2">
+            <button id="btnTrain" class="btn btn-success btn-sm">▶ Huấn luyện</button>
+            <button id="btnRetrain" class="btn btn-warning btn-sm" disabled title="Dự kiến ở phiên bản tiếp theo">🔄 Huấn luyện lại</button>
+            <button id="btnViewLogs" class="btn btn-outline-secondary btn-sm">📜 Nhật ký</button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Mô hình</th><th>Mục đích sử dụng</th><th>Phiên bản</th><th>Độ chính xác</th><th>Trạng thái</th><th>Lần đánh giá</th></tr></thead>
+                <tbody id="modelsBody"><tr><td colspan="6" class="text-muted">Chưa có mô hình.</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="ai-timeline">
+            <h6 class="mb-2">Model Performance Timeline</h6>
+            <ul id="perfTimeline" class="ai-timeline-list"><li class="text-muted">Chưa có dữ liệu hiệu năng.</li></ul>
+        </div>
+        <div id="perfChartWrap" class="ai-chart-card d-none">
+            <h6 class="mb-2">Xu hướng độ chính xác (biểu đồ phụ)</h6>
+            <canvas id="modelPerfChart" height="90"></canvas>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (function(){
+            let perfChart = null;
+            let latestPerfPoints = [];
+            let selectedModelName = '';
+
+            async function apiGet(path){
+                const res = await fetch(path, { credentials: 'same-origin' });
+                return res.json();
+            }
+
+            async function apiPost(path, body){
+                const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' });
+                return res.json();
+            }
+
+            function formatDateTime(input){
+                if (!input) return '--';
+                const dt = new Date(input);
+                if (Number.isNaN(dt.getTime())) return '--';
+                return dt.toLocaleString('vi-VN', { hour12: false });
+            }
+
+            function formatAccuracyPercent(raw){
+                const n = Number(raw);
+                if (!Number.isFinite(n)) return 'Chưa đánh giá';
+                const normalized = n <= 1 ? n * 100 : n;
+                if (!Number.isFinite(normalized)) return 'Chưa đánh giá';
+                return `${Math.round(Math.max(0, Math.min(100, normalized)))}%`;
+            }
+
+            function inferUseCase(model){
+                const txt = `${model?.useCase || ''} ${model?.tenModel || ''} ${model?.loaiMoHinh || ''}`.toLowerCase();
+                if (txt.includes('delay') || txt.includes('trễ')) return 'Dự báo trễ hạn';
+                if (txt.includes('performance') || txt.includes('hiệu suất')) return 'Phân loại hiệu suất';
+                if (txt.includes('kpi')) return 'Đánh giá KPI';
+                if (txt.includes('suggest') || txt.includes('gợi ý') || txt.includes('recommend')) return 'Gợi ý nhân sự';
+                return 'Phân tích tổng hợp';
+            }
+
+            function normalizeStatus(raw){
+                const s = String(raw || '').trim().toLowerCase();
+                if (s.includes('stable') || s.includes('on') || s.includes('active') || s.includes('ổn định')) return { key: 'stable', label: 'Ổn định' };
+                if (s.includes('monitor') || s.includes('theo dõi')) return { key: 'monitoring', label: 'Đang theo dõi' };
+                if (s.includes('retrain') || s.includes('queue') || s.includes('huấn luyện lại')) return { key: 'retraining', label: 'Đang huấn luyện lại' };
+                if (s.includes('drift') || s.includes('lệch')) return { key: 'drift', label: 'Phát hiện lệch' };
+                if (s.includes('archive') || s.includes('lưu trữ')) return { key: 'archived', label: 'Lưu trữ' };
+                return null;
+            }
+
+            function inferDisplayStatus(model){
+                const accuracyNum = Number(model?.latestAccuracy);
+                if (!Number.isFinite(accuracyNum)) return { key: 'monitoring', label: 'Đang theo dõi' };
+                const normalized = accuracyNum <= 1 ? accuracyNum * 100 : accuracyNum;
+                if (normalized >= 80) return { key: 'stable', label: 'Ổn định' };
+                if (normalized >= 50) return { key: 'monitoring', label: 'Đang theo dõi' };
+                return { key: 'review', label: 'Cần đánh giá' };
+            }
+
+            function statusBadge(status){
+                const css = `ai-status-badge ai-status-${status.key}`;
+                return `<span class="${css}">${escapeHtml(status.label)}</span>`;
+            }
+
+            function updateSummary(items){
+                const activeEl = document.getElementById('statActiveModels');
+                const avgEl = document.getElementById('statAvgAccuracy');
+                const lastTrainEl = document.getElementById('statLastTraining');
+                const monitoringEl = document.getElementById('statMonitoring');
+                const bestModelEl = document.getElementById('evalBestModel');
+                const monitorNoteEl = document.getElementById('evalMonitoringNote');
+                const recommendationEl = document.getElementById('evalRecommendation');
+                const freshEl = document.getElementById('evalFreshness');
+
+                activeEl.textContent = String(items.filter(x => x.displayStatus.key !== 'archived').length);
+                const accVals = items.map(x => x.accuracyNumber).filter(v => Number.isFinite(v));
+                const avg = accVals.length ? Math.round(accVals.reduce((s, v) => s + v, 0) / accVals.length) : null;
+                if (accVals.length < 2) {
+                    avgEl.textContent = 'Đang theo dõi hiệu năng';
+                    const accHint = document.getElementById('statAccuracyHint');
+                    if (accHint) accHint.textContent = 'Cần thêm ít nhất 2 mô hình có dữ liệu đánh giá hợp lệ.';
+                } else {
+                    avgEl.textContent = avg == null ? '--' : `${avg}%`;
+                    const accHint = document.getElementById('statAccuracyHint');
+                    if (accHint) accHint.textContent = 'Theo lần đánh giá gần nhất';
+                }
+
+                const latestDate = items.map(x => x.trainDateRaw).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0] || null;
+                lastTrainEl.textContent = formatDateTime(latestDate);
+
+                const monitoringCount = items.filter(x => x.displayStatus.key === 'monitoring' || x.displayStatus.key === 'review' || x.displayStatus.key === 'drift').length;
+                monitoringEl.textContent = `${monitoringCount} mô hình`;
+
+                const bestModel = [...items]
+                    .filter(x => Number.isFinite(x.accuracyNumber))
+                    .sort((a, b) => b.accuracyNumber - a.accuracyNumber)[0];
+                bestModelEl.innerHTML = bestModel
+                    ? `${escapeHtml(bestModel.name)}<br><span class="text-muted">Độ chính xác: ${escapeHtml(formatAccuracyPercent(bestModel.accuracyNumber))}</span>`
+                    : 'Chưa có dữ liệu';
+
+                if (monitoringCount > 0) {
+                    monitorNoteEl.textContent = `${monitoringCount} mô hình cần theo dõi thêm.`;
+                    recommendationEl.textContent = 'Ưu tiên lên lịch huấn luyện lại trong kỳ tới.';
+                } else {
+                    monitorNoteEl.textContent = 'Tất cả mô hình đang ổn định.';
+                    recommendationEl.textContent = 'Duy trì theo dõi định kỳ hàng tuần.';
+                }
+
+                const latestEval = items.map(x => x.evalDateRaw).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0] || latestDate;
+                freshEl.textContent = `Lần đánh giá gần nhất: ${formatDateTime(latestEval)}`;
+            }
+
+            async function loadModels(){
+                const data = await apiGet('/ai/models');
+                const items = (data?.data) || [];
+                const tbody = document.getElementById('modelsBody');
+                tbody.innerHTML = '';
+                if (items.length === 0){
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có mô hình.</td></tr>';
+                    latestPerfPoints = [];
+                    renderPerfTimeline([], '');
+                    renderPerfChart([], '');
+                    updateSummary([]);
+                    return;
+                }
+
+                const viewItems = items.map(m => {
+                    const serverStatus = normalizeStatus(m.status || m.trangThai || m.modelStatus);
+                    // displayStatus được suy luận ở frontend khi backend chưa trả trạng thái chính thức.
+                    const displayStatus = serverStatus || inferDisplayStatus(m);
+                    const name = m.tenModel || ('Mô hình #' + m.maModel);
+                    const accuracyNumber = (() => {
+                        const n = Number(m.latestAccuracy);
+                        if (!Number.isFinite(n)) return null;
+                        return n <= 1 ? n * 100 : n;
+                    })();
+                    return {
+                        id: m.maModel,
+                        name,
+                        version: m.version || 'n/a',
+                        useCase: m.useCase || inferUseCase(m),
+                        accuracyText: formatAccuracyPercent(m.latestAccuracy),
+                        accuracyNumber,
+                        displayStatus,
+                        trainDateRaw: m.ngayTrain || null,
+                        evalDateRaw: m.ngayDanhGia || m.lastEvaluatedAt || m.ngayTrain || null
+                    };
+                });
+
+                updateSummary(viewItems);
+                for (const m of viewItems){
+                    const tr = document.createElement('tr');
+                    tr.className = 'ai-row-clickable';
+                    tr.innerHTML = `<td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.useCase)}</td><td>${escapeHtml(m.version)}</td><td>${escapeHtml(m.accuracyText)}</td><td>${statusBadge(m.displayStatus)}</td><td>${escapeHtml(formatDateTime(m.evalDateRaw))}</td>`;
+                    tr.addEventListener('click', () => loadPerf(m.id, m.name));
+                    tbody.appendChild(tr);
+                }
+
+                const first = viewItems[0];
+                if (first && first.id != null) {
+                    await loadPerf(first.id, first.name);
+                } else {
+                    latestPerfPoints = [];
+                    renderPerfTimeline([], '');
+                    renderPerfChart([], '');
+                }
+            }
+
+            async function loadPerf(maModel, modelName){
+                const data = await apiGet('/ai/models/perf?maModel=' + (maModel||0) + '&top=24');
+                const points = data?.data || [];
+                latestPerfPoints = points;
+                selectedModelName = modelName || `Mô hình #${maModel}`;
+                renderPerfTimeline(points, selectedModelName);
+                renderPerfChart(points, selectedModelName);
+            }
+
+            function renderPerfTimeline(points, modelName){
+                const box = document.getElementById('perfTimeline');
+                if (!box) return;
+                if (!Array.isArray(points) || points.length === 0) {
+                    box.innerHTML = '<li class="text-muted">Chưa có dữ liệu hiệu năng cho mô hình đã chọn.</li>';
+                    return;
+                }
+                const ordered = [...points]
+                    .map(p => ({
+                        label: p.label || formatDateTime(p.thoiGian || p.ngayDanhGia || p.ngayTrain),
+                        accuracyText: formatAccuracyPercent(p.accuracy),
+                        rawDate: p.thoiGian || p.ngayDanhGia || p.ngayTrain || null
+                    }))
+                    .sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0))
+                    .slice(0, 16);
+                const grouped = new Map();
+                for (const p of ordered) {
+                    const d = p.rawDate ? new Date(p.rawDate) : null;
+                    const dayKey = (d && !Number.isNaN(d.getTime())) ? d.toLocaleDateString('vi-VN') : 'Không rõ ngày';
+                    const itemKey = `${dayKey}|${modelName || 'Mô hình'}|${p.accuracyText}`;
+                    if (!grouped.has(dayKey)) grouped.set(dayKey, new Map());
+                    const dayMap = grouped.get(dayKey);
+                    if (!dayMap.has(itemKey)) dayMap.set(itemKey, p);
+                }
+                const timelineRows = [];
+                for (const [dayKey, dayMap] of grouped.entries()) {
+                    for (const p of dayMap.values()) {
+                        timelineRows.push({ dayKey, accuracyText: p.accuracyText, model: modelName || 'Mô hình' });
+                    }
+                }
+                const topRows = timelineRows.slice(0, 8);
+                box.innerHTML = topRows.map(p => `
+                    <li class="ai-timeline-item">
+                        <strong>${escapeHtml(p.dayKey)}</strong>
+                        <div class="meta">• ${escapeHtml(p.model)}</div>
+                        <div class="meta">Độ chính xác: ${escapeHtml(p.accuracyText)}</div>
+                    </li>
+                `).join('');
+                if (!topRows.length) box.innerHTML = '<li class="text-muted">Chưa có dữ liệu hiệu năng cho mô hình đã chọn.</li>';
+            }
+
+            function renderPerfChart(points, modelName){
+                const wrap = document.getElementById('perfChartWrap');
+                const canvas = document.getElementById('modelPerfChart');
+                if (!wrap || !canvas || !canvas.getContext) return;
+                if (perfChart) { try { perfChart.destroy(); } catch {} perfChart = null; }
+                if (!Array.isArray(points) || points.length < 3) {
+                    wrap.classList.add('d-none');
+                    return;
+                }
+                const labels = points.map(p => p.label || '');
+                const vals = points.map(p => {
+                    const n = Number(p.accuracy);
+                    if (!Number.isFinite(n)) return null;
+                    return n <= 1 ? n * 100 : n;
+                });
+                const ctx = canvas.getContext('2d');
+                perfChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: `Độ chính xác - ${modelName || 'Mô hình'}`,
+                            data: vals,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25,135,84,0.12)',
+                            tension: 0.25,
+                            fill: true,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true, max: 100 } },
+                        plugins: { legend: { display: true } }
+                    }
+                });
+                wrap.classList.remove('d-none');
+            }
+
+            async function reloadAllData(){
+                await loadModels();
+                renderPerfTimeline(latestPerfPoints, selectedModelName);
+                renderPerfChart(latestPerfPoints, selectedModelName);
+            }
+
+            async function trainModel(){
+                const resp = await apiPost('/ai/models/train', {});
+                alert(resp?.message || 'Hoàn tất');
+                await reloadAllData();
+            }
+
+            async function viewLogs(){
+                const data = await apiGet('/ai/models/logs?top=50');
+                const rows = data?.data || [];
+                const txt = rows.map(r => `${r.thoiGian||''} [${r.loaiSuKien}] ${r.noiDung||''}`).join('\n');
+                if (txt.length === 0) {
+                    showModal('📜 Nhật ký mô hình', '<p class="text-muted mb-0">Không có nhật ký trong giai đoạn hiện tại.</p>');
+                } else {
+                    showModal('📜 Nhật ký mô hình', `<pre style="max-height:400px;overflow:auto;">${escapeHtml(txt)}</pre>`);
+                }
+            }
+
+            function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"'`]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'})[c]); }
+
+            function showModal(title, html){
+                const wrapper = document.createElement('div');
+                wrapper.className = 'modal fade show';
+                wrapper.style.display = 'block';
+                wrapper.innerHTML = `<div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">${escapeHtml(title)}</h5><button type="button" class="btn-close"></button></div><div class="modal-body">${html}</div></div></div>`;
+                document.body.appendChild(wrapper);
+                wrapper.querySelector('.btn-close').addEventListener('click', ()=>{ document.body.removeChild(wrapper); });
+            }
+
+            async function init(){
+                const btnTrain = document.getElementById('btnTrain');
+                const btnViewLogs = document.getElementById('btnViewLogs');
+                const btnRetrain = document.getElementById('btnRetrain');
+                if (window.UiButtonLoading?.bind) {
+                    window.UiButtonLoading.bind(btnTrain, trainModel, { profile: 'heavy' });
+                    window.UiButtonLoading.bind(btnViewLogs, viewLogs, { profile: 'heavy' });
+                } else {
+                    btnTrain?.addEventListener('click', trainModel);
+                    btnViewLogs?.addEventListener('click', viewLogs);
+                }
+                if (btnRetrain) {
+                    btnRetrain.disabled = true;
+                    btnRetrain.title = 'Dự kiến ở phiên bản tiếp theo';
+                }
+
+                await reloadAllData();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+}

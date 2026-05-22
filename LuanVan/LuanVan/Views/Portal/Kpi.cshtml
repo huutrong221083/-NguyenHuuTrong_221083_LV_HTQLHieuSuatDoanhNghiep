@@ -1,0 +1,2267 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+    var canEdit = role == "admin" || role == "manager";
+}
+<style>
+    .kpix-block { border: 1px solid #e6ebf2; border-radius: 12px; padding: 14px; background: #fff; }
+    .kpix-block > header { border-bottom: 1px dashed #e6ebf2; padding-bottom: 8px; margin-bottom: 10px; }
+    .kpix-section-tag { display: inline-block; font-size: .74rem; font-weight: 600; color: #334155; background: #eef4ff; border: 1px solid #dbe8ff; border-radius: 999px; padding: 2px 9px; margin-bottom: 6px; }
+    .kpix-toolbar-wrap { border: 1px solid #e6ebf2; border-radius: 12px; padding: 12px; background: #fff; }
+    .kpix-toolbar { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 8px; align-items: center; }
+    .kpix-mini-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .kpix-mini-grid .panel.mini { margin: 0; border: 1px solid #eef2f7; border-radius: 10px; padding: 10px 12px; box-shadow: none; }
+    .kpix-mini-grid .panel.mini h6 { font-size: .8rem; color: #6b7280; margin-bottom: 4px; }
+    .kpix-stat { font-size: 1.1rem; font-weight: 700; margin: 0; line-height: 1.2; }
+    .table-responsive { max-height: 360px; overflow: auto; }
+    .table-responsive thead th { position: sticky; top: 0; z-index: 2; background: #f8fafc; box-shadow: inset 0 -1px 0 #e5e7eb; }
+    .kpix-analysis-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .kpix-analysis-item { border: 1px solid #eef2f7; border-radius: 10px; padding: 8px; background: #fff; }
+    .kpix-analysis-item canvas { width: 100% !important; height: 300px !important; }
+    .kpix-analysis-item.pie canvas { height: 220px !important; }
+    .kpix-analysis-item.pie { max-width: 420px; }
+    .kpix-ai-box { margin-top: 10px !important; padding: 10px; border-radius: 10px; font-size: .92rem; }
+    .kpix-weight-box { margin-top: 10px; border: 1px solid #dbeafe; border-radius: 10px; background: #f8fbff; padding: 10px; }
+    .kpix-employee-table-wrap { max-height: 520px; min-height: 520px; }
+    .kpix-employee-side {
+        min-height: 520px;
+        max-height: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .kpix-employee-detail-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        border: 1px dashed #dbe3ef;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fcfdff;
+    }
+    .kpix-employee-history-wrap {
+        flex: 0 0 160px;
+        border: 1px solid #e8eef7;
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: #fff;
+    }
+    .kpix-employee-history-wrap canvas { height: 140px !important; width: 100% !important; }
+    #employeeAppliedWeightPanel.kpix-weight-box {
+        max-height: 300px;
+        overflow: auto;
+    }
+    .kpix-weight-table th { background: #f1f5f9; font-size: .83rem; }
+    .kpix-weight-table td { font-size: .86rem; }
+    .kpix-proposal-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; }
+    .kpix-proposal-admin { margin-top: 12px; }
+    .kpix-proposal-form {
+        border: 1px solid #d8e3f2;
+        border-radius: 12px;
+        padding: 12px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .kpix-proposal-card {
+        border: 1px solid #dbe7ff;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .kpix-proposal-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        background: #eff6ff;
+        border-bottom: 1px solid #dbeafe;
+    }
+    .kpix-proposal-card-body { padding: 10px 12px; }
+    .kpix-proposal-card h6 { margin: 0; font-weight: 700; color: #1e3a8a; }
+    .kpix-proposal-sub { font-size: .82rem; color: #64748b; }
+    .kpix-proposal-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .kpix-proposal-meta { font-size: .82rem; color: #64748b; }
+    .kpix-proposal-form .form-label { font-size: .83rem; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    .kpix-proposal-form .form-control,
+    .kpix-proposal-form .form-select { border-color: #cbd5e1; }
+    .kpix-proposal-form .form-control:focus,
+    .kpix-proposal-form .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 .2rem rgba(59,130,246,.18);
+    }
+    .kpix-proposal-table thead th {
+        background: #f1f5f9;
+        border-bottom: 1px solid #cbd5e1;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .kpix-proposal-table tbody tr:hover { background: #f8fbff; }
+    .kpix-proposal-table tbody tr + tr td { border-top: 1px dashed #e2e8f0; }
+    @@media (max-width: 1200px) { .kpix-toolbar { grid-template-columns: repeat(4, minmax(120px, 1fr)); } }
+    @@media (max-width: 992px) {
+        .kpix-toolbar { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+        .kpix-mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .kpix-employee-table-wrap { max-height: 420px; min-height: 420px; }
+        .kpix-employee-side { min-height: auto; max-height: none; }
+        .kpix-employee-detail-wrap { max-height: 420px; }
+    }
+    @@media (max-width: 992px) { .kpix-analysis-item canvas { height: 260px !important; } .kpix-analysis-item.pie canvas { height: 210px !important; } }
+    @@media (max-width: 992px) { .kpix-proposal-grid { grid-template-columns: 1fr; } }
+    @@media (max-width: 576px) { .kpix-mini-grid { grid-template-columns: 1fr; } }
+</style>
+
+
+
+<section class="panel mt-3 kpix-toolbar-wrap">
+    <div class="kpix-toolbar">
+        <input id="kpiKeyword" class="form-control" placeholder="Tìm theo tên KPI..." />
+        <select id="kpiDepartmentFilter" class="form-select"><option value="">Tất cả phòng ban</option></select>
+        <select id="kpiTeamFilter" class="form-select"><option value="">Tất cả nhóm</option></select>
+        <select id="kpiMonthFilter" class="form-select"></select>
+        <select id="kpiYearFilter" class="form-select"></select>
+        <select id="kpiTypeFilter" class="form-select"><option value="">Tất cả loại KPI</option></select>
+        <select id="kpiLevelFilter" class="form-select">
+            <option value="">Tất cả mức KPI</option>
+            <option value="xuat-sac">Xuất sắc</option>
+            <option value="tot">Tốt</option>
+            <option value="trung-binh">Trung bình</option>
+            <option value="thap">Thấp</option>
+        </select>
+        @if (role == "admin" || role == "manager")
+        {
+            <button id="btnAddKpi" class="btn btn-primary" type="button"><i class="bi bi-plus-circle"></i> @(role == "manager" ? "Đề xuất KPI" : "Thêm KPI")</button>
+        }
+        <div class="btn-group">
+            <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-eye"></i> Xem trước
+            </button>
+            <ul class="dropdown-menu">
+                <li><button id="btnPreviewExportOverview" class="dropdown-item" type="button">Tổng quan KPI</button></li>
+                <li><button id="btnPreviewExportDetail" class="dropdown-item" type="button">Chi tiết KPI áp dụng</button></li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-file-earmark-arrow-down"></i> Xuất
+            </button>
+                <ul class="dropdown-menu">
+                <li><button id="btnExportOverview" class="dropdown-item text-success" type="button">Xuất Tổng quan KPI</button></li>
+                <li><button id="btnExportDetail" class="dropdown-item text-success" type="button">Xuất Chi tiết KPI áp dụng</button></li>
+            </ul>
+        </div>
+    </div>
+    <div id="kpiCalcResult" class="small mt-2 text-muted"></div>
+</section>
+
+<section class="panel mt-3 kpix-block">
+    
+    <div class="kpix-mini-grid">
+        <article class="panel mini"><h6>KPI TB hệ thống</h6><p id="kpiAvgScore" class="kpix-stat">0</p></article>
+        <article class="panel mini"><h6>KPI cao nhất</h6><p id="kpiMaxScore" class="kpix-stat text-success">0</p></article>
+        <article class="panel mini"><h6>KPI thấp nhất</h6><p id="kpiMinScore" class="kpix-stat text-danger">0</p></article>
+        <article class="panel mini"><h6>% đạt KPI</h6><p id="kpiAchievedRate" class="kpix-stat text-primary">0%</p></article>
+    </div>
+</section>
+
+<section class="panel mt-3 kpix-block">
+    <header class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">KPI nhân viên theo kỳ</h4>
+        </div>
+        <small class="text-muted">Click vào nhân viên để xem chi tiết KPI</small>
+    </header>
+    <div class="row g-3 mt-1">
+        <div class="col-lg-7">
+            <div class="table-responsive kpix-employee-table-wrap">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Phòng ban</th>
+                            <th>KPI</th>
+                            <th>Hoàn thành</th>
+                            <th>Trễ hạn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kpiEmployeeTableBody">
+                        <tr><td colspan="5" class="text-muted">Đang tải dữ liệu KPI nhân viên...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="kpix-employee-side">
+                <div id="kpiEmployeeDetailPanel" class="kpix-info-box text-muted kpix-employee-detail-wrap">Chọn một nhân viên để xem chi tiết KPI.</div>
+                <div class="kpix-employee-history-wrap">
+                    <canvas id="kpiEmployeeHistoryChart" height="140"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel mt-3 kpix-block">
+    <header class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">KPI nhóm và phòng ban</h4>
+        </div>
+        <small class="text-muted">Tổng hợp theo tháng và bộ lọc hiện tại</small>
+    </header>
+    <div class="kpix-mini-grid">
+        <article class="panel mini"><h6>KPI TB Nhóm</h6><p id="teamAvgKpi" class="kpix-stat">0</p></article>
+        <article class="panel mini"><h6>KPI TB Phòng ban</h6><p id="deptAvgKpi" class="kpix-stat">0</p></article>
+        <article class="panel mini"><h6>Nhóm tốt nhất</h6><p id="bestTeamName" class="kpix-stat text-success">-</p></article>
+        <article class="panel mini"><h6>Nhóm KPI thấp</h6><p id="lowTeamName" class="kpix-stat text-danger">-</p></article>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-lg-6">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Nhóm</th><th>KPI TB</th><th>Thành viên</th></tr>
+                    </thead>
+                    <tbody id="teamSummaryBody">
+                        <tr><td colspan="3" class="text-muted">Đang tải dữ liệu nhóm...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Phòng ban</th><th>KPI TB</th><th>Nhân viên</th></tr>
+                    </thead>
+                    <tbody id="deptSummaryBody">
+                        <tr><td colspan="3" class="text-muted">Đang tải dữ liệu phòng ban...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="kpix-main mt-3">
+    <div class="kpix-left">
+        <section class="panel kpix-block">
+            <header class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">Danh sách KPI</h4>
+                </div>
+                <small class="text-muted">tổng trọng số KPI gốc (tham chiếu): <span id="kpiTotalWeight">0</span>%</small>
+            </header>
+            <div class="table-responsive mt-3">
+                <table class="table align-middle kpix-table">
+                    <thead>
+                        <tr>
+                            <th>Tên KPI</th>
+                            <th>Mô tả</th>
+                            <th>Trọng số gốc</th>
+                            <th>Áp dụng</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kpiTableBody">
+                        <tr><td colspan="7" class="text-muted">Đang tải danh muc KPI...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <aside class="panel kpix-detail kpix-block" id="kpiDetailPanel">
+        <header class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 id="kpiDetailTitle" class="mb-0">Chi tiết KPI</h4>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span id="kpiDetailType"></span>
+                @if (canEdit)
+                {
+                    <button id="btnToggleKpiStatus" class="btn btn-sm btn-outline-warning" type="button"></button>
+                }
+            </div>
+        </header>
+
+        <ul class="nav nav-tabs mt-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#kpiTabInfo" type="button">Thông tin</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#kpiTabAssign" type="button">Gán đối tượng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#kpiTabResult" type="button">Kết quả</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#kpiTabAnalysis" type="button">Phân tích</button></li>
+        </ul>
+
+        <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="kpiTabInfo">
+                <div id="kpiInfoContent" class="kpix-info-box text-muted">Chọn KPI để xem thông tin.</div>
+                <div id="kpiWeightValidation" class="small mt-2"></div>
+            </div>
+
+            <div class="tab-pane fade" id="kpiTabAssign">
+                <div class="kpix-assignment-toolbar mb-2">
+                    <select id="assignObjectType" class="form-select form-select-sm">
+                        <option value="employee">Nhân viên</option>
+                        <option value="team">Nhóm</option>
+                        <option value="project">Dự án</option>
+                        <option value="department">Phòng ban</option>
+                    </select>
+                    <select id="assignObjectId" class="form-select form-select-sm"><option value="">Chọn đối tượng</option></select>
+                    <input id="assignNote" type="text" class="form-control form-control-sm" placeholder="Ghi chú" />
+                    <button id="btnAssignObject" class="btn btn-sm btn-outline-primary" type="button">Thêm</button>
+                    <button id="btnSaveAssignments" class="btn btn-sm btn-primary" type="button">Lưu gán KPI</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Đối tượng</th>
+                                <th>Loại</th>
+                                <th>Ghi chú</th>
+                                <th>Trạng thái</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiAssignmentBody">
+                            <tr><td colspan="5" class="text-muted">Chưa có dữ liệu gán KPI.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="kpiTabResult">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Nhân viên</th>
+                                <th>KPI</th>
+                                <th>Điểm</th>
+                                <th>Tháng</th>
+                                <th>Xếp loại</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiResultBody">
+                            <tr><td colspan="5" class="text-muted">Chưa có kết quả KPI.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="kpiTabAnalysis">
+                <div class="kpix-analysis-grid">
+                    <div class="kpix-analysis-item"><canvas id="kpiTrendChart"></canvas></div>
+                    <div class="kpix-analysis-item"><canvas id="kpiEmployeeChart"></canvas></div>
+                </div>
+                <div class="kpix-analysis-item pie mt-2"><canvas id="kpiPieChart"></canvas></div>
+                <div id="kpiAiInsight" class="kpix-ai-box">Chưa có dữ liệu AI.</div>
+            </div>
+        </div>
+    </aside>
+</section>
+
+@if (role == "manager")
+{
+    <section class="panel mt-3 kpix-block" id="kpiProposalSection">
+        <header>
+            <span class="kpix-section-tag">6. Quy trình đề xuất KPI</span>
+            <h4 class="mb-0">Manager đề xuất, Admin duyệt</h4>
+        </header>
+
+        <div class="kpix-proposal-grid">
+            <article class="kpix-proposal-card">
+                <div class="kpix-proposal-card-header">
+                    <h6>1. Tạo / cập nhật đề xuất KPI</h6>
+                    <span class="kpix-proposal-sub">Nhập thông tin rồi gửi cho admin duyệt</span>
+                </div>
+                <div class="kpix-proposal-card-body kpix-proposal-form">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Loại đề xuất</label>
+                        <select id="proposalType" class="form-select form-select-sm">
+                            <option value="TaoMoiKPI">Tạo mới KPI</option>
+                            <option value="ApDungKPI">Áp dụng KPI</option>
+                            <option value="DieuChinhKPI">Điều chỉnh KPI</option>
+                            <option value="HuyApDungKPI">Hủy áp dụng KPI</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">KPI hiện có (nếu cần)</label>
+                        <select id="proposalKpiId" class="form-select form-select-sm"><option value="">Chọn KPI</option></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Loại KPI (khi tạo mới)</label>
+                        <select id="proposalLoaiKpi" class="form-select form-select-sm"><option value="">Chọn loại KPI</option></select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Tên KPI đề xuất</label>
+                        <input id="proposalTenKpi" class="form-control form-control-sm" placeholder="Bắt buộc khi Tạo mới KPI" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Trọng số đề xuất (%)</label>
+                        <input id="proposalTrongSo" type="number" min="0" max="100" step="0.01" class="form-control form-control-sm" value="0" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Đối tượng áp dụng</label>
+                        <select id="proposalTargetType" class="form-select form-select-sm">
+                            <option value="employee">Nhân viên</option>
+                            <option value="team">Nhóm</option>
+                            <option value="department">Phòng ban</option>
+                            <option value="project">Dự án</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Đối tượng cụ thể</label>
+                        <select id="proposalTargetId" class="form-select form-select-sm"><option value="">Chọn đối tượng</option></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Từ ngày</label>
+                        <input id="proposalFromDate" type="date" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Đến ngày</label>
+                        <input id="proposalToDate" type="date" class="form-control form-control-sm" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Mô tả KPI đề xuất</label>
+                        <input id="proposalMoTa" class="form-control form-control-sm" placeholder="Mô tả ngắn KPI mới/điều chỉnh" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Lý do</label>
+                        <input id="proposalLyDo" class="form-control form-control-sm" placeholder="Lý do đề xuất" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú</label>
+                        <input id="proposalGhiChu" class="form-control form-control-sm" placeholder="Ghi chú thêm cho admin" />
+                    </div>
+                </div>
+                <div class="kpix-proposal-actions mt-2">
+                    <button id="btnSubmitProposal" class="btn btn-sm btn-primary" type="button">Gửi đề xuất</button>
+                    <button id="btnResetProposalForm" class="btn btn-sm btn-outline-secondary" type="button">Làm mới form</button>
+                </div>
+                <div id="proposalFormHint" class="small mt-2 text-muted">Manager tạo đề xuất, Admin duyệt thì mới áp dụng vào KPI chính thức.</div>
+                </div>
+            </article>
+
+            <article class="kpix-proposal-card">
+                <div class="kpix-proposal-card-header">
+                    <h6>2. Đề xuất KPI của tôi</h6>
+                    <span class="kpix-proposal-sub">Bấm vào từng dòng để xem phản hồi từ admin</span>
+                </div>
+                <div class="kpix-proposal-card-body">
+                <div class="table-responsive kpix-proposal-table">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr><th>Loại đề xuất</th><th>KPI / Đối tượng</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                        </thead>
+                        <tbody id="proposalMineBody">
+                            <tr><td colspan="4" class="text-muted">Đang tải đề xuất...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="proposalMineDetailPanel" class="kpix-proposal-form mt-3 text-muted">Chọn một đề xuất để xem chi tiết và phản hồi từ admin.</div>
+                </div>
+            </article>
+        </div>
+    </section>
+}
+
+@if (role == "admin")
+{
+    <section class="panel mt-3 kpix-block" id="kpiProposalSection">
+        <header>
+            <h4 class="mb-0">Đề xuất chờ duyệt</h4>
+        </header>
+        <div class="table-responsive kpix-proposal-table">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr><th>Người đề xuất</th><th>Loại</th><th>Đối tượng</th><th>Thời gian</th><th>Duyệt</th></tr>
+                </thead>
+                <tbody id="proposalPendingBody">
+                    <tr><td colspan="5" class="text-muted">Đang tải danh sách chờ duyệt...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="proposalPendingDetailPanel" class="kpix-proposal-form mt-3 text-muted">Chọn một đề xuất để xem chi tiết.</div>
+    </section>
+}
+
+<div class="modal fade" id="kpiFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kpiFormTitle">Thêm KPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="kpiForm" class="row g-2">
+                    <div class="col-12"><label class="form-label">Tên KPI</label><input id="formKpiName" class="form-control" required /></div>
+                    <div class="col-12"><label class="form-label">Mô tả</label><textarea id="formKpiDesc" class="form-control" rows="3"></textarea></div>
+                    <div class="col-md-4"><label class="form-label">Trọng số gốc (%)</label><input id="formKpiWeight" type="number" class="form-control" min="0.01" max="100" step="0.01" required /><div id="formKpiWeightPreview" class="small mt-1 text-muted"></div></div>
+                    <div class="col-md-4"><label class="form-label">Loại KPI</label><select id="formKpiType" class="form-select"></select></div>
+                    <div class="col-md-2"><label class="form-label">Tháng</label><input id="formKpiMonth" type="number" class="form-control" min="1" max="12" /></div>
+                    <div class="col-md-2"><label class="form-label">Năm</label><input id="formKpiYear" type="number" class="form-control" min="2000" max="3000" /></div>
+                </form>
+                <div id="kpiFormResult" class="small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" id="btnSaveKpi" class="btn btn-primary">Lưu KPI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kpiExportPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem trước dữ liệu xuất KPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="kpiExportPreviewMeta" class="small text-muted mb-2"></div>
+                <div style="max-height:460px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">
+                    <table class="table table-sm table-striped align-middle mb-0" style="font-size:.85rem;">
+                        <thead id="kpiExportPreviewHead" style="position:sticky; top:0; z-index:2; background:#f8fafc;"></thead>
+                        <tbody id="kpiExportPreviewBody"></tbody>
+                    </table>
+                </div>
+                <div class="small text-muted mt-2">Hiển thị tối đa 30 dòng đầu để kiểm tra nhanh nội dung trước khi xuất.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" id="btnExportFromPreview" class="btn btn-success">Xuất từ bản xem trước</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const role = '@role';
+        const isManager = role === 'manager';
+        const isAdmin = role === 'admin';
+        const canCreate = role === 'admin' || role === 'manager';
+        const canEdit = role === 'admin' || role === 'manager';
+        const canDelete = role === 'admin' || role === 'manager';
+        const canAssign = role === 'admin' || role === 'manager';
+
+        const kpiKeyword = document.getElementById('kpiKeyword');
+        const kpiDepartmentFilter = document.getElementById('kpiDepartmentFilter');
+        const kpiTeamFilter = document.getElementById('kpiTeamFilter');
+        const kpiMonthFilter = document.getElementById('kpiMonthFilter');
+        const kpiYearFilter = document.getElementById('kpiYearFilter');
+        const kpiTypeFilter = document.getElementById('kpiTypeFilter');
+        const kpiLevelFilter = document.getElementById('kpiLevelFilter');
+        const btnAddKpi = document.getElementById('btnAddKpi');
+        const btnPreviewExportOverview = document.getElementById('btnPreviewExportOverview');
+        const btnPreviewExportDetail = document.getElementById('btnPreviewExportDetail');
+        const btnExportOverview = document.getElementById('btnExportOverview');
+        const btnExportDetail = document.getElementById('btnExportDetail');
+        const kpiCalcResult = document.getElementById('kpiCalcResult');
+        const btnExportFromPreview = document.getElementById('btnExportFromPreview');
+        const kpiExportPreviewMeta = document.getElementById('kpiExportPreviewMeta');
+        const kpiExportPreviewHead = document.getElementById('kpiExportPreviewHead');
+        const kpiExportPreviewBody = document.getElementById('kpiExportPreviewBody');
+
+        const kpiTableBody = document.getElementById('kpiTableBody');
+        const kpiTotalWeight = document.getElementById('kpiTotalWeight');
+
+        const kpiAvgScore = document.getElementById('kpiAvgScore');
+        const kpiMaxScore = document.getElementById('kpiMaxScore');
+        const kpiMinScore = document.getElementById('kpiMinScore');
+        const kpiAchievedRate = document.getElementById('kpiAchievedRate');
+        const kpiEmployeeTableBody = document.getElementById('kpiEmployeeTableBody');
+        const kpiEmployeeDetailPanel = document.getElementById('kpiEmployeeDetailPanel');
+        const kpiEmployeeHistoryCanvas = document.getElementById('kpiEmployeeHistoryChart');
+        const teamAvgKpi = document.getElementById('teamAvgKpi');
+        const deptAvgKpi = document.getElementById('deptAvgKpi');
+        const bestTeamName = document.getElementById('bestTeamName');
+        const lowTeamName = document.getElementById('lowTeamName');
+        const teamSummaryBody = document.getElementById('teamSummaryBody');
+        const deptSummaryBody = document.getElementById('deptSummaryBody');
+
+        const kpiDetailTitle = document.getElementById('kpiDetailTitle');
+        const kpiDetailType = document.getElementById('kpiDetailType');
+        const btnToggleKpiStatus = document.getElementById('btnToggleKpiStatus');
+        const kpiInfoContent = document.getElementById('kpiInfoContent');
+        const kpiWeightValidation = document.getElementById('kpiWeightValidation');
+
+        const assignObjectType = document.getElementById('assignObjectType');
+        const assignObjectId = document.getElementById('assignObjectId');
+        const assignNote = document.getElementById('assignNote');
+        const btnAssignObject = document.getElementById('btnAssignObject');
+        const btnSaveAssignments = document.getElementById('btnSaveAssignments');
+        const kpiAssignmentBody = document.getElementById('kpiAssignmentBody');
+        const kpiResultBody = document.getElementById('kpiResultBody');
+        const kpiAiInsight = document.getElementById('kpiAiInsight');
+
+        const kpiFormModal = new bootstrap.Modal(document.getElementById('kpiFormModal'));
+        const kpiExportPreviewModal = new bootstrap.Modal(document.getElementById('kpiExportPreviewModal'));
+        const kpiFormTitle = document.getElementById('kpiFormTitle');
+        const formKpiName = document.getElementById('formKpiName');
+        const formKpiDesc = document.getElementById('formKpiDesc');
+        const formKpiWeight = document.getElementById('formKpiWeight');
+        const formKpiType = document.getElementById('formKpiType');
+        const formKpiMonth = document.getElementById('formKpiMonth');
+        const formKpiYear = document.getElementById('formKpiYear');
+        const kpiFormResult = document.getElementById('kpiFormResult');
+        const formKpiWeightPreview = document.getElementById('formKpiWeightPreview');
+        const btnSaveKpi = document.getElementById('btnSaveKpi');
+
+        const proposalType = document.getElementById('proposalType');
+        const proposalKpiId = document.getElementById('proposalKpiId');
+        const proposalLoaiKpi = document.getElementById('proposalLoaiKpi');
+        const proposalTenKpi = document.getElementById('proposalTenKpi');
+        const proposalTrongSo = document.getElementById('proposalTrongSo');
+        const proposalTargetType = document.getElementById('proposalTargetType');
+        const proposalTargetId = document.getElementById('proposalTargetId');
+        const proposalFromDate = document.getElementById('proposalFromDate');
+        const proposalToDate = document.getElementById('proposalToDate');
+        const proposalMoTa = document.getElementById('proposalMoTa');
+        const proposalLyDo = document.getElementById('proposalLyDo');
+        const proposalGhiChu = document.getElementById('proposalGhiChu');
+        const btnSubmitProposal = document.getElementById('btnSubmitProposal');
+        const btnResetProposalForm = document.getElementById('btnResetProposalForm');
+        const proposalFormHint = document.getElementById('proposalFormHint');
+        const proposalMineBody = document.getElementById('proposalMineBody');
+        const proposalMineDetailPanel = document.getElementById('proposalMineDetailPanel');
+        const proposalPendingBody = document.getElementById('proposalPendingBody');
+        const proposalPendingDetailPanel = document.getElementById('proposalPendingDetailPanel');
+
+        const state = {
+            kpis: [],
+            selectedKpiId: null,
+            editingKpiId: null,
+            kpiDetail: null,
+            kpiTypes: [],
+            departments: [],
+            teams: [],
+            projects: [],
+            employees: [],
+            filteredTeams: [],
+            scope: null,
+            assignmentDraft: new Map(),
+            trendChart: null,
+            employeeChart: null,
+            pieChart: null,
+            employeeHistoryChart: null,
+            employeeKpis: [],
+            proposalEditingId: null,
+            proposalMine: [],
+            proposalPending: []
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        const getKpiStatusLabel = (status) => (status || 'Active') === 'Active' ? 'Active' : 'Inactive';
+
+        const renderStatusPill = (status) => getKpiStatusLabel(status) === 'Active'
+            ? '<span class="pill ok">Active</span>'
+            : '<span class="pill">Inactive</span>';
+
+        function updateToggleKpiStatusButton(status) {
+            if (!btnToggleKpiStatus) return;
+
+            const isActive = getKpiStatusLabel(status) === 'Active';
+            btnToggleKpiStatus.className = isActive ? 'btn btn-sm btn-outline-warning' : 'btn btn-sm btn-outline-success';
+            btnToggleKpiStatus.innerHTML = isActive
+                ? '<i class="bi bi-pause-circle"></i> Tạm dừng'
+                : '<i class="bi bi-play-circle"></i> Kích hoạt';
+            btnToggleKpiStatus.title = isActive ? 'Tạm dừng KPI' : 'Kích hoạt KPI';
+        }
+
+        async function fetchJson(url, options) {
+            try {
+                const response = await fetch(url, options);
+                const raw = await response.text();
+                let payload = {};
+                if (raw) {
+                    try {
+                        payload = JSON.parse(raw);
+                    } catch {
+                        payload = { message: raw.slice(0, 500) };
+                    }
+                }
+                if (!response.ok) {
+                    return {
+                        success: false,
+                        message: payload?.message || payload?.Message || payload?.errorMessage || payload?.ErrorMessage || `HTTP ${response.status}`
+                    };
+                }
+                if (typeof payload.success === 'boolean') return payload;
+                if (typeof payload.Success === 'boolean') {
+                    return {
+                        success: !!payload.Success,
+                        data: payload.Data,
+                        message: payload.Message
+                    };
+                }
+                return { success: true, data: payload };
+            } catch (error) {
+                console.error('KPI API error', { url, options }, error);
+                return { success: false, message: 'Không thể kết nối server.' };
+            }
+        }
+
+        function rankBadge(score) {
+            if (score >= 90) return '<span class="pill ok">Xuất sắc</span>';
+            if (score >= 70) return '<span class="pill info">Tốt</span>';
+            if (score >= 50) return '<span class="pill warning">Trung bình</span>';
+                return '<span class="pill danger">Kém</span>';
+        }
+
+        function initDateFilters() {
+            const now = new Date();
+            const allMonth = document.createElement('option');
+            allMonth.value = '';
+            allMonth.textContent = 'Tất cả tháng';
+            allMonth.selected = true;
+            kpiMonthFilter.appendChild(allMonth);
+
+            for (let m = 1; m <= 12; m++) {
+                const op = document.createElement('option');
+                op.value = String(m);
+                op.textContent = `tháng ${m}`;
+                kpiMonthFilter.appendChild(op);
+            }
+
+            for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) {
+                const op = document.createElement('option');
+                op.value = String(y);
+                op.textContent = `năm ${y}`;
+                if (y === now.getFullYear()) op.selected = true;
+                kpiYearFilter.appendChild(op);
+            }
+
+            formKpiMonth.value = String(now.getMonth() + 1);
+            formKpiYear.value = String(now.getFullYear());
+        }
+
+        async function loadReferences() {
+            const [scopeRes, typeRes, deptRes, projectRes, empRes] = await Promise.all([
+                fetchJson('/kpi/scope'),
+                fetchJson('/kpi/types'),
+                fetchJson('/phongban'),
+                fetchJson('/duan?page=1&size=200'),
+                fetchJson('/nhanvien?page=1&size=200')
+            ]);
+
+            state.scope = scopeRes.success ? (scopeRes.data || null) : null;
+            state.kpiTypes = typeRes.success ? (typeRes.data || []) : [];
+            state.departments = deptRes.success ? (deptRes.data || []) : [];
+            state.teams = [];
+            state.filteredTeams = [];
+            state.projects = projectRes.success ? (projectRes.data?.items || []) : [];
+            state.employees = empRes.success ? (empRes.data?.items || []) : [];
+
+            if (state.scope?.roleKey === 'manager' && state.scope?.maPhongBan) {
+                const scopeDept = Number(state.scope.maPhongBan);
+                state.departments = state.departments.filter(d => Number(d.maPhongBan) === scopeDept);
+                state.employees = state.employees.filter(e => Number(e.maPhongBan) === scopeDept);
+            } else if (state.scope?.roleKey === 'employee' && state.scope?.maNhanVien) {
+                const scopeEmp = Number(state.scope.maNhanVien);
+                state.employees = state.employees.filter(e => Number(e.maNhanVien) === scopeEmp);
+            }
+
+            kpiTypeFilter.innerHTML = '<option value="">Tất cả loại KPI</option>' +
+                state.kpiTypes.map(t => `<option value="${t.maLoaiKpi}">${escapeHtml(t.tenLoaiKpi || `Loai ${t.maLoaiKpi}`)}</option>`).join('');
+
+            formKpiType.innerHTML = state.kpiTypes.map(t => `<option value="${t.maLoaiKpi}">${escapeHtml(t.tenLoaiKpi || `Loai ${t.maLoaiKpi}`)}</option>`).join('');
+
+            kpiDepartmentFilter.innerHTML = '<option value="">Tất cả phòng ban</option>' +
+                state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || `phòng ${d.maPhongBan}`)}</option>`).join('');
+
+            if (state.scope?.roleKey === 'manager' && state.departments.length === 1) {
+                kpiDepartmentFilter.value = String(state.departments[0].maPhongBan);
+                kpiDepartmentFilter.setAttribute('disabled', 'disabled');
+            }
+
+            await refreshTeamFilterOptions();
+
+            refillAssignmentObject();
+            fillProposalReferenceOptions();
+            refillProposalTargetOptions();
+            syncProposalFormByType();
+        }
+
+        async function refreshTeamFilterOptions() {
+            const query = new URLSearchParams();
+            if (kpiDepartmentFilter.value) {
+                query.set('maPhongBan', kpiDepartmentFilter.value);
+            }
+
+            const res = await fetchJson(`/kpi/team-options?${query.toString()}`);
+            const teams = res.success ? (res.data || []) : [];
+            state.filteredTeams = teams;
+            state.teams = teams;
+
+            const selected = kpiTeamFilter.value;
+            kpiTeamFilter.innerHTML = '<option value="">Tất cả nhóm</option>' +
+                teams.map(t => `<option value="${t.maNhom}">${escapeHtml(t.tenNhom || `Nhóm ${t.maNhom}`)}</option>`).join('');
+
+            if (selected && teams.some(t => String(t.maNhom) === selected)) {
+                kpiTeamFilter.value = selected;
+            } else {
+                kpiTeamFilter.value = '';
+            }
+
+            refillProposalTargetOptions();
+        }
+
+        function refillAssignmentObject() {
+            const mode = assignObjectType.value;
+            if (mode === 'department') {
+                assignObjectId.innerHTML = '<option value="">chọn phòng ban</option>' +
+                    state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || `phòng ${d.maPhongBan}`)}</option>`).join('');
+                return;
+            }
+
+            if (mode === 'team') {
+                assignObjectId.innerHTML = '<option value="">chọn nhóm</option>' +
+                    state.teams.map(t => `<option value="${t.maNhom}">${escapeHtml(t.tenNhom || `Nhóm ${t.maNhom}`)}</option>`).join('');
+                return;
+            }
+
+            if (mode === 'project') {
+                assignObjectId.innerHTML = '<option value="">chọn dự án</option>' +
+                    state.projects.map(p => `<option value="${p.maDuAn}">${escapeHtml(p.tenDuAn || `dự án ${p.maDuAn}`)}</option>`).join('');
+                return;
+            }
+
+            assignObjectId.innerHTML = '<option value="">chọn nhân viên</option>' +
+                state.employees.map(e => `<option value="${e.maNhanVien}">${escapeHtml(e.hoTen || `NV ${e.maNhanVien}`)}</option>`).join('');
+        }
+
+        function proposalStatusPill(status) {
+            if (status === 'DaDuyet') return '<span class="pill ok">Đã duyệt</span>';
+            if (status === 'TuChoi') return '<span class="pill danger">Từ chối</span>';
+            if (status === 'CanChinhSua') return '<span class="pill warning">Cần chỉnh sửa</span>';
+            return '<span class="pill info">Chờ duyệt</span>';
+        }
+
+        function resolveProposalTargetName(item) {
+            if (!item) return '-';
+            if (item.maNhanVienApDung) {
+                const emp = state.employees.find(x => Number(x.maNhanVien) === Number(item.maNhanVienApDung));
+                return emp?.hoTen || `Nhân viên #${item.maNhanVienApDung}`;
+            }
+            if (item.maNhomApDung) {
+                const team = state.teams.find(x => Number(x.maNhom) === Number(item.maNhomApDung));
+                return team?.tenNhom || `Nhóm #${item.maNhomApDung}`;
+            }
+            if (item.maPhongBanApDung) {
+                const dept = state.departments.find(x => Number(x.maPhongBan) === Number(item.maPhongBanApDung));
+                return dept?.tenPhongBan || `Phòng ban #${item.maPhongBanApDung}`;
+            }
+            if (item.maDuAnApDung) {
+                const project = state.projects.find(x => Number(x.maDuAn) === Number(item.maDuAnApDung));
+                return project?.tenDuAn || `Dự án #${item.maDuAnApDung}`;
+            }
+            return '-';
+        }
+
+        function fillProposalReferenceOptions() {
+            if (!proposalKpiId || !proposalLoaiKpi) return;
+
+            proposalKpiId.innerHTML = '<option value="">Chọn KPI</option>' +
+                state.kpis.map(k => `<option value="${k.maKpi}">${escapeHtml(k.tenKpi || `KPI ${k.maKpi}`)}</option>`).join('');
+            proposalLoaiKpi.innerHTML = '<option value="">Chọn loại KPI</option>' +
+                state.kpiTypes.map(t => `<option value="${t.maLoaiKpi}">${escapeHtml(t.tenLoaiKpi || `Loai ${t.maLoaiKpi}`)}</option>`).join('');
+        }
+
+        function refillProposalTargetOptions() {
+            if (!proposalTargetType || !proposalTargetId) return;
+
+            const mode = proposalTargetType.value;
+            if (mode === 'department') {
+                proposalTargetId.innerHTML = '<option value="">Chọn phòng ban</option>' +
+                    state.departments.map(d => `<option value="${d.maPhongBan}">${escapeHtml(d.tenPhongBan || `Phòng ${d.maPhongBan}`)}</option>`).join('');
+                return;
+            }
+
+            if (mode === 'team') {
+                proposalTargetId.innerHTML = '<option value="">Chọn nhóm</option>' +
+                    state.teams.map(t => `<option value="${t.maNhom}">${escapeHtml(t.tenNhom || `Nhóm ${t.maNhom}`)}</option>`).join('');
+                return;
+            }
+
+            if (mode === 'project') {
+                proposalTargetId.innerHTML = '<option value="">Chọn dự án</option>' +
+                    state.projects.map(p => `<option value="${p.maDuAn}">${escapeHtml(p.tenDuAn || `Dự án ${p.maDuAn}`)}</option>`).join('');
+                return;
+            }
+
+            proposalTargetId.innerHTML = '<option value="">Chọn nhân viên</option>' +
+                state.employees.map(e => `<option value="${e.maNhanVien}">${escapeHtml(e.hoTen || `NV ${e.maNhanVien}`)}</option>`).join('');
+        }
+
+        function syncProposalFormByType() {
+            if (!proposalType) return;
+            const type = proposalType.value;
+            const isCreateNew = type === 'TaoMoiKPI';
+            const needExistingKpi = type === 'ApDungKPI' || type === 'DieuChinhKPI' || type === 'HuyApDungKPI';
+
+            if (proposalKpiId) proposalKpiId.disabled = !needExistingKpi;
+            if (proposalLoaiKpi) proposalLoaiKpi.disabled = !isCreateNew;
+            if (proposalTenKpi) proposalTenKpi.disabled = !isCreateNew;
+        }
+
+        function resetProposalForm() {
+            state.proposalEditingId = null;
+            if (proposalType) proposalType.value = 'TaoMoiKPI';
+            if (proposalKpiId) proposalKpiId.value = '';
+            if (proposalLoaiKpi) proposalLoaiKpi.value = '';
+            if (proposalTenKpi) proposalTenKpi.value = '';
+            if (proposalTrongSo) proposalTrongSo.value = '0';
+            if (proposalTargetType) proposalTargetType.value = 'employee';
+            refillProposalTargetOptions();
+            if (proposalTargetId) proposalTargetId.value = '';
+            if (proposalFromDate) proposalFromDate.value = '';
+            if (proposalToDate) proposalToDate.value = '';
+            if (proposalMoTa) proposalMoTa.value = '';
+            if (proposalLyDo) proposalLyDo.value = '';
+            if (proposalGhiChu) proposalGhiChu.value = '';
+            if (btnSubmitProposal) btnSubmitProposal.textContent = 'Gửi đề xuất';
+            if (proposalFormHint) {
+                proposalFormHint.className = 'small mt-2 text-muted';
+                proposalFormHint.textContent = 'Manager tạo đề xuất, Admin duyệt thì mới áp dụng vào KPI chính thức.';
+            }
+            syncProposalFormByType();
+        }
+
+        function patchProposalFormForEdit(item) {
+            if (!item) return;
+            state.proposalEditingId = item.maDeXuat;
+            proposalType.value = item.loaiDeXuat || 'ApDungKPI';
+            proposalKpiId.value = item.maKpi ? String(item.maKpi) : '';
+            proposalLoaiKpi.value = item.maLoaiKpi ? String(item.maLoaiKpi) : '';
+            proposalTenKpi.value = item.tenKpiDeXuat || '';
+            proposalTrongSo.value = Number(item.trongSoDeXuat || 0).toFixed(2);
+            proposalFromDate.value = item.tuNgay ? new Date(item.tuNgay).toISOString().slice(0, 10) : '';
+            proposalToDate.value = item.denNgay ? new Date(item.denNgay).toISOString().slice(0, 10) : '';
+            proposalMoTa.value = item.moTaKpiDeXuat || '';
+            proposalLyDo.value = item.lyDo || '';
+            proposalGhiChu.value = item.ghiChu || '';
+
+            if (item.maNhomApDung) proposalTargetType.value = 'team';
+            else if (item.maPhongBanApDung) proposalTargetType.value = 'department';
+            else if (item.maDuAnApDung) proposalTargetType.value = 'project';
+            else proposalTargetType.value = 'employee';
+            refillProposalTargetOptions();
+            proposalTargetId.value = String(item.maNhanVienApDung || item.maNhomApDung || item.maPhongBanApDung || item.maDuAnApDung || '');
+
+            syncProposalFormByType();
+            btnSubmitProposal.textContent = 'Cập nhật & gửi lại';
+            proposalFormHint.className = 'small mt-2 text-primary';
+            proposalFormHint.textContent = `Đang sửa đề xuất #${item.maDeXuat} (trạng thái CanChinhSua).`;
+            document.getElementById('kpiProposalSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function buildProposalPayload() {
+            const type = proposalType.value;
+            const targetMode = proposalTargetType.value;
+            const targetId = Number(proposalTargetId.value || 0);
+            const payload = {
+                maKpi: proposalKpiId.value ? Number(proposalKpiId.value) : null,
+                maLoaiKpi: proposalLoaiKpi.value ? Number(proposalLoaiKpi.value) : null,
+                loaiDeXuat: type,
+                maNhanVienApDung: null,
+                maNhomApDung: null,
+                maPhongBanApDung: null,
+                maDuAnApDung: null,
+                tuNgay: proposalFromDate.value,
+                denNgay: proposalToDate.value || null,
+                trongSoDeXuat: Number(proposalTrongSo.value || 0),
+                tenKpiDeXuat: proposalTenKpi.value.trim() || null,
+                moTaKpiDeXuat: proposalMoTa.value.trim() || null,
+                lyDo: proposalLyDo.value.trim() || null,
+                ghiChu: proposalGhiChu.value.trim() || null
+            };
+
+            if (!payload.tuNgay) return { ok: false, message: 'TU_NGAY là bắt buộc.' };
+            if (!targetId) return { ok: false, message: 'Vui lòng chọn đối tượng áp dụng.' };
+            if (payload.denNgay && payload.denNgay < payload.tuNgay) return { ok: false, message: 'ĐẾN NGÀY phải lớn hơn hoặc bằng TỪ NGÀY.' };
+
+            if (targetMode === 'team') payload.maNhomApDung = targetId;
+            else if (targetMode === 'department') payload.maPhongBanApDung = targetId;
+            else if (targetMode === 'project') payload.maDuAnApDung = targetId;
+            else payload.maNhanVienApDung = targetId;
+
+            if (type === 'TaoMoiKPI') {
+                if (!payload.maLoaiKpi) return { ok: false, message: 'Tạo mới KPI bắt buộc chọn Loại KPI.' };
+                if (!payload.tenKpiDeXuat) return { ok: false, message: 'Tạo mới KPI bắt buộc nhập Tên KPI đề xuất.' };
+                if (payload.trongSoDeXuat <= 0) return { ok: false, message: 'Tạo mới KPI yêu cầu trọng số > 0.' };
+            }
+
+            if (type === 'ApDungKPI' && !payload.maKpi) {
+                return { ok: false, message: 'Áp dụng KPI bắt buộc chọn KPI hiện có.' };
+            }
+
+            if ((type === 'DieuChinhKPI' || type === 'HuyApDungKPI') && !payload.maKpi) {
+                return { ok: false, message: 'Điều chỉnh/Hủy áp dụng KPI bắt buộc chọn KPI hiện có.' };
+            }
+
+            return { ok: true, payload };
+        }
+
+        function renderMyProposals() {
+            if (!proposalMineBody) return;
+            if (!state.proposalMine.length) {
+                proposalMineBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có đề xuất KPI.</td></tr>';
+                if (proposalMineDetailPanel) {
+                    proposalMineDetailPanel.className = 'kpix-proposal-form mt-3 text-muted';
+                    proposalMineDetailPanel.textContent = 'Chưa có đề xuất KPI.';
+                }
+                return;
+            }
+
+            proposalMineBody.innerHTML = state.proposalMine.map(x => {
+                const target = resolveProposalTargetName(x);
+                const canEditProposal = x.trangThai === 'CanChinhSua' && isManager;
+                return `
+                    <tr class="proposal-mine-row" data-id="${x.maDeXuat}" style="cursor:pointer">
+                        <td>${escapeHtml(x.loaiDeXuat || '-')}</td>
+                        <td><div>KPI: ${x.maKpi || 'Mới'}</div><div class="kpix-proposal-meta">Đối tượng: ${escapeHtml(target)}</div></td>
+                        <td>${proposalStatusPill(x.trangThai)}</td>
+                        <td>
+                            ${canEditProposal ? `<button class="btn btn-sm btn-outline-primary btn-proposal-edit" data-id="${x.maDeXuat}" type="button">Sửa</button>` : '<span class="text-muted small">-</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const renderMineDetail = (item) => {
+                if (!proposalMineDetailPanel || !item) return;
+                const targetText = resolveProposalTargetName(item);
+                proposalMineDetailPanel.className = 'kpix-proposal-form mt-3';
+                proposalMineDetailPanel.innerHTML = `
+                    <h6 class="mb-2">Chi tiết đề xuất của tôi</h6>
+                    <div class="row g-2">
+                        <div class="col-md-4"><strong>Loại đề xuất:</strong> ${escapeHtml(item.loaiDeXuat || '-')}</div>
+                        <div class="col-md-4"><strong>Trạng thái:</strong> ${proposalStatusPill(item.trangThai)}</div>
+                        <div class="col-md-4"><strong>KPI:</strong> ${item.maKpi || 'KPI mới'}</div>
+                        <div class="col-md-4"><strong>Loại KPI:</strong> ${item.maLoaiKpi || '-'}</div>
+                        <div class="col-md-4"><strong>Trọng số đề xuất:</strong> ${Number(item.trongSoDeXuat || 0).toFixed(2)}%</div>
+                        <div class="col-md-4"><strong>Đối tượng áp dụng:</strong> ${escapeHtml(targetText)}</div>
+                        <div class="col-md-6"><strong>Từ ngày:</strong> ${item.tuNgay ? new Date(item.tuNgay).toLocaleDateString('vi-VN') : '-'}</div>
+                        <div class="col-md-6"><strong>Đến ngày:</strong> ${item.denNgay ? new Date(item.denNgay).toLocaleDateString('vi-VN') : 'Không giới hạn'}</div>
+                        <div class="col-12"><strong>Tên KPI đề xuất:</strong> ${escapeHtml(item.tenKpiDeXuat || '-')}</div>
+                        <div class="col-12"><strong>Mô tả:</strong> ${escapeHtml(item.moTaKpiDeXuat || '-')}</div>
+                        <div class="col-md-6"><strong>Lý do đề xuất:</strong> ${escapeHtml(item.lyDo || '-')}</div>
+                        <div class="col-md-6"><strong>Phản hồi từ admin:</strong> ${escapeHtml(item.phanHoiAdmin || 'Chưa có phản hồi')}</div>
+                        <div class="col-12"><strong>Ghi chú:</strong> ${escapeHtml(item.ghiChu || '-')}</div>
+                    </div>
+                `;
+            };
+
+            document.querySelectorAll('.proposal-mine-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const id = Number(row.getAttribute('data-id'));
+                    const item = state.proposalMine.find(x => x.maDeXuat === id);
+                    renderMineDetail(item);
+                });
+            });
+
+            document.querySelectorAll('.btn-proposal-edit').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = Number(btn.getAttribute('data-id'));
+                    patchProposalFormForEdit(state.proposalMine.find(x => x.maDeXuat === id));
+                });
+            });
+
+            renderMineDetail(state.proposalMine[0]);
+        }
+
+        function renderPendingProposals() {
+            if (!proposalPendingBody) return;
+            if (!state.proposalPending.length) {
+                proposalPendingBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có đề xuất chờ duyệt.</td></tr>';
+                if (proposalPendingDetailPanel) {
+                    proposalPendingDetailPanel.className = 'kpix-proposal-form mt-3 text-muted';
+                    proposalPendingDetailPanel.textContent = 'Chưa có đề xuất chờ duyệt.';
+                }
+                return;
+            }
+
+            proposalPendingBody.innerHTML = state.proposalPending.map(x => {
+                const target = resolveProposalTargetName(x);
+                return `
+                    <tr class="proposal-pending-row" data-id="${x.maDeXuat}" style="cursor:pointer">
+                        <td>${escapeHtml(x.tenNguoiDeXuat || `NV ${x.nguoiDeXuat}`)}</td>
+                        <td>${escapeHtml(x.loaiDeXuat || '-')}</td>
+                        <td>KPI: ${x.maKpi || 'Mới'} / Đối tượng: ${escapeHtml(target)}</td>
+                        <td>${x.tuNgay ? new Date(x.tuNgay).toLocaleDateString('vi-VN') : '-'} - ${x.denNgay ? new Date(x.denNgay).toLocaleDateString('vi-VN') : 'Open'}</td>
+                        <td>
+                            <div class="kpix-proposal-actions">
+                                <button class="btn btn-sm btn-success btn-proposal-review" data-id="${x.maDeXuat}" data-action="Duyet" type="button">Duyệt</button>
+                                <button class="btn btn-sm btn-warning btn-proposal-review" data-id="${x.maDeXuat}" data-action="YeuCauChinhSua" type="button">YC chỉnh sửa</button>
+                                <button class="btn btn-sm btn-danger btn-proposal-review" data-id="${x.maDeXuat}" data-action="TuChoi" type="button">Từ chối</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const renderPendingDetail = (item) => {
+                if (!proposalPendingDetailPanel || !item) return;
+                const targetText = resolveProposalTargetName(item);
+                proposalPendingDetailPanel.className = 'kpix-proposal-form mt-3';
+                proposalPendingDetailPanel.innerHTML = `
+                    <h6 class="mb-2">Chi tiết đề xuất</h6>
+                    <div class="row g-2">
+                        <div class="col-md-4"><strong>Người đề xuất:</strong> ${escapeHtml(item.tenNguoiDeXuat || `NV ${item.nguoiDeXuat}`)}</div>
+                        <div class="col-md-4"><strong>Loại đề xuất:</strong> ${escapeHtml(item.loaiDeXuat || '-')}</div>
+                        <div class="col-md-4"><strong>Trạng thái:</strong> ${proposalStatusPill(item.trangThai)}</div>
+                        <div class="col-md-4"><strong>KPI:</strong> ${item.maKpi || 'KPI mới'}</div>
+                        <div class="col-md-4"><strong>Loại KPI:</strong> ${item.maLoaiKpi || '-'}</div>
+                        <div class="col-md-4"><strong>Trọng số đề xuất:</strong> ${Number(item.trongSoDeXuat || 0).toFixed(2)}%</div>
+                        <div class="col-md-6"><strong>Đối tượng áp dụng:</strong> ${escapeHtml(targetText)}</div>
+                        <div class="col-md-6"><strong>Thời gian:</strong> ${item.tuNgay ? new Date(item.tuNgay).toLocaleDateString('vi-VN') : '-'} - ${item.denNgay ? new Date(item.denNgay).toLocaleDateString('vi-VN') : 'Không giới hạn'}</div>
+                        <div class="col-12"><strong>Tên KPI đề xuất:</strong> ${escapeHtml(item.tenKpiDeXuat || '-')}</div>
+                        <div class="col-12"><strong>Mô tả:</strong> ${escapeHtml(item.moTaKpiDeXuat || '-')}</div>
+                        <div class="col-md-6"><strong>Lý do:</strong> ${escapeHtml(item.lyDo || '-')}</div>
+                        <div class="col-md-6"><strong>Phản hồi admin:</strong> ${escapeHtml(item.phanHoiAdmin || '-')}</div>
+                        <div class="col-12"><strong>Ghi chú:</strong> ${escapeHtml(item.ghiChu || '-')}</div>
+                    </div>
+                `;
+            };
+
+            document.querySelectorAll('.proposal-pending-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const id = Number(row.getAttribute('data-id'));
+                    const item = state.proposalPending.find(x => x.maDeXuat === id);
+                    renderPendingDetail(item);
+                });
+            });
+
+            document.querySelectorAll('.btn-proposal-review').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = Number(btn.getAttribute('data-id'));
+                    const action = btn.getAttribute('data-action');
+                    const note = prompt(`Nhập phản hồi cho hành động ${action}:`, '') ?? '';
+                    const ok = await reviewProposal(id, action, note);
+                    if (ok) {
+                        await loadProposalData();
+                    }
+                });
+            });
+
+            renderPendingDetail(state.proposalPending[0]);
+        }
+
+        async function loadProposalData() {
+            if (!(isManager || isAdmin)) return;
+
+            if (proposalMineBody) {
+                const mineRes = await fetchJson('/kpi/proposals');
+                if (!mineRes.success) {
+                    proposalMineBody.innerHTML = `<tr><td colspan="4" class="text-danger">${escapeHtml(mineRes.message || 'Không tải được danh sách đề xuất.')}</td></tr>`;
+                    state.proposalMine = [];
+                    if (proposalMineDetailPanel) {
+                        proposalMineDetailPanel.className = 'kpix-proposal-form mt-3 text-danger';
+                        proposalMineDetailPanel.textContent = mineRes.message || 'Không tải được chi tiết đề xuất của bạn.';
+                    }
+                } else {
+                    state.proposalMine = mineRes.data || [];
+                    renderMyProposals();
+                }
+            }
+
+            if (isAdmin && proposalPendingBody) {
+                const pendingRes = await fetchJson('/kpi/proposals/pending');
+                if (!pendingRes.success) {
+                    proposalPendingBody.innerHTML = `<tr><td colspan="5" class="text-danger">${escapeHtml(pendingRes.message || 'Không tải được danh sách chờ duyệt.')}</td></tr>`;
+                    state.proposalPending = [];
+                    if (proposalPendingDetailPanel) {
+                        proposalPendingDetailPanel.className = 'kpix-proposal-form mt-3 text-danger';
+                        proposalPendingDetailPanel.textContent = pendingRes.message || 'Không tải được chi tiết đề xuất chờ duyệt.';
+                    }
+                } else {
+                    state.proposalPending = pendingRes.data || [];
+                    renderPendingProposals();
+                }
+            }
+        }
+
+        async function submitProposal() {
+            if (!(isManager || isAdmin)) return;
+            const draft = buildProposalPayload();
+            if (!draft.ok) {
+                proposalFormHint.className = 'small mt-2 text-danger';
+                proposalFormHint.textContent = draft.message;
+                return;
+            }
+
+            const isEditing = !!state.proposalEditingId;
+            const url = isEditing ? `/kpi/proposals/${state.proposalEditingId}` : '/kpi/proposals';
+            const method = isEditing ? 'PUT' : 'POST';
+
+            proposalFormHint.className = 'small mt-2 text-muted';
+            proposalFormHint.textContent = isEditing ? 'Đang cập nhật đề xuất...' : 'Đang gửi đề xuất...';
+
+            const res = await fetchJson(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(draft.payload)
+            });
+
+            proposalFormHint.className = `small mt-2 ${res.success ? 'text-success' : 'text-danger'}`;
+            proposalFormHint.textContent = res.message || (res.success ? 'Gửi đề xuất thành công.' : 'Không thể gửi đề xuất.');
+
+            if (!res.success) return;
+
+            resetProposalForm();
+            await loadProposalData();
+        }
+
+        async function reviewProposal(id, action, phanHoiAdmin) {
+            if (!isAdmin) return false;
+
+            const res = await fetchJson(`/kpi/proposals/${id}/review`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action,
+                    phanHoiAdmin: (phanHoiAdmin || '').trim() || null
+                })
+            });
+
+            kpiCalcResult.className = `small mt-2 ${res.success ? 'text-success' : 'text-danger'}`;
+            kpiCalcResult.textContent = res.message || (res.success ? 'Xử lý duyệt đề xuất thành công.' : 'Không thể xử lý đề xuất.');
+            return !!res.success;
+        }
+
+        async function loadKpiCatalog() {
+            kpiTableBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải danh muc KPI...</td></tr>';
+
+            const query = new URLSearchParams({ page: '1', size: '200' });
+            if (kpiKeyword.value.trim()) query.set('keyword', kpiKeyword.value.trim());
+            if (kpiTypeFilter.value) query.set('maLoaiKpi', kpiTypeFilter.value);
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+
+            const res = await fetchJson(`/kpi/catalog?${query.toString()}`);
+            if (!res.success) {
+                kpiTableBody.innerHTML = `<tr><td colspan="7" class="text-danger">${escapeHtml(res.message || 'Không tải được danh mục KPI')}</td></tr>`;
+                return;
+            }
+
+            const data = res.data || {};
+            state.kpis = data.items || [];
+            fillProposalReferenceOptions();
+
+            if (kpiDepartmentFilter.value) {
+                const pbId = Number(kpiDepartmentFilter.value);
+                const byDepartment = await Promise.all(state.kpis.map(async item => {
+                    const q = new URLSearchParams();
+                    if (kpiMonthFilter.value) q.set('thang', kpiMonthFilter.value);
+                    if (kpiYearFilter.value) q.set('nam', kpiYearFilter.value);
+                    q.set('maKpi', item.maKpi);
+                    const pbRes = await fetchJson(`/kpi/phongban/${pbId}?${q.toString()}`);
+                    return { item, ok: pbRes.success && (pbRes.data?.nhanViens || []).length > 0 };
+                }));
+                state.kpis = byDepartment.filter(x => x.ok).map(x => x.item);
+            }
+
+            kpiTotalWeight.textContent = Number(data.tongTrongSo || 0).toFixed(2);
+            renderKpiTable();
+            renderMiniDashboard();
+            await loadDashboardSummary();
+            await loadEmployeeKpiList();
+            await loadTeamSummary();
+
+            if (state.kpis.length) {
+                await openKpiDetail(state.kpis[0].maKpi);
+            }
+        }
+
+        function renderKpiTable() {
+            if (!state.kpis.length) {
+                kpiTableBody.innerHTML = '<tr><td colspan="7" class="text-muted">Không có KPI phù hợp bộ lọc.</td></tr>';
+                return;
+            }
+
+            const monthLabel = kpiMonthFilter.value ? `tháng ${kpiMonthFilter.value}` : 'Tất cả tháng';
+            const yearLabel = kpiYearFilter.value ? `năm ${kpiYearFilter.value}` : 'Tất cả năm';
+
+            kpiTableBody.innerHTML = state.kpis.map(kpi => `
+                <tr class="kpix-row" data-kpi-id="${kpi.maKpi}" title="Click để xem chi tiết KPI">
+                    <td><i class="bi bi-bullseye text-primary"></i> ${escapeHtml(kpi.tenKpi || `KPI ${kpi.maKpi}`)}</td>
+                    <td>${escapeHtml(kpi.moTa || '-')}</td>
+                    <td><strong>${Number(kpi.trongSoGoc || kpi.trongSo || 0).toFixed(2)}%</strong></td>
+                    <td>${escapeHtml(kpi.apDung || '-')}</td>
+                    <td>${monthLabel} / ${yearLabel}</td>
+                    <td>${renderStatusPill(kpi.trangThai)}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-light kpi-action-view" data-kpi-id="${kpi.maKpi}" type="button"><i class="bi bi-eye"></i></button>
+                            ${canEdit ? `<button class="btn btn-sm ${getKpiStatusLabel(kpi.trangThai) === 'Active' ? 'btn-outline-warning' : 'btn-outline-success'} kpi-action-toggle" data-kpi-id="${kpi.maKpi}" data-kpi-status="${escapeHtml(kpi.trangThai || 'Active')}" type="button" title="${getKpiStatusLabel(kpi.trangThai) === 'Active' ? 'Tạm dừng' : 'Kích hoạt'}"><i class="bi ${getKpiStatusLabel(kpi.trangThai) === 'Active' ? 'bi-pause' : 'bi-play'}"></i></button>` : ''}
+                            ${canEdit ? `<button class="btn btn-sm btn-outline-primary kpi-action-edit" data-kpi-id="${kpi.maKpi}" type="button"><i class="bi bi-pencil"></i></button>` : ''}
+                            ${canDelete ? `<button class="btn btn-sm btn-outline-danger kpi-action-delete" data-kpi-id="${kpi.maKpi}" type="button"><i class="bi bi-trash"></i></button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            bindKpiTableEvents();
+        }
+
+        function renderMiniDashboard() {
+            const rows = state.kpis;
+            if (!rows.length) {
+                kpiAvgScore.textContent = '0';
+                kpiMaxScore.textContent = '0';
+                kpiMinScore.textContent = '0';
+                kpiAchievedRate.textContent = '0%';
+                return;
+            }
+
+            const scores = rows.map(x => Number(x.diemTrungBinh || 0));
+            const avg = scores.reduce((s, x) => s + x, 0) / scores.length;
+            const max = Math.max(...scores);
+            const min = Math.min(...scores);
+            const achieved = rows.filter(x => Number(x.diemTrungBinh || 0) >= 70).length;
+
+            kpiAvgScore.textContent = avg.toFixed(2);
+            kpiMaxScore.textContent = max.toFixed(2);
+            kpiMinScore.textContent = min.toFixed(2);
+            kpiAchievedRate.textContent = `${((achieved / rows.length) * 100).toFixed(1)}%`;
+        }
+
+        async function loadDashboardSummary() {
+            const query = new URLSearchParams();
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+            if (kpiDepartmentFilter.value) query.set('maPhongBan', kpiDepartmentFilter.value);
+            if (kpiTeamFilter.value) query.set('maNhom', kpiTeamFilter.value);
+
+            const res = await fetchJson(`/kpi/dashboard-summary?${query.toString()}`);
+            if (!res.success || !res.data) return;
+
+            const data = res.data;
+            kpiAvgScore.textContent = Number(data.kpiTrungBinh || 0).toFixed(1);
+            kpiAchievedRate.textContent = `${data.soNhanVienDatKpi || 0} đạt KPI`;
+            kpiMaxScore.textContent = `${data.soCongViecDungHan || 0} đúng hạn`;
+            kpiMinScore.textContent = `${data.soCongViecTreHan || 0} trễ hạn`;
+        }
+
+        function renderEmployeeKpiRows() {
+            if (!state.employeeKpis.length) {
+                kpiEmployeeTableBody.innerHTML = '<tr><td colspan="5" class="text-muted">Không có dữ liệu KPI nhân viên theo bộ lọc.</td></tr>';
+                return;
+            }
+
+            kpiEmployeeTableBody.innerHTML = state.employeeKpis.map(x => `
+                <tr class="kpi-emp-row" data-emp-id="${x.maNhanVien}" style="cursor:pointer">
+                    <td>${escapeHtml(x.hoTen || `NV ${x.maNhanVien}`)}</td>
+                    <td>${escapeHtml(x.tenPhongBan || '-')}</td>
+                    <td>${Number(x.diemKpi || 0).toFixed(2)}</td>
+                    <td>${x.congViecHoanThanh || 0}/${x.tongCongViec || 0}</td>
+                    <td>${x.congViecTreHan || 0}</td>
+                </tr>
+            `).join('');
+
+            document.querySelectorAll('.kpi-emp-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const id = Number(row.getAttribute('data-emp-id'));
+                    openEmployeeKpiDetail(id);
+                });
+            });
+        }
+
+        async function loadEmployeeKpiList() {
+            const query = new URLSearchParams();
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+            if (kpiDepartmentFilter.value) query.set('maPhongBan', kpiDepartmentFilter.value);
+            if (kpiTeamFilter.value) query.set('maNhom', kpiTeamFilter.value);
+            if (kpiLevelFilter.value) query.set('mucKpi', kpiLevelFilter.value);
+
+            const res = await fetchJson(`/kpi/employees?${query.toString()}`);
+            if (!res.success || !res.data) {
+                kpiEmployeeTableBody.innerHTML = `<tr><td colspan="5" class="text-danger">${escapeHtml(res.message || 'Không tải được KPI nhân viên.')}</td></tr>`;
+                return;
+            }
+
+            state.employeeKpis = res.data.items || [];
+            renderEmployeeKpiRows();
+            if (state.employeeKpis.length) {
+                await openEmployeeKpiDetail(state.employeeKpis[0].maNhanVien);
+            }
+        }
+
+        async function openEmployeeKpiDetail(employeeId) {
+            if (!employeeId) return;
+
+            const query = new URLSearchParams();
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+
+            const res = await fetchJson(`/kpi/employees/${employeeId}/detail?${query.toString()}`);
+            if (!res.success || !res.data) {
+                kpiEmployeeDetailPanel.innerHTML = `<span class="text-danger">${escapeHtml(res.message || 'Không tải được chi tiết KPI nhân viên.')}</span>`;
+                return;
+            }
+
+            const d = res.data;
+            state.selectedEmployeeDetail = d;
+            const appliedRows = d.kpiTrongSoApDung || [];
+            const appliedSummary = appliedRows.length
+                ? `${appliedRows.length} KPI đang áp dụng`
+                : 'Chưa có KPI áp dụng';
+            kpiEmployeeDetailPanel.innerHTML = `
+                <div><strong>${escapeHtml(d.hoTen || `NV ${d.maNhanVien}`)}</strong></div>
+                <div>Phòng ban: ${escapeHtml(d.tenPhongBan || '-')}</div>
+                <div>KPI hiện tại: <strong>${Number(d.diemKpiHienTai || 0).toFixed(2)}</strong></div>
+                <div>Tổng công việc: ${d.tongCongViec || 0}</div>
+                <div>Đúng hạn: ${d.congViecDungHan || 0}</div>
+                <div>Trễ hạn: ${d.congViecTreHan || 0}</div>
+                <button id="btnToggleAppliedWeightPanel" class="btn btn-sm btn-outline-primary mt-2" type="button">
+                    Xem trọng số KPI áp dụng (${appliedSummary})
+                </button>
+                <div id="employeeAppliedWeightPanel" class="kpix-weight-box d-none">
+                    ${renderAppliedWeightPanel(d)}
+                </div>
+            `;
+
+            const toggleBtn = document.getElementById('btnToggleAppliedWeightPanel');
+            const weightPanel = document.getElementById('employeeAppliedWeightPanel');
+            if (toggleBtn && weightPanel) {
+                toggleBtn.addEventListener('click', () => {
+                    const isHidden = weightPanel.classList.contains('d-none');
+                    weightPanel.classList.toggle('d-none', !isHidden);
+                    toggleBtn.textContent = isHidden
+                        ? 'Ẩn trọng số KPI áp dụng'
+                        : `Xem trọng số KPI áp dụng (${appliedSummary})`;
+                });
+            }
+
+            const history = d.kpiTheoThang || [];
+            if (state.employeeHistoryChart) state.employeeHistoryChart.destroy();
+            state.employeeHistoryChart = new Chart(kpiEmployeeHistoryCanvas, {
+                type: 'line',
+                data: {
+                    labels: history.map(x => `${x.thang}/${x.nam}`),
+                    datasets: [{
+                        label: 'KPI theo tháng',
+                        data: history.map(x => x.diem),
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37,99,235,0.15)',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderAppliedWeightPanel(detail) {
+            const rows = detail.kpiTrongSoApDung || [];
+            const scoreRows = detail.kpiDiemChiTiet || [];
+            if (!rows.length) {
+                return '<div class="text-muted">Nhân viên này chưa có KPI áp dụng trong kỳ đang chọn.</div>';
+            }
+
+            const total = rows.reduce((sum, x) => sum + Number(x.trongSoApDung || 0), 0);
+            const totalContribution = scoreRows.reduce((sum, x) => sum + Number(x.dongGop || 0), 0);
+            return `
+                <div class="small mb-2 text-muted">Các KPI và trọng số đang áp dụng của nhân viên trong kỳ.</div>
+                <div class="table-responsive">
+                    <table class="table table-sm kpix-weight-table align-middle mb-1">
+                        <thead>
+                            <tr>
+                                <th>KPI</th>
+                                <th>Loại KPI</th>
+                                <th>Trọng số gốc</th>
+                                <th>Trọng số áp dụng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(x => `
+                                <tr>
+                                    <td>${escapeHtml(x.tenKpi || `KPI ${x.maKpi}`)}<div class="small text-muted">#${x.maKpi}</div></td>
+                                    <td>${escapeHtml(x.tenLoaiKpi || '-')}</td>
+                                    <td>${Number(x.trongSoGoc || 0).toFixed(2)}%</td>
+                                    <td><strong>${Number(x.trongSoApDung || 0).toFixed(2)}%</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small ${Math.abs(total - 100) < 0.01 ? 'text-success' : 'text-warning'}">
+                    Tổng trọng số áp dụng: <strong>${total.toFixed(2)}%</strong>
+                </div>
+                <hr class="my-2" />
+                <div class="small mb-2 text-muted">Giải thích điểm KPI theo từng mục trong kỳ.</div>
+                <div class="table-responsive">
+                    <table class="table table-sm kpix-weight-table align-middle mb-1">
+                        <thead>
+                            <tr>
+                                <th>KPI</th>
+                                <th>Điểm Rule</th>
+                                <th>Điểm AI</th>
+                                <th>Điểm cuối</th>
+                                <th>Trọng số áp dụng</th>
+                                <th>Đóng góp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(scoreRows.length ? scoreRows : rows.map(x => ({
+                                maKpi: x.maKpi,
+                                tenKpi: x.tenKpi,
+                                ruleScore: 0,
+                                aiScore: null,
+                                finalScore: 0,
+                                trongSoApDung: x.trongSoApDung,
+                                dongGop: 0,
+                                coSuDungAi: false
+                            }))).map(x => `
+                                <tr>
+                                    <td>${escapeHtml(x.tenKpi || `KPI ${x.maKpi}`)}</td>
+                                    <td>${Number(x.ruleScore || 0).toFixed(2)}</td>
+                                    <td>${x.aiScore == null ? '-' : Number(x.aiScore).toFixed(2)} ${x.coSuDungAi ? '' : '<span class="small text-muted">(chưa đủ dữ liệu)</span>'}</td>
+                                    <td><strong>${Number(x.finalScore || 0).toFixed(2)}</strong></td>
+                                    <td>${Number(x.trongSoApDung || 0).toFixed(2)}%</td>
+                                    <td><strong>${Number(x.dongGop || 0).toFixed(2)}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small text-primary">
+                    Tổng đóng góp kỳ này: <strong>${totalContribution.toFixed(2)}</strong>
+                </div>
+            `;
+        }
+
+        async function loadTeamSummary() {
+            const query = new URLSearchParams();
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+            if (kpiDepartmentFilter.value) query.set('maPhongBan', kpiDepartmentFilter.value);
+
+            const res = await fetchJson(`/kpi/team-summary?${query.toString()}`);
+            if (!res.success || !res.data) {
+                teamSummaryBody.innerHTML = `<tr><td colspan="3" class="text-danger">${escapeHtml(res.message || 'Không tải được dữ liệu nhóm.')}</td></tr>`;
+                deptSummaryBody.innerHTML = `<tr><td colspan="3" class="text-danger">${escapeHtml(res.message || 'Không tải được dữ liệu phòng ban.')}</td></tr>`;
+                return;
+            }
+
+            const data = res.data;
+            teamAvgKpi.textContent = Number(data.kpiTrungBinhNhom || 0).toFixed(2);
+            deptAvgKpi.textContent = Number(data.kpiTrungBinhPhongBan || 0).toFixed(2);
+            bestTeamName.textContent = data.nhomTotNhat?.tenNhom || '-';
+            lowTeamName.textContent = data.nhomKpiThap?.tenNhom || '-';
+
+            const teams = data.teams || [];
+            const depts = data.departments || [];
+
+            teamSummaryBody.innerHTML = teams.length
+                ? teams.map(x => `<tr><td>${escapeHtml(x.tenNhom || `Nhóm ${x.maNhom}`)}</td><td>${Number(x.kpiTrungBinh || 0).toFixed(2)}</td><td>${x.soThanhVien || 0}</td></tr>`).join('')
+                : '<tr><td colspan="3" class="text-muted">Không có dữ liệu nhóm.</td></tr>';
+
+            deptSummaryBody.innerHTML = depts.length
+                ? depts.map(x => `<tr><td>${escapeHtml(x.tenPhongBan || '-')}</td><td>${Number(x.kpiTrungBinh || 0).toFixed(2)}</td><td>${x.soNhanVien || 0}</td></tr>`).join('')
+                : '<tr><td colspan="3" class="text-muted">Không có dữ liệu phòng ban.</td></tr>';
+        }
+
+        async function openKpiDetail(kpiId) {
+            state.selectedKpiId = kpiId;
+            const query = new URLSearchParams();
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+
+            const res = await fetchJson(`/kpi/catalog/${kpiId}?${query.toString()}`);
+            if (!res.success) {
+                kpiInfoContent.innerHTML = `<span class="text-danger">${escapeHtml(res.message || 'Không tải được chi tiết KPI')}</span>`;
+                return;
+            }
+
+            const detail = res.data;
+            state.kpiDetail = detail;
+            kpiDetailTitle.textContent = detail.tenKpi || `KPI ${kpiId}`;
+            kpiDetailType.innerHTML = `<span class="pill info">${escapeHtml(detail.tenLoaiKpi || '-')}</span>`;
+
+            kpiInfoContent.innerHTML = `
+                <div class="kpix-info-grid">
+                    <div><span class="kpix-label">Tên KPI</span><p>${escapeHtml(detail.tenKpi || '-')}</p></div>
+                    <div><span class="kpix-label">Trọng số gốc</span><p>${Number(detail.trongSoGoc || detail.trongSo || 0).toFixed(2)}%</p></div>
+                    <div><span class="kpix-label">Loại KPI</span><p>${escapeHtml(detail.tenLoaiKpi || '-')}</p></div>
+                    <div><span class="kpix-label">Trạng thái</span><p>${renderStatusPill(detail.trangThai)}</p></div>
+                    <div><span class="kpix-label">Thời gian</span><p>tháng ${kpiMonthFilter.value || '--'} / năm ${kpiYearFilter.value || '--'}</p></div>
+                    <div class="kpix-span-2"><span class="kpix-label">Mô tả</span><p>${escapeHtml(detail.moTa || '-')}</p></div>
+                </div>
+            `;
+
+            updateToggleKpiStatusButton(detail.trangThai);
+
+            const totalWeight = state.kpis
+                .filter(x => getKpiStatusLabel(x.trangThai) === 'Active')
+                .reduce((s, x) => s + Number(x.trongSoGoc || x.trongSo || 0), 0);
+            kpiWeightValidation.className = 'small mt-2 text-muted';
+            kpiWeightValidation.textContent = `Tổng trọng số KPI gốc đang hoạt động: ${totalWeight.toFixed(2)}% (chỉ là tham chiếu, không cần bằng 100%).`;
+
+            renderAssignmentTab(detail);
+            renderResultTab(detail);
+            renderAnalysisTab(detail);
+        }
+
+        function renderAssignmentTab(detail) {
+            const key = detail.maKpi;
+            if (!state.assignmentDraft.has(key)) {
+                const seed = (detail.assignments || []).map(x => ({
+                    objectId: x.objectId,
+                    objectName: x.tenDoiTuong,
+                    loai: x.loai,
+                    loaiCode: x.loaiCode,
+                    ghiChu: x.ghiChu,
+                    trangThai: x.trangThai
+                }));
+                state.assignmentDraft.set(key, seed);
+            }
+
+            const rows = state.assignmentDraft.get(key) || [];
+            if (!rows.length) {
+                kpiAssignmentBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có đối tượng gán KPI.</td></tr>';
+                return;
+            }
+
+            kpiAssignmentBody.innerHTML = rows.map((x, idx) => `
+                <tr>
+                    <td>${escapeHtml(x.objectName || '-')}<div class="small text-muted">#${escapeHtml(x.objectId ?? '')}</div></td>
+                    <td>${escapeHtml(x.loai || '-')}</td>
+                    <td>${escapeHtml(x.ghiChu || '-')}</td>
+                    <td>${(x.trangThai || 'Active') === 'Active' ? '<span class="pill ok">Active</span>' : '<span class="pill">Inactive</span>'}</td>
+                    <td>${canAssign ? `<button class="btn btn-sm btn-outline-danger kpi-assign-delete" data-idx="${idx}" type="button"><i class="bi bi-trash"></i></button>` : ''}</td>
+                </tr>
+            `).join('');
+
+            document.querySelectorAll('.kpi-assign-delete').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.getAttribute('data-idx'));
+                    const current = state.assignmentDraft.get(key) || [];
+                    current.splice(idx, 1);
+                    state.assignmentDraft.set(key, current);
+                    renderAssignmentTab(detail);
+                });
+            });
+        }
+
+        function renderResultTab(detail) {
+            const rows = detail.results || [];
+            if (!rows.length) {
+                kpiResultBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có kết quả KPI trong kỳ.</td></tr>';
+                return;
+            }
+
+            kpiResultBody.innerHTML = rows.map(x => `
+                <tr>
+                    <td>${escapeHtml(x.hoTen || `NV ${x.maNhanVien}`)}</td>
+                    <td>${escapeHtml(detail.tenKpi || '-')}</td>
+                    <td>
+                        <div class="progress mb-1" style="height:8px"><div class="progress-bar ${x.diem >= 90 ? 'good' : (x.diem >= 70 ? 'info' : (x.diem >= 50 ? 'warn' : 'bad'))}" style="width:${Math.max(0, Math.min(100, x.diem))}%"></div></div>
+                        <small>${Number(x.diem || 0).toFixed(2)}</small>
+                    </td>
+                    <td>${x.thang}/${x.nam}</td>
+                    <td>${rankBadge(Number(x.diem || 0))}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAnalysisTab(detail) {
+            const trendRows = detail.trend || [];
+            const resultRows = detail.results || [];
+
+            if (state.trendChart) state.trendChart.destroy();
+            state.trendChart = new Chart(document.getElementById('kpiTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: trendRows.map(x => x.label),
+                    datasets: [{
+                        label: 'KPI theo thời gian',
+                        data: trendRows.map(x => x.value),
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37,99,235,0.12)',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+            });
+
+            const byEmployee = Object.entries(resultRows.reduce((acc, item) => {
+                const name = item.hoTen || `NV ${item.maNhanVien}`;
+                if (!acc[name]) acc[name] = [];
+                acc[name].push(Number(item.diem || 0));
+                return acc;
+            }, {})).map(([name, values]) => ({ name, avg: values.reduce((s, v) => s + v, 0) / values.length }));
+
+            if (state.employeeChart) state.employeeChart.destroy();
+            state.employeeChart = new Chart(document.getElementById('kpiEmployeeChart'), {
+                type: 'bar',
+                data: {
+                    labels: byEmployee.map(x => x.name),
+                    datasets: [{
+                        label: 'KPI theo nhân viên',
+                        data: byEmployee.map(x => x.avg),
+                        backgroundColor: '#0EA5E9'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const pieData = {
+                xuatSac: resultRows.filter(x => x.diem >= 90).length,
+                tot: resultRows.filter(x => x.diem >= 70 && x.diem < 90).length,
+                trungBinh: resultRows.filter(x => x.diem >= 50 && x.diem < 70).length,
+                kem: resultRows.filter(x => x.diem < 50).length
+            };
+
+            if (state.pieChart) state.pieChart.destroy();
+            state.pieChart = new Chart(document.getElementById('kpiPieChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Xuất sắc', 'Tốt', 'Trung bình', 'Kém'],
+                    datasets: [{
+                        data: [pieData.xuatSac, pieData.tot, pieData.trungBinh, pieData.kem],
+                        backgroundColor: ['#16A34A', '#2563EB', '#F59E0B', '#DC2626']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const sorted = [...resultRows].sort((a, b) => a.diem - b.diem);
+            const lowest = sorted[0];
+            const forecastNext = trendRows.length ? trendRows[trendRows.length - 1].value + 2.5 : 0;
+            kpiAiInsight.innerHTML = `
+                <div><strong>Dự đoán:</strong> KPI tháng sau ~ ${Math.max(0, Math.min(100, forecastNext)).toFixed(1)}</div>
+                <div><strong>Cảnh báo:</strong> ${lowest ? `${escapeHtml(lowest.hoTen || `NV ${lowest.maNhanVien}`)} có xu hướng KPI giảm.` : 'Chưa có dữ liệu cảnh báo.'}</div>
+                <div><strong>Gợi ý:</strong> Nên đào tạo kỹ năng liên quan và cân đối lại khối lượng công việc cho nhóm dưới 70 điểm.</div>
+            `;
+        }
+
+        function bindKpiTableEvents() {
+            document.querySelectorAll('.kpi-action-view').forEach(btn => {
+                btn.addEventListener('click', () => openKpiDetail(Number(btn.getAttribute('data-kpi-id'))));
+            });
+
+            document.querySelectorAll('.kpix-row').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    openKpiDetail(Number(row.getAttribute('data-kpi-id')));
+                });
+            });
+
+            document.querySelectorAll('.kpi-action-edit').forEach(btn => {
+                btn.addEventListener('click', () => openKpiForm(Number(btn.getAttribute('data-kpi-id'))));
+            });
+
+            document.querySelectorAll('.kpi-action-toggle').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = Number(btn.getAttribute('data-kpi-id'));
+                    await toggleKpiStatus(id);
+                });
+            });
+
+            document.querySelectorAll('.kpi-action-delete').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = Number(btn.getAttribute('data-kpi-id'));
+                    if (!confirm('Bạn có chắc muốn xóa KPI này?')) return;
+                    const res = await fetchJson(`/kpi/catalog/${id}`, { method: 'DELETE' });
+                    if (!res.success) {
+                        alert(res.message || 'Không thể xóa KPI.');
+                        return;
+                    }
+                    await loadKpiCatalog();
+                });
+            });
+        }
+
+        function openKpiForm(id) {
+            if (!canCreate) return;
+            state.editingKpiId = id || null;
+            kpiFormResult.textContent = '';
+            kpiFormResult.className = 'small mt-2';
+
+            if (!id) {
+                kpiFormTitle.textContent = 'Thêm KPI';
+                formKpiName.value = '';
+                formKpiDesc.value = '';
+                formKpiWeight.value = '';
+                if (state.kpiTypes.length) formKpiType.value = String(state.kpiTypes[0].maLoaiKpi);
+            } else {
+                const kpi = state.kpis.find(x => x.maKpi === id);
+                if (!kpi) return;
+                kpiFormTitle.textContent = 'Sửa KPI';
+                formKpiName.value = kpi.tenKpi || '';
+                formKpiDesc.value = kpi.moTa || '';
+                formKpiWeight.value = Number(kpi.trongSoGoc ?? kpi.trongSo ?? 0).toFixed(2);
+                formKpiType.value = String(kpi.maLoaiKpi);
+            }
+
+            updateKpiWeightPreview();
+            kpiFormModal.show();
+        }
+
+        async function toggleKpiStatus(kpiId) {
+            if (!canEdit || !kpiId) return;
+
+            const currentStatus = getKpiStatusLabel(state.kpiDetail?.trangThai || state.kpis.find(x => x.maKpi === kpiId)?.trangThai);
+            const confirmMessage = currentStatus === 'Active'
+                ? 'Bạn có chắc muốn tạm dừng KPI này?'
+                : 'Bạn có chắc muốn kích hoạt KPI này?';
+
+            if (!confirm(confirmMessage)) return;
+
+            const res = await fetchJson(`/kpi/catalog/${kpiId}/status/toggle`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            kpiCalcResult.className = `small mt-2 ${res.success ? 'text-success' : 'text-danger'}`;
+            kpiCalcResult.textContent = res.message || (res.success ? 'Cập nhật trạng thái KPI thành công.' : 'Không thể cập nhật trạng thái KPI.');
+
+            if (!res.success) return;
+
+            await loadKpiCatalog();
+            if (state.selectedKpiId) {
+                await openKpiDetail(state.selectedKpiId);
+            }
+        }
+
+        function updateKpiWeightPreview() {
+            const draftWeight = Number(formKpiWeight.value || 0);
+            const baseTotal = state.kpis
+                .filter(item => !state.editingKpiId || item.maKpi !== state.editingKpiId)
+                .reduce((sum, item) => sum + Number(item.trongSo || 0), 0);
+            const totalAfterSave = baseTotal + draftWeight;
+
+            if (!formKpiWeightPreview) return;
+
+            if (!draftWeight) {
+                formKpiWeightPreview.textContent = 'Nhập trọng số gốc > 0 để lưu KPI.';
+                return;
+            }
+
+            if (draftWeight > 0 && draftWeight <= 100) {
+                formKpiWeightPreview.className = 'small mt-1 text-success';
+                formKpiWeightPreview.textContent = `Trọng số gốc nhập: ${draftWeight.toFixed(2)}% | Tổng KPI gốc sau lưu: ${totalAfterSave.toFixed(2)}% (không bắt buộc = 100%).`;
+                return;
+            }
+
+            formKpiWeightPreview.className = 'small mt-1 text-danger';
+            formKpiWeightPreview.textContent = 'Trọng số gốc phải > 0 và <= 100.';
+        }
+
+        async function saveKpi() {
+            const payload = {
+                tenKpi: formKpiName.value.trim(),
+                moTa: formKpiDesc.value.trim(),
+                trongSoGoc: Number(formKpiWeight.value),
+                trongSo: Number(formKpiWeight.value),
+                maLoaiKpi: Number(formKpiType.value),
+                thang: Number(formKpiMonth.value),
+                nam: Number(formKpiYear.value)
+            };
+
+            if (!payload.tenKpi) {
+                kpiFormResult.className = 'small mt-2 text-danger';
+                kpiFormResult.textContent = 'Tên KPI là bắt buộc.';
+                return;
+            }
+            if (!(payload.trongSoGoc > 0 && payload.trongSoGoc <= 100)) {
+                kpiFormResult.className = 'small mt-2 text-danger';
+                kpiFormResult.textContent = 'Trọng số KPI gốc phải > 0 và <= 100.';
+                return;
+            }
+
+            const isEdit = !!state.editingKpiId;
+            const url = isEdit ? `/kpi/catalog/${state.editingKpiId}` : '/kpi/catalog';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetchJson(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            kpiFormResult.className = `small mt-2 ${res.success ? 'text-success' : 'text-danger'}`;
+            kpiFormResult.textContent = res.message;
+            if (!res.success) return;
+
+            kpiFormModal.hide();
+            await loadKpiCatalog();
+        }
+
+        function addAssignmentDraft() {
+            if (!canAssign || !state.kpiDetail) return;
+            if (!assignObjectId.value) return;
+
+            const key = state.kpiDetail.maKpi;
+            const rows = state.assignmentDraft.get(key) || [];
+            const selectedText = assignObjectId.options[assignObjectId.selectedIndex]?.text || '';
+            rows.push({
+                objectId: Number(assignObjectId.value),
+                objectName: selectedText,
+                loai: assignObjectType.value === 'department' ? 'Phòng ban' : (assignObjectType.value === 'team' ? 'Nhóm' : (assignObjectType.value === 'project' ? 'Dự án' : 'Nhân viên')),
+                loaiCode: assignObjectType.value,
+                ghiChu: assignNote.value.trim(),
+                trangThai: 'Active'
+            });
+            state.assignmentDraft.set(key, rows);
+            renderAssignmentTab(state.kpiDetail);
+        }
+
+        async function saveAssignments() {
+            if (!canAssign || !state.kpiDetail) return;
+
+            const key = state.kpiDetail.maKpi;
+            const rows = state.assignmentDraft.get(key) || [];
+            const payload = rows.map(item => ({
+                loaiCode: item.loaiCode,
+                objectId: Number(item.objectId || 0),
+                ghiChu: item.ghiChu || null,
+                trangThai: item.trangThai === 'Inactive' ? 0 : 1
+            }));
+
+            kpiCalcResult.className = 'small mt-2 text-muted';
+            kpiCalcResult.textContent = 'Đang lưu gán KPI...';
+
+            const res = await fetchJson(`/kpi/catalog/${key}/assignments/sync`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            kpiCalcResult.className = `small mt-2 ${res.success ? 'text-success' : 'text-danger'}`;
+            kpiCalcResult.textContent = res.message || (res.success ? 'Lưu gán KPI thành công.' : 'Không thể lưu gán KPI.');
+
+            if (res.success) {
+                await loadKpiCatalog();
+            }
+        }
+
+        function buildExportQuery(type = 'overview') {
+            const query = new URLSearchParams();
+            if (kpiKeyword.value.trim()) query.set('keyword', kpiKeyword.value.trim());
+            if (kpiTypeFilter.value) query.set('maLoaiKpi', kpiTypeFilter.value);
+            if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+            if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+            query.set('type', type);
+            query.set('roleScope', role);
+            return query;
+        }
+
+        function downloadExportBlob(blob, filename) {
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = filename || 'kpi-manager-scope.csv';
+            a.click();
+            URL.revokeObjectURL(objectUrl);
+        }
+
+        function parseSemicolonCsv(csvText) {
+            const rows = [];
+            let row = [];
+            let cell = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < csvText.length; i++) {
+                const ch = csvText[i];
+                const next = csvText[i + 1];
+
+                if (inQuotes) {
+                    if (ch === '"' && next === '"') {
+                        cell += '"';
+                        i++;
+                    } else if (ch === '"') {
+                        inQuotes = false;
+                    } else {
+                        cell += ch;
+                    }
+                    continue;
+                }
+
+                if (ch === '"') {
+                    inQuotes = true;
+                    continue;
+                }
+
+                if (ch === ';') {
+                    row.push(cell);
+                    cell = '';
+                    continue;
+                }
+
+                if (ch === '\r') continue;
+                if (ch === '\n') {
+                    row.push(cell);
+                    rows.push(row);
+                    row = [];
+                    cell = '';
+                    continue;
+                }
+
+                cell += ch;
+            }
+
+            if (cell.length > 0 || row.length > 0) {
+                row.push(cell);
+                rows.push(row);
+            }
+
+            return rows.filter(r => r.some(c => String(c || '').trim() !== ''));
+        }
+
+        async function exportCsv(type = 'overview') {
+            const query = buildExportQuery(type);
+            const url = `/kpi/export?${query.toString()}`;
+            kpiCalcResult.className = 'small mt-2 text-muted';
+            kpiCalcResult.textContent = `Đang chuẩn bị file xuất ${type === 'detail' ? 'chi tiết' : 'tổng quan'}...`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const raw = await response.text();
+                    throw new Error(raw || `HTTP ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const disposition = response.headers.get('content-disposition') || '';
+                const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                const filename = match?.[1] || (type === 'detail' ? 'kpi-detail.csv' : 'kpi-overview.csv');
+                downloadExportBlob(blob, filename);
+
+                kpiCalcResult.className = 'small mt-2 text-success';
+                kpiCalcResult.textContent = 'Xuất file thành công.';
+            } catch (error) {
+                console.error(error);
+                kpiCalcResult.className = 'small mt-2 text-danger';
+                kpiCalcResult.textContent = 'Không thể xuất file KPI.';
+            }
+        }
+
+        async function previewExportCsv(type = 'overview') {
+            const query = buildExportQuery(type);
+            const url = `/kpi/export?${query.toString()}`;
+            kpiCalcResult.className = 'small mt-2 text-muted';
+            kpiCalcResult.textContent = `Đang tải dữ liệu xem trước ${type === 'detail' ? 'chi tiết' : 'tổng quan'}...`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const raw = await response.text();
+                    throw new Error(raw || `HTTP ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const disposition = response.headers.get('content-disposition') || '';
+                const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                exportPreviewFilename = match?.[1] || (type === 'detail' ? 'kpi-detail.csv' : 'kpi-overview.csv');
+                exportPreviewBlob = blob;
+
+                const contentText = await blob.text();
+                const matrix = parseSemicolonCsv(contentText);
+                if (!matrix.length) {
+                    kpiExportPreviewHead.innerHTML = '';
+                    kpiExportPreviewBody.innerHTML = '<tr><td class="text-muted">Không có dữ liệu xem trước.</td></tr>';
+                } else {
+                    let headerIndex = 0;
+                    if (type === 'overview') {
+                        headerIndex = matrix.findIndex(r => (r?.[0] || '').trim() === 'MaKPI');
+                        if (headerIndex < 0) headerIndex = 0;
+                    }
+                    const headers = matrix[headerIndex];
+                    const rowLimit = type === 'detail' ? 50 : 30;
+                    const rows = matrix.slice(headerIndex + 1, headerIndex + 1 + rowLimit);
+                    kpiExportPreviewHead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+                    kpiExportPreviewBody.innerHTML = rows.length
+                        ? rows.map(r => `<tr>${headers.map((_, idx) => `<td>${escapeHtml(r[idx] ?? '')}</td>`).join('')}</tr>`).join('')
+                        : `<tr><td colspan="${headers.length}" class="text-muted">Không có dòng dữ liệu.</td></tr>`;
+                }
+                const showNote = type === 'detail' ? ' | Đang hiển thị 50 dòng đầu tiên.' : '';
+                kpiExportPreviewMeta.textContent = `Tổng số dòng dữ liệu: ${Math.max(0, matrix.length - 1)} | Tệp: ${exportPreviewFilename}${showNote}`;
+
+                kpiExportPreviewModal.show();
+                kpiCalcResult.className = 'small mt-2 text-success';
+                kpiCalcResult.textContent = 'Đã tải dữ liệu xem trước.';
+            } catch (error) {
+                console.error(error);
+                kpiCalcResult.className = 'small mt-2 text-danger';
+                kpiCalcResult.textContent = 'Không thể xem trước dữ liệu xuất.';
+            }
+        }
+
+        let autoKpiTimer = null;
+        let autoKpiRunning = false;
+        let kpiAlertSyncRunning = false;
+        let exportPreviewBlob = null;
+        let exportPreviewFilename = 'kpi-overview.csv';
+
+        async function runKpiCalculation(skipReload = false) {
+            if (!state.kpis.length) {
+                kpiCalcResult.className = 'small mt-2 text-danger';
+                kpiCalcResult.textContent = 'Không có KPI nào để tính.';
+                return;
+            }
+
+            const payload = {
+                thang: kpiMonthFilter.value ? Number(kpiMonthFilter.value) : new Date().getMonth() + 1,
+                nam: kpiYearFilter.value ? Number(kpiYearFilter.value) : new Date().getFullYear()
+            };
+
+            kpiCalcResult.className = 'small mt-2 text-muted';
+            kpiCalcResult.textContent = 'Đang tính tất cả KPI...';
+
+            const result = await fetchJson('/api/kpi/calculate-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!result.success) {
+                kpiCalcResult.className = 'small mt-2 text-danger';
+                kpiCalcResult.textContent = result.message || 'Không thể tính KPI.';
+                return;
+            }
+
+            kpiCalcResult.className = 'small mt-2 text-success';
+            kpiCalcResult.textContent = `Tính tất cả KPI thành công: ${result.data?.tongKPI || 0} KPI, ${result.data?.soBanGhiCapNhat || 0} bản ghi cập nhật, ${result.data?.soBanGhiTaoMoi || 0} bản ghi mới.`;
+            if (!skipReload) {
+                await loadKpiCatalog();
+            }
+        }
+
+        async function autoRefreshKpiData() {
+            await loadKpiCatalog();
+            await syncKpiAlertsIfNeeded();
+            if (!canAssign || autoKpiRunning) return;
+
+            autoKpiRunning = true;
+            try {
+                await runKpiCalculation(true);
+            } finally {
+                autoKpiRunning = false;
+            }
+        }
+
+        async function syncKpiAlertsIfNeeded() {
+            if (kpiAlertSyncRunning) return;
+            if (!(role === 'manager' || role === 'admin')) return;
+
+            kpiAlertSyncRunning = true;
+            try {
+                const query = new URLSearchParams();
+                if (kpiMonthFilter.value) query.set('thang', kpiMonthFilter.value);
+                if (kpiYearFilter.value) query.set('nam', kpiYearFilter.value);
+                await fetchJson(`/thongbao/kpi-alerts/sync?${query.toString()}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } finally {
+                kpiAlertSyncRunning = false;
+            }
+        }
+
+        function startAutoKpiRefresh() {
+            if (autoKpiTimer) {
+                clearInterval(autoKpiTimer);
+            }
+
+            if (!canAssign) {
+                return;
+            }
+
+            autoKpiTimer = setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    autoRefreshKpiData();
+                }
+            }, 60000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    autoRefreshKpiData();
+                }
+            });
+        }
+
+        assignObjectType.addEventListener('change', refillAssignmentObject);
+        btnAssignObject.addEventListener('click', addAssignmentDraft);
+        btnSaveAssignments.addEventListener('click', saveAssignments);
+
+        if (proposalTargetType) proposalTargetType.addEventListener('change', refillProposalTargetOptions);
+        if (proposalType) proposalType.addEventListener('change', syncProposalFormByType);
+        if (btnSubmitProposal) btnSubmitProposal.addEventListener('click', submitProposal);
+        if (btnResetProposalForm) btnResetProposalForm.addEventListener('click', resetProposalForm);
+
+        kpiKeyword.addEventListener('input', () => autoRefreshKpiData());
+        kpiDepartmentFilter.addEventListener('change', async () => {
+            await refreshTeamFilterOptions();
+            await autoRefreshKpiData();
+        });
+        kpiTeamFilter.addEventListener('change', autoRefreshKpiData);
+        kpiMonthFilter.addEventListener('change', autoRefreshKpiData);
+        kpiYearFilter.addEventListener('change', autoRefreshKpiData);
+        kpiTypeFilter.addEventListener('change', autoRefreshKpiData);
+        kpiLevelFilter.addEventListener('change', autoRefreshKpiData);
+
+        formKpiWeight.addEventListener('input', updateKpiWeightPreview);
+        formKpiWeight.addEventListener('change', updateKpiWeightPreview);
+
+        if (btnAddKpi) btnAddKpi.addEventListener('click', () => {
+            if (isManager && document.getElementById('kpiProposalSection')) {
+                document.getElementById('kpiProposalSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+            openKpiForm();
+        });
+        if (btnPreviewExportOverview) btnPreviewExportOverview.addEventListener('click', () => previewExportCsv('overview'));
+        if (btnPreviewExportDetail) btnPreviewExportDetail.addEventListener('click', () => previewExportCsv('detail'));
+        if (btnToggleKpiStatus) btnToggleKpiStatus.addEventListener('click', () => toggleKpiStatus(state.selectedKpiId));
+        btnSaveKpi.addEventListener('click', saveKpi);
+        if (btnExportOverview) btnExportOverview.addEventListener('click', () => exportCsv('overview'));
+        if (btnExportDetail) btnExportDetail.addEventListener('click', () => exportCsv('detail'));
+        if (btnExportFromPreview) {
+            btnExportFromPreview.addEventListener('click', () => {
+                if (!exportPreviewBlob) return;
+                downloadExportBlob(exportPreviewBlob, exportPreviewFilename);
+                kpiExportPreviewModal.hide();
+            });
+        }
+
+        (async function init() {
+            initDateFilters();
+            await loadReferences();
+            await autoRefreshKpiData();
+            if (proposalFromDate) proposalFromDate.value = new Date().toISOString().slice(0, 10);
+            resetProposalForm();
+            await loadProposalData();
+            startAutoKpiRefresh();
+        })();
+    </script>
+}
+
+
+
+
+
+

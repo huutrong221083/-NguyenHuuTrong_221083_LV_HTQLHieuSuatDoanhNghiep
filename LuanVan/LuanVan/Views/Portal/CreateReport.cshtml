@@ -1,0 +1,2056 @@
+@{
+    var roleKey = (ViewData["RoleKey"]?.ToString() ?? "employee").Trim().ToLowerInvariant();
+}
+
+<style>
+    /* ===== CREATE REPORT MAIN STYLES ===== */
+    :root {
+        --primary: #0066cc;
+        --primary-light: #e6f2ff;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg-white: #ffffff;
+        --bg-light: #f8fafc;
+        --border-color: #e2e8f0;
+        --text-dark: #1e293b;
+        --text-muted: #64748b;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .create-report-container {
+        display: flex;
+        gap: 24px;
+        padding-bottom: 40px;
+    }
+
+    .compact-mode .create-report-container {
+        display: block;
+        gap: 0;
+        padding-bottom: 20px;
+    }
+
+    /* ===== PAGE HEADER ===== */
+    .report-header {
+        padding: 32px 24px;
+        background: linear-gradient(135deg, var(--primary-light) 0%, #fff 100%);
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .compact-mode .report-header {
+        padding: 20px 20px 14px;
+        margin-bottom: 14px;
+    }
+
+    .report-header-content h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .report-header-content h1 i {
+        font-size: 36px;
+        color: var(--primary);
+    }
+
+    .report-header-content p {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .compact-mode .report-header-content p {
+        font-size: 13px;
+    }
+
+    .report-header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .btn-report {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-draft {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        color: var(--text-dark);
+    }
+
+    .btn-draft:hover {
+        background: #eef2ff;
+        border-color: var(--primary);
+    }
+
+    .btn-preview {
+        background: transparent;
+        border: 2px solid var(--primary);
+        color: var(--primary);
+    }
+
+    .btn-preview:hover {
+        background: var(--primary-light);
+    }
+
+    .btn-history {
+        background: #0f172a;
+        color: #ffffff;
+    }
+
+    .btn-history:hover {
+        background: #1e293b;
+        color: #ffffff;
+    }
+
+    .btn-send {
+        background: var(--success);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-send:hover {
+        background: #059669;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--bg-light);
+        color: var(--text-dark);
+        border: 1px solid var(--border-color);
+    }
+
+    .status-badge.draft { background: #fef3c7; color: #92400e; border-color: #fbbf24; }
+    .status-badge.unsent { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }
+    .status-badge.sent { background: #dcfce7; color: #15803d; border-color: #4ade80; }
+    .status-badge.overdue { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+    /* ===== REQUEST NOTIFICATION SECTION ===== */
+    .request-notification-card {
+        background: var(--bg-white);
+        border: 2px solid var(--warning);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    }
+
+    .request-notification-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .request-notification-header i {
+        font-size: 24px;
+        color: var(--warning);
+    }
+
+    .request-notification-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .request-count {
+        margin-left: auto;
+        background: var(--warning);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .request-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+    }
+
+    .request-item {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 16px;
+        border-left: 4px solid var(--warning);
+    }
+
+    .request-item-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .requester-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #667eea);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .request-meta h4 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .request-meta p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .request-item-content {
+        margin-bottom: 12px;
+    }
+
+    .request-item-content p {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: var(--text-dark);
+        font-weight: 500;
+    }
+
+    .request-item-deadline {
+        display: inline-block;
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .request-item-priority {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .priority-high { background: #fee2e2; color: #991b1b; }
+    .priority-medium { background: #fef3c7; color: #92400e; }
+    .priority-low { background: #dbeafe; color: #1e40af; }
+
+    .request-item-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .request-item-actions button {
+        flex: 1;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-white);
+        color: var(--text-dark);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .request-item-actions button:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .request-item-empty {
+        color: var(--text-muted);
+        text-align: center;
+        padding: 24px;
+        font-size: 13px;
+    }
+
+    /* ===== MAIN FORM AREA ===== */
+    .report-form-wrapper {
+        flex: 1;
+    }
+
+    .form-section {
+        background: var(--bg-white);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .compact-mode .form-section {
+        padding: 18px;
+        margin-bottom: 14px;
+    }
+
+    .compact-mode .request-notification-card {
+        padding: 14px;
+        margin-bottom: 14px;
+    }
+
+    .compact-mode .request-list {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .compact-mode .report-sidebar,
+    .compact-mode .ai-assistant-card,
+    .compact-mode .attachment-section,
+    .compact-mode #btnPreview,
+    .compact-mode .report-preview-modal {
+        display: none !important;
+    }
+
+    .form-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin: 0 0 20px 0;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-section-title i {
+        color: var(--primary);
+        font-size: 18px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: var(--danger);
+    }
+
+    .form-control,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: inherit;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .form-row.full {
+        grid-template-columns: 1fr;
+    }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    /* ===== WORK ITEMS SELECTION ===== */
+    .work-items-container {
+        margin-top: 16px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .work-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: var(--bg-light);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .work-item:hover {
+        background: var(--primary-light);
+        border-color: var(--primary);
+    }
+
+    .work-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .work-item-info {
+        flex: 1;
+    }
+
+    .work-item-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin: 0 0 4px 0;
+    }
+
+    .work-item-details {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .work-item-progress {
+        width: 60px;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: var(--border-color);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), #667eea);
+        border-radius: 3px;
+    }
+
+    .work-item-status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .status-ontime { background: #dcfce7; color: #15803d; }
+    .status-delayed { background: #fee2e2; color: #991b1b; }
+    .status-completed { background: #dbeafe; color: #1e40af; }
+
+    /* ===== RICH TEXT EDITOR ===== */
+    .editor-toolbar {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        flex-wrap: wrap;
+    }
+
+    .editor-toolbar button {
+        padding: 6px 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-white);
+        color: var(--text-dark);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .editor-toolbar button:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .editor-content {
+        min-height: 200px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 0 0 8px 8px;
+        background: var(--bg-white);
+        font-size: 13px;
+    }
+
+    /* ===== KPI SECTION ===== */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+
+    .kpi-card {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .kpi-card-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .kpi-card-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+
+    .kpi-card-progress {
+        height: 6px;
+        background: var(--border-color);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .kpi-status {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 8px;
+    }
+
+    /* ===== AI ASSISTANT SECTION ===== */
+    .ai-assistant-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .ai-assistant-card h3 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ai-assistant-card p {
+        margin: 0 0 16px 0;
+        font-size: 13px;
+        opacity: 0.95;
+    }
+
+    .btn-ai {
+        background: white;
+        color: #667eea;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-ai:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    }
+
+    /* ===== ATTACHMENT SECTION ===== */
+    .attachment-upload {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .attachment-upload:hover {
+        border-color: var(--primary);
+        background: var(--primary-light);
+    }
+
+    .attachment-upload i {
+        font-size: 28px;
+        color: var(--primary);
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .attachment-upload p {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .attachment-upload span {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .attachment-list {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .attachment-item {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        position: relative;
+    }
+
+    .attachment-item i {
+        font-size: 20px;
+        color: var(--primary);
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .attachment-item-name {
+        font-size: 12px;
+        color: var(--text-dark);
+        font-weight: 600;
+        word-break: break-word;
+        margin-bottom: 4px;
+    }
+
+    .attachment-item-size {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .attachment-item-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .attachment-item:hover .attachment-item-remove {
+        opacity: 1;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .report-sidebar {
+        width: 300px;
+    }
+
+    /* Responsive media queries removed - desktop-first approach */
+
+    .sidebar-card {
+        background: var(--bg-white);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sidebar-card-title i {
+        color: var(--primary);
+    }
+
+    .progress-item {
+        margin-bottom: 16px;
+    }
+
+    .progress-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .progress-item-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 6px;
+    }
+
+    .progress-item-bar {
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-item-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), #667eea);
+        border-radius: 4px;
+    }
+
+    .countdown {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .countdown-label {
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0.9;
+        margin-bottom: 6px;
+    }
+
+    .countdown-time {
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .history-item {
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+
+    .history-item-date {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .history-item-status {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    /* ===== ACTION BUTTONS ===== */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-action {
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .btn-action.primary {
+        background: var(--success);
+        color: white;
+        flex: 1;
+    }
+
+    .btn-action.primary:hover {
+        background: #059669;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-action.secondary {
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        color: var(--text-dark);
+    }
+
+    .btn-action.secondary:hover {
+        background: #eef2ff;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    /* Responsive media queries removed - desktop-first approach */
+
+    /* ===== PREVIEW MODAL ===== */
+    .report-preview-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.72);
+        z-index: 3000;
+        padding: 24px;
+        backdrop-filter: blur(6px);
+    }
+
+    .report-preview-modal.open {
+        display: flex;
+    }
+
+    .report-preview-dialog {
+        width: min(1080px, 100%);
+        max-height: 92vh;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .report-preview-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .report-preview-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .report-preview-body {
+        padding: 24px;
+        overflow: auto;
+        background: #f8fafc;
+    }
+
+    .report-preview-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .report-preview-content {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px;
+    }
+
+    .preview-section {
+        margin-bottom: 18px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .preview-section h4 {
+        margin: 0 0 10px 0;
+        font-size: 15px;
+        color: var(--text-dark);
+    }
+
+    .preview-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .preview-meta-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .preview-meta-item strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-dark);
+    }
+
+    .preview-task-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .preview-task-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    @@media print {
+        .report-preview-modal,
+        .report-header,
+        .form-actions,
+        .report-sidebar,
+        .ai-assistant-card,
+        .request-notification-card {
+            display: none !important;
+        }
+    }
+
+    /* ===== COMPACT OVERRIDES ===== */
+    .report-header {
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        border-bottom-width: 1px;
+    }
+
+    .report-header-content h1 {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .report-header-content h1 i {
+        font-size: 26px;
+    }
+
+    .report-header-actions {
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .btn-report {
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
+
+    .create-report-container {
+        gap: 14px;
+        padding-bottom: 16px;
+    }
+
+    .form-section {
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+    }
+
+    .form-section-title {
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-control,
+    .form-select,
+    .form-textarea {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .form-textarea {
+        min-height: 84px;
+    }
+
+    .work-item {
+        padding: 9px 10px;
+        margin-bottom: 6px;
+    }
+</style>
+
+<div class="report-page @((roleKey == "employee" || roleKey == "manager") ? "compact-mode" : string.Empty)">
+<div class="report-header">
+    <div class="report-header-content">
+        <h1><i class="bi bi-file-earmark-text"></i> Tạo báo cáo công việc</h1>
+        <p>Tổng hợp kết quả công việc, tiến độ và KPI để gửi cho cấp trên.</p>
+    </div>
+    <div class="report-header-actions">
+        <a class="btn-report btn-history" href="/Portal/ReportManagement">
+            <i class="bi bi-card-list"></i> Xem báo cáo đã làm
+        </a>
+        <button class="btn-report btn-draft" id="btnSaveDraft">
+            <i class="bi bi-cloud-check"></i> Lưu nháp
+        </button>
+        <button class="btn-report btn-preview" id="btnPreview">
+            <i class="bi bi-eye"></i> Xem trước
+        </button>
+        <button class="btn-report btn-send" id="btnSendReport">
+            <i class="bi bi-send"></i> Gửi báo cáo
+        </button>
+        <span class="status-badge draft" id="statusBadge">Nháp</span>
+    </div>
+</div>
+
+<div class="create-report-container">
+    <!-- MAIN FORM -->
+    <div class="report-form-wrapper">
+
+        <!-- REQUEST NOTIFICATION -->
+        <div class="request-notification-card" id="requestNotificationCard">
+            <div class="request-notification-header">
+                <i class="bi bi-bell-fill"></i>
+                <h3>Yêu cầu báo cáo từ cấp trên</h3>
+                <div class="request-count" id="requestCountBadge">0</div>
+            </div>
+            <div class="request-list" id="requestList">
+                <div class="request-item-empty">
+                    <p>Chưa có yêu cầu báo cáo nào. Bạn có thể tạo báo cáo tự nguyện.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BASIC INFO SECTION -->
+        <div class="form-section">
+            <h3 class="form-section-title"><i class="bi bi-info-circle"></i> Thông tin cơ bản</h3>
+
+            <div class="form-group">
+                <label class="form-label required">Tiêu đề báo cáo</label>
+                <input type="text" class="form-control" id="reportTitle" placeholder="Ví dụ: Báo cáo tiến độ tuần 2 tháng 5" />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Loại báo cáo</label>
+                    <select class="form-select" id="reportType">
+                        <option value="">-- Chọn loại báo cáo --</option>
+                        <option value="daily">Báo cáo ngày</option>
+                        <option value="weekly">Báo cáo tuần</option>
+                        <option value="monthly">Báo cáo tháng</option>
+                        <option value="kpi">Báo cáo KPI</option>
+                        <option value="project">Báo cáo dự án</option>
+                        <option value="work">Báo cáo công việc</option>
+                        <option value="urgent">Báo cáo đột xuất</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">@(roleKey == "manager" ? "Người nhận báo cáo (Admin)" : "Người nhận báo cáo")</label>
+                    <select class="form-select" id="reportRecipient">
+                        <option value="">-- Chọn người nhận --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label class="form-label">Thời gian báo cáo</label>
+                    <select class="form-select" id="reportPeriod">
+                        <option value="today">Hôm nay</option>
+                        <option value="this_week">Tuần này</option>
+                        <option value="this_month" selected>Tháng này</option>
+                        <option value="this_quarter">Quý này</option>
+                        <option value="this_year">Năm nay</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- WORK ITEMS SECTION -->
+        <div class="form-section">
+            <h3 class="form-section-title"><i class="bi bi-list-check"></i> Công việc thực hiện</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">Chọn công việc để đưa vào báo cáo:</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nguồn chọn</label>
+                    <select class="form-select" id="taskSourceType">
+                        <option value="task">Theo công việc</option>
+                        <option value="project">Theo dự án</option>
+                    </select>
+                </div>
+                <div class="form-group" id="projectFilterWrap" style="display: none;">
+                    <label class="form-label">Chọn dự án</label>
+                    <select class="form-select" id="projectFilterSelect">
+                        <option value="">-- Chọn dự án --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Lọc công việc</label>
+                <input type="text" class="form-control" id="taskKeywordFilter" placeholder="Nhập tên công việc để lọc..." />
+            </div>
+
+            <div class="work-items-container" id="workItemsList">
+                <p style="color: var(--text-muted); text-align: center; padding: 24px;">Đang tải công việc...</p>
+            </div>
+        </div>
+
+        <!-- KPI SECTION -->
+        <div class="form-section">
+            <h3 class="form-section-title"><i class="bi bi-graph-up"></i> KPI cá nhân</h3>
+            <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-card">
+                    <div class="kpi-card-label">Chưa cập nhật</div>
+                    <div class="kpi-card-value">--</div>
+                    <div class="kpi-card-progress">
+                        <div class="kpi-card-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI ASSISTANT SECTION -->
+        <div class="ai-assistant-card">
+            <h3><i class="bi bi-stars"></i> AI hỗ trợ tạo nội dung</h3>
+            <p>Hệ thống AI sẽ tự động phân tích công việc, tiến độ và KPI của bạn để tạo ra nội dung báo cáo chuyên nghiệp.</p>
+            <button class="btn-ai" id="btnAiAssistant">
+                <i class="bi bi-magic"></i> Tạo nội dung với AI
+            </button>
+        </div>
+
+        <!-- CONTENT SECTION -->
+        <div class="form-section">
+            <h3 class="form-section-title"><i class="bi bi-pencil-square"></i> Nội dung báo cáo chi tiết</h3>
+
+            <div class="form-group">
+                <label class="form-label required">Công việc đã hoàn thành</label>
+                <div class="editor-toolbar">
+                    <button type="button" title="In đậm"><i class="bi bi-type-bold"></i></button>
+                    <button type="button" title="Nghiêng"><i class="bi bi-type-italic"></i></button>
+                    <button type="button" title="Gạch chân"><i class="bi bi-type-underline"></i></button>
+                    <span style="flex: 1;"></span>
+                    <button type="button" title="Danh sách"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" title="Bảng"><i class="bi bi-table"></i></button>
+                    <button type="button" title="Hình ảnh"><i class="bi bi-image"></i></button>
+                </div>
+                <textarea class="form-textarea editor-content" id="completedWork" placeholder="Mô tả công việc đã hoàn thành..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Công việc đang thực hiện</label>
+                <textarea class="form-textarea" id="ongoingWork" placeholder="Mô tả công việc đang thực hiện..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Khó khăn / Vướng mắc</label>
+                <textarea class="form-textarea" id="challenges" placeholder="Liệt kê các khó khăn, vướng mắc như: thiếu tài nguyên, chậm phản hồi, lỗi hệ thống, quá tải công việc..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Đề xuất hỗ trợ</label>
+                <textarea class="form-textarea" id="suggestions" placeholder="Ví dụ: cần thêm nhân sự, gia hạn deadline, hỗ trợ kỹ thuật..."></textarea>
+            </div>
+        </div>
+
+        <!-- ATTACHMENT SECTION -->
+        <div class="form-section attachment-section">
+            <h3 class="form-section-title"><i class="bi bi-paperclip"></i> Đính kèm tài liệu</h3>
+
+            <label class="attachment-upload" id="attachmentUploadArea">
+                <i class="bi bi-cloud-arrow-up"></i>
+                <p>Kéo thả hoặc bấm để chọn tệp</p>
+                <span>Hỗ trợ: PDF, Excel, Word, Hình ảnh (max 5MB)</span>
+                <input type="file" id="attachmentFileInput" multiple style="display: none;" />
+            </label>
+
+            <div class="attachment-list" id="attachmentList"></div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="form-actions">
+            <button class="btn-action secondary" id="btnCancel">
+                <i class="bi bi-x-circle"></i> Hủy
+            </button>
+            <button class="btn-action secondary" id="btnExportPdf">
+                <i class="bi bi-file-pdf"></i> Xuất PDF
+            </button>
+            <button class="btn-action secondary" id="btnExportExcel">
+                <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+            </button>
+            <button class="btn-action primary" id="btnSubmit">
+                <i class="bi bi-check-circle"></i> Gửi báo cáo
+            </button>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="report-sidebar">
+        <!-- PROGRESS CARD -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-card-title"><i class="bi bi-speedometer2"></i> Tiến độ hoàn thành</h4>
+
+            <div class="progress-item">
+                <div class="progress-item-label">
+                    <span>Tiêu đề & loại báo cáo</span>
+                    <span id="progress1">0%</span>
+                </div>
+                <div class="progress-item-bar">
+                    <div class="progress-item-fill" id="progressFill1" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-item-label">
+                    <span>Nội dung chi tiết</span>
+                    <span id="progress2">0%</span>
+                </div>
+                <div class="progress-item-bar">
+                    <div class="progress-item-fill" id="progressFill2" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-item-label">
+                    <span>Công việc được chọn</span>
+                    <span id="progress3">0%</span>
+                </div>
+                <div class="progress-item-bar">
+                    <div class="progress-item-fill" id="progressFill3" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="progress-item">
+                <div class="progress-item-label">
+                    <span>Tài liệu đính kèm</span>
+                    <span id="progress4">0%</span>
+                </div>
+                <div class="progress-item-bar">
+                    <div class="progress-item-fill" id="progressFill4" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COUNTDOWN CARD -->
+        <div class="sidebar-card">
+            <div class="countdown" id="countdownCard" style="display: none;">
+                <div class="countdown-label">⏰ Hạn nộp còn lại</div>
+                <div class="countdown-time" id="countdownTime">--:--</div>
+            </div>
+            <div id="noDeadlineMsg" style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">
+                Báo cáo tự nguyện (không có hạn nộp)
+            </div>
+        </div>
+
+        <!-- HISTORY CARD -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-card-title"><i class="bi bi-clock-history"></i> Báo cáo gần đây</h4>
+            <div id="historyList" style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">
+                Chưa có báo cáo nào
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="report-preview-modal" id="reportPreviewModal" aria-hidden="true">
+    <div class="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="reportPreviewTitle">
+        <div class="report-preview-header">
+            <h3 class="report-preview-title" id="reportPreviewTitle">Xem trước báo cáo</h3>
+            <div class="report-preview-actions">
+                <button class="btn-report btn-draft" type="button" id="btnClosePreview"><i class="bi bi-x-lg"></i> Đóng</button>
+                <button class="btn-report btn-preview" type="button" id="btnPreviewExportPdf"><i class="bi bi-file-pdf"></i> PDF</button>
+                <button class="btn-report btn-send" type="button" id="btnPreviewExportExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            </div>
+        </div>
+        <div class="report-preview-body">
+            <div class="report-preview-content" id="reportPreviewContent"></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    const currentRoleKey = '@roleKey';
+    let allTaskPool = [];
+    const searchParams = new URLSearchParams(window.location.search);
+    const requestedReportRequestId = Number(searchParams.get('requestId') || 0);
+    const isManualCreateMode = searchParams.get('manual') === '1';
+    const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+    async function requestJson(url, options = {}) {
+        try {
+            const res = await fetch(url, options);
+            if (!res.ok) return { success: false, status: res.status };
+            return await res.json();
+        } catch (error) {
+            console.error('Fetch error:', error);
+            return { success: false, message: error?.message || 'Lỗi kết nối' };
+        }
+    }
+
+    function getPayload(resp) {
+        return resp?.data ?? resp?.Data ?? resp ?? null;
+    }
+
+    function extractArray(resp) {
+        const data = getPayload(resp);
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data.items)) return data.items;
+        return [];
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return 'Không xác định';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('vi-VN');
+    }
+
+    function formatMonthYear(item) {
+        if (!item) return '--';
+        const month = String(item.thang || item.Thang || '').padStart(2, '0');
+        const year = item.nam || item.Nam || '';
+        return `${month}/${year}`;
+    }
+
+    function formatTrend(value) {
+        if (value === null || value === undefined || Number.isNaN(value)) return '--';
+        const sign = value > 0 ? '+' : '';
+        return `${sign}${value.toFixed(1)}%`;
+    }
+
+    function getSelectedRecipientName() {
+        const select = document.getElementById('reportRecipient');
+        return select?.selectedOptions?.[0]?.textContent?.trim() || '';
+    }
+
+    function getSelectedRecipientUserId() {
+        const select = document.getElementById('reportRecipient');
+        return select?.value?.trim() || '';
+    }
+
+    function getDateRangeFromPeriod(periodKey) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const toIso = (d) => d.toISOString().slice(0, 10);
+        let from = today;
+        let to = today;
+
+        switch (String(periodKey || 'this_month')) {
+            case 'today':
+                break;
+            case 'this_week': {
+                const day = (today.getDay() + 6) % 7;
+                from = new Date(today);
+                from.setDate(today.getDate() - day);
+                to = new Date(from);
+                to.setDate(from.getDate() + 6);
+                break;
+            }
+            case 'this_month':
+                from = new Date(today.getFullYear(), today.getMonth(), 1);
+                to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                break;
+            case 'this_quarter': {
+                const q = Math.floor(today.getMonth() / 3);
+                from = new Date(today.getFullYear(), q * 3, 1);
+                to = new Date(today.getFullYear(), q * 3 + 3, 0);
+                break;
+            }
+            case 'this_year':
+                from = new Date(today.getFullYear(), 0, 1);
+                to = new Date(today.getFullYear(), 11, 31);
+                break;
+            default:
+                break;
+        }
+
+        return { fromDate: toIso(from), toDate: toIso(to) };
+    }
+
+    function getReportPayload() {
+        const selectedItems = Array.from(document.querySelectorAll('input[name="workItems"]:checked'))
+            .map(cb => parseInt(cb.value));
+        const periodRange = getDateRangeFromPeriod(document.getElementById('reportPeriod')?.value);
+
+        return {
+            maYeuCau: parseInt(window.selectedRequestId || 0) || 0,
+            tenBaoCao: document.getElementById('reportTitle').value.trim(),
+            loaiBaoCao: document.getElementById('reportType').value.trim(),
+            ngayBatDau: periodRange.fromDate,
+            ngayKetThuc: periodRange.toDate,
+            congViecDuocChon: selectedItems,
+            nguoiNhanUserId: getSelectedRecipientUserId(),
+            nguoiNhanBaoCao: getSelectedRecipientName(),
+            noiDung: collectReportContent(),
+            taiLieu: collectAttachments()
+        };
+    }
+
+    function renderPreviewContent() {
+        const payload = getReportPayload();
+        const selectedTasks = Array.from(document.querySelectorAll('input[name="workItems"]:checked'))
+            .map(cb => {
+                const task = Array.from(document.querySelectorAll('#workItemsList .work-item')).find(item => item.querySelector('input[type="checkbox"]')?.value === cb.value);
+                return task ? task.querySelector('.work-item-name')?.textContent?.trim() : '';
+            })
+            .filter(Boolean);
+
+        const request = (window.reportRequests || []).find(x => Number(x.maYeuCau || x.MaYeuCau) === Number(payload.maYeuCau));
+        const requestLabel = request ? `${request.tieuDe || request.TieuDe || 'Yêu cầu báo cáo'}${request.nguoiYeuCau || request.NguoiYeuCau ? ` - ${request.nguoiYeuCau || request.NguoiYeuCau}` : ''}` : 'Báo cáo tự nguyện';
+
+        document.getElementById('reportPreviewTitle').textContent = payload.tenBaoCao || 'Xem trước báo cáo';
+        document.getElementById('reportPreviewContent').innerHTML = `
+            <div class="preview-section">
+                <h4>Thông tin chung</h4>
+                <div class="preview-meta">
+                    <div class="preview-meta-item"><strong>Tiêu đề</strong>${escapeHtml(payload.tenBaoCao || '--')}</div>
+                    <div class="preview-meta-item"><strong>Loại báo cáo</strong>${escapeHtml(payload.loaiBaoCao || '--')}</div>
+                    <div class="preview-meta-item"><strong>Từ ngày</strong>${escapeHtml(payload.ngayBatDau || '--')}</div>
+                    <div class="preview-meta-item"><strong>Đến ngày</strong>${escapeHtml(payload.ngayKetThuc || '--')}</div>
+                    <div class="preview-meta-item"><strong>Người nhận</strong>${escapeHtml(payload.nguoiNhanBaoCao || '--')}</div>
+                    <div class="preview-meta-item"><strong>Nguồn yêu cầu</strong>${escapeHtml(requestLabel)}</div>
+                </div>
+            </div>
+            <div class="preview-section">
+                <h4>Nội dung chi tiết</h4>
+                <p><strong>Đã hoàn thành:</strong><br>${escapeHtml(JSON.parse(payload.noiDung || '{}').completed || '')}</p>
+                <p><strong>Đang thực hiện:</strong><br>${escapeHtml(JSON.parse(payload.noiDung || '{}').ongoing || '')}</p>
+                <p><strong>Khó khăn / Vướng mắc:</strong><br>${escapeHtml(JSON.parse(payload.noiDung || '{}').challenges || '')}</p>
+                <p><strong>Đề xuất hỗ trợ:</strong><br>${escapeHtml(JSON.parse(payload.noiDung || '{}').support || '')}</p>
+            </div>
+            <div class="preview-section">
+                <h4>Công việc liên quan</h4>
+                <div class="preview-task-list">
+                    ${selectedTasks.length ? selectedTasks.map(task => `<div class="preview-task-item">${escapeHtml(task)}</div>`).join('') : '<div class="preview-task-item">Chưa chọn công việc nào</div>'}
+                </div>
+            </div>
+            <div class="preview-section">
+                <h4>Tệp đính kèm</h4>
+                <div class="preview-task-list">
+                    ${payload.taiLieu.length ? payload.taiLieu.map(file => `<div class="preview-task-item">${escapeHtml(file)}</div>`).join('') : '<div class="preview-task-item">Không có tệp đính kèm</div>'}
+                </div>
+            </div>
+        `;
+    }
+
+    function updateSidebarProgress() {
+        const title = document.getElementById('reportTitle').value.trim();
+        const type = document.getElementById('reportType').value.trim();
+        const completed = document.getElementById('completedWork').value.trim();
+        const ongoing = document.getElementById('ongoingWork').value.trim();
+        const challenges = document.getElementById('challenges').value.trim();
+        const support = document.getElementById('suggestions').value.trim();
+        const selectedTasks = document.querySelectorAll('input[name="workItems"]:checked').length;
+        const totalTasks = document.querySelectorAll('input[name="workItems"]').length;
+        const attachmentCount = document.querySelectorAll('#attachmentList .attachment-item').length;
+
+        const progress1 = title && type ? 100 : (title || type ? 50 : 0);
+        const progress2 = [completed, ongoing, challenges, support].filter(Boolean).length * 25;
+        const progress3 = totalTasks > 0 ? Math.round((selectedTasks / totalTasks) * 100) : 0;
+        const progress4 = Math.min(attachmentCount * 25, 100);
+
+        document.getElementById('progress1').textContent = `${progress1}%`;
+        document.getElementById('progressFill1').style.width = `${progress1}%`;
+        document.getElementById('progress2').textContent = `${progress2}%`;
+        document.getElementById('progressFill2').style.width = `${progress2}%`;
+        document.getElementById('progress3').textContent = `${progress3}%`;
+        document.getElementById('progressFill3').style.width = `${progress3}%`;
+        document.getElementById('progress4').textContent = `${progress4}%`;
+        document.getElementById('progressFill4').style.width = `${progress4}%`;
+    }
+
+    function renderPersonalKpi(kpi) {
+        const container = document.getElementById('kpiGrid');
+
+        if (!kpi) {
+            container.innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-card-label">Chưa có KPI</div>
+                    <div class="kpi-card-value">--</div>
+                    <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: 0%"></div></div>
+                </div>
+            `;
+            return;
+        }
+
+        const score = Number(kpi.diemHienTai ?? kpi.DiemHienTai ?? 0);
+        const classification = kpi.xepLoai || kpi.XepLoai || 'Chưa có dữ liệu';
+        const trend = kpi.xuHuongPhanTram ?? kpi.XuHuongPhanTram;
+
+        container.innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-card-label">Điểm KPI hiện tại</div>
+                <div class="kpi-card-value">${score.toFixed(1)}</div>
+                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${Math.min(score, 100)}%"></div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-label">Xếp loại</div>
+                <div class="kpi-card-value" style="font-size: 18px;">${escapeHtml(classification)}</div>
+                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${score >= 90 ? 100 : score >= 80 ? 85 : score >= 65 ? 70 : score >= 50 ? 50 : 25}%"></div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-label">Xu hướng</div>
+                <div class="kpi-card-value" style="font-size: 18px;">${formatTrend(trend)}</div>
+                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${trend > 0 ? 85 : trend < 0 ? 35 : 55}%"></div></div>
+            </div>
+        `;
+    }
+
+    async function loadRecentReports() {
+        const container = document.getElementById('historyList');
+        if (!container) return;
+
+        try {
+            const res = await requestJson('/api/baocao/list?LoaiBaoCao=personal&PageNumber=1&PageSize=5');
+            const data = getPayload(res);
+            
+            if (!data || !data.items || data.items.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">Chưa có báo cáo nào</div>';
+                return;
+            }
+
+            container.innerHTML = data.items.map(report => {
+                const ngayTao = new Date(report.ngayTao || report.NgayTao);
+                const tenBaoCao = report.tenBaoCao || report.TenBaoCao || 'Báo cáo không tên';
+                const loaiBaoCao = report.loaiBaoCao || report.LoaiBaoCao || 'Cá nhân';
+                const trangThai = report.trangThai || report.TrangThai || 'Nháp';
+                
+                return `
+                    <div class="history-item">
+                        <div class="history-item-date">${tenBaoCao}</div>
+                        <div class="history-item-status">
+                            ${ngayTao.toLocaleDateString('vi-VN')} • 
+                            <span style="color: ${trangThai === 'Đã gửi' ? '#10b981' : '#f59e0b'}">${trangThai}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading recent reports:', error);
+            container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">Không thể tải báo cáo gần đây</div>';
+        }
+    }
+
+    function registerStaticEvents() {
+        const byId = (id) => document.getElementById(id);
+
+        byId('btnAiAssistant')?.addEventListener('click', aiAssist);
+        byId('btnSaveDraft')?.addEventListener('click', saveDraft);
+        byId('btnPreview')?.addEventListener('click', showPreview);
+        byId('btnSendReport')?.addEventListener('click', submitReport);
+        byId('btnSubmit')?.addEventListener('click', submitReport);
+        byId('btnCancel')?.addEventListener('click', () => window.history.back());
+        byId('btnExportPdf')?.addEventListener('click', exportPdf);
+        byId('btnExportExcel')?.addEventListener('click', exportExcel);
+        byId('btnClosePreview')?.addEventListener('click', closePreview);
+        byId('btnPreviewExportPdf')?.addEventListener('click', exportPdf);
+        byId('btnPreviewExportExcel')?.addEventListener('click', exportExcel);
+        byId('reportPreviewModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'reportPreviewModal') closePreview();
+        });
+
+        const uploadArea = byId('attachmentUploadArea');
+        if (uploadArea) {
+            uploadArea.addEventListener('click', () => byId('attachmentFileInput')?.click());
+            uploadArea.addEventListener('dragover', (e) => e.preventDefault());
+            uploadArea.addEventListener('drop', handleAttachmentDrop);
+        }
+
+        ['reportTitle', 'reportType', 'reportPeriod', 'completedWork', 'ongoingWork', 'challenges', 'suggestions'].forEach(id => {
+            const element = byId(id);
+            if (element) {
+                element.addEventListener('input', updateSidebarProgress);
+                element.addEventListener('change', updateSidebarProgress);
+            }
+        });
+
+        byId('taskSourceType')?.addEventListener('change', applyTaskSourceFilter);
+        byId('projectFilterSelect')?.addEventListener('change', applyTaskSourceFilter);
+        byId('taskKeywordFilter')?.addEventListener('input', applyTaskSourceFilter);
+    }
+
+    async function init() {
+        registerStaticEvents();
+
+        try {
+            const res = await requestJson('/api/report/load-page');
+            const data = getPayload(res);
+            
+            if (!data) {
+                console.error('Failed to load page data');
+                alert('Không tải được dữ liệu ban đầu của trang báo cáo. Bạn vẫn có thể nhập và gửi báo cáo thủ công.');
+                return;
+            }
+
+            allTaskPool = data.myTasks || [];
+            renderProjectFilterOptions(allTaskPool);
+            applyTaskSourceFilter();
+
+            // Render manager list
+            populateRecipients(data.managers || []);
+
+            // Render report requests
+            renderReportRequests(data.myRequests || []);
+
+            // Render personal KPI sidebar
+            renderPersonalKpi(data.personalKpi || data.PersonalKpi || null);
+
+            // Load recent reports into sidebar
+            await loadRecentReports();
+
+            // Keep requests available for quick selection/fill
+            window.reportRequests = data.myRequests || [];
+
+            if (isManualCreateMode && currentRoleKey === 'admin') {
+                const requestCard = document.getElementById('requestNotificationCard');
+                if (requestCard) requestCard.style.display = 'none';
+            }
+
+            if (requestedReportRequestId > 0) {
+                selectRequest(requestedReportRequestId);
+            }
+
+            document.querySelectorAll('input[name="workItems"]').forEach(input => {
+                input.addEventListener('change', updateSidebarProgress);
+            });
+        } catch (err) {
+            console.error('Error initializing page:', err);
+            alert('Không thể khởi tạo trang báo cáo. Vui lòng tải lại trang hoặc đăng nhập lại.');
+        }
+    }
+
+    async function parseApiResponse(response) {
+        const raw = await response.text();
+        if (!raw) return { success: response.ok, status: response.status };
+
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return {
+                success: false,
+                status: response.status,
+                message: raw.length > 300 ? raw.slice(0, 300) + '...' : raw
+            };
+        }
+    }
+
+    function renderReportRequests(requests) {
+        const container = document.getElementById('requestList');
+        if (!requests.length) {
+            container.innerHTML = '<div class="request-item-empty"><p>Chưa có yêu cầu báo cáo nào. Bạn có thể tạo báo cáo tự nguyện.</p></div>';
+            document.getElementById('requestCountBadge').textContent = '0';
+            return;
+        }
+
+        const count = requests.length;
+        document.getElementById('requestCountBadge').textContent = count;
+
+        container.innerHTML = requests.map(r => `
+            <div class="request-item">
+                <div class="request-item-header">
+                    <div>
+                        <h4>${escapeHtml(r.tieuDe || 'Yêu cầu báo cáo')}</h4>
+                        <p>${escapeHtml(r.moTa || '')}</p>
+                        <p style="margin-top: 4px;">Người yêu cầu: ${escapeHtml(r.nguoiYeuCau || r.NguoiYeuCau || 'Không xác định')}</p>
+                    </div>
+                    <span class="request-priority ${r.priority || 'normal'}">${getPriorityLabel(r.priority)}</span>
+                </div>
+                <div class="request-item-footer">
+                    <span class="request-deadline">Hạn: ${formatDate(r.hanChot)}</span>
+                    <div class="request-actions">
+                        <button class="btn-small" onclick="selectRequest(${r.maYeuCau})">Chọn yêu cầu này</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getPriorityLabel(priority) {
+        const labels = {
+            'low': '🟢 Thường',
+            'normal': '🟡 Bình thường',
+            'high': '🔴 Cao',
+            'urgent': '🔥 Gấp'
+        };
+        return labels[priority] || priority || 'Bình thường';
+    }
+
+    function selectRequest(maYeuCau) {
+        window.selectedRequestId = maYeuCau;
+        const request = (window.reportRequests || []).find(x => Number(x.maYeuCau || x.MaYeuCau) === Number(maYeuCau));
+
+        if (request) {
+            const titleInput = document.getElementById('reportTitle');
+            const typeSelect = document.getElementById('reportType');
+            const periodSelect = document.getElementById('reportPeriod');
+
+            if (!titleInput.value) {
+                titleInput.value = request.tieuDe || request.TieuDe || '';
+            }
+
+            if (!typeSelect.value) {
+                const priority = String(request.priority || request.Priority || '').toLowerCase();
+                if (priority === 'urgent') typeSelect.value = 'urgent';
+                else if (priority === 'high') typeSelect.value = 'weekly';
+                else typeSelect.value = 'work';
+            }
+
+            if (periodSelect && !periodSelect.value) {
+                periodSelect.value = 'this_month';
+            }
+        }
+
+        updateStatusBadge('Đang soạn');
+        updateSidebarProgress();
+        alert(`Đã chọn yêu cầu #${maYeuCau}. Báo cáo sẽ được gửi để phản hồi yêu cầu này.`);
+    }
+
+    function renderWorkItems(tasks) {
+        const container = document.getElementById('workItemsList');
+        if (!tasks.length) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 24px;">Chưa có công việc nào</p>';
+            updateSidebarProgress();
+            return;
+        }
+
+        container.innerHTML = tasks.map(t => `
+            <div class="work-item">
+                <input type="checkbox" name="workItems" value="${t.maCongViec || t.MaCongViec || 0}" />
+                <div class="work-item-info">
+                    <p class="work-item-name">${escapeHtml(t.tenCongViec || t.TenCongViec || '')}</p>
+                    <div class="work-item-details">
+                        <span>${escapeHtml(t.tenDuAn || t.TenDuAn || '-')}</span>
+                    </div>
+                </div>
+                <div class="work-item-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(t.tienDoPhanTram || t.TienDoPhanTram || 0)}%"></div>
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted);">${(t.tienDoPhanTram || t.TienDoPhanTram || 0)}%</span>
+                </div>
+                <div class="work-item-status ${(t.tenTrangThai || t.TenTrangThai || '').includes('Hoàn') ? 'status-completed' : 'status-ontime'}">
+                    ${escapeHtml(t.tenTrangThai || t.TenTrangThai || 'Đang làm')}
+                </div>
+            </div>
+        `).join('');
+
+        updateSidebarProgress();
+    }
+
+    function populateRecipients(emps) {
+        const select = document.getElementById('reportRecipient');
+        if (!select) return;
+
+        const emptyText = currentRoleKey === 'manager'
+            ? '-- Chọn admin nhận báo cáo --'
+            : '-- Chọn người nhận --';
+
+        if (!emps || !emps.length) {
+            select.innerHTML = `<option value="">${emptyText}</option>`;
+            return;
+        }
+
+        const html = emps.map(e => `
+            <option value="${escapeHtml(e.aspNetUserId || e.AspNetUserId || '')}">${escapeHtml(e.hoTen || e.HoTen || '')}</option>
+        `).join('');
+        select.innerHTML = `<option value="">${emptyText}</option>${html}`;
+
+        updateSidebarProgress();
+    }
+
+    function renderProjectFilterOptions(tasks) {
+        const select = document.getElementById('projectFilterSelect');
+        if (!select) return;
+
+        const projectMap = new Map();
+        for (const t of tasks || []) {
+            const maDuAn = t.maDuAn ?? t.MaDuAn;
+            const tenDuAn = (t.tenDuAn ?? t.TenDuAn ?? '').trim();
+            if (!maDuAn || !tenDuAn) continue;
+            if (!projectMap.has(String(maDuAn))) {
+                projectMap.set(String(maDuAn), tenDuAn);
+            }
+        }
+
+        const options = ['<option value="">-- Chọn dự án --</option>'];
+        for (const [id, name] of projectMap.entries()) {
+            options.push(`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`);
+        }
+        select.innerHTML = options.join('');
+    }
+
+    function applyTaskSourceFilter() {
+        const sourceType = document.getElementById('taskSourceType')?.value || 'task';
+        const projectWrap = document.getElementById('projectFilterWrap');
+        const selectedProject = document.getElementById('projectFilterSelect')?.value || '';
+        const keyword = (document.getElementById('taskKeywordFilter')?.value || '').trim().toLowerCase();
+
+        if (projectWrap) {
+            projectWrap.style.display = sourceType === 'project' ? 'block' : 'none';
+        }
+
+        let filtered = allTaskPool || [];
+        if (sourceType === 'project') {
+            filtered = selectedProject
+                ? filtered.filter(t => String(t.maDuAn ?? t.MaDuAn ?? '') === String(selectedProject))
+                : [];
+        }
+
+        if (keyword) {
+            filtered = filtered.filter(t => String(t.tenCongViec ?? t.TenCongViec ?? '').toLowerCase().includes(keyword));
+        }
+
+        renderWorkItems(filtered);
+    }
+
+    function handleAttachmentDrop(e) {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        addAttachments(files);
+    }
+
+    function addAttachments(files) {
+        const list = document.getElementById('attachmentList');
+        Array.from(files).forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'attachment-item';
+            item.innerHTML = `
+                <i class="bi bi-file"></i>
+                <div class="attachment-item-name">${escapeHtml(file.name)}</div>
+                <div class="attachment-item-size">${(file.size / 1024).toFixed(1)} KB</div>
+                <button class="attachment-item-remove" type="button" title="Xóa">×</button>
+            `;
+            item.querySelector('.attachment-item-remove').addEventListener('click', () => item.remove());
+            list.appendChild(item);
+        });
+
+        updateSidebarProgress();
+    }
+
+    async function aiAssist() {
+        alert('Tính năng AI sẽ được phát triển');
+    }
+
+    async function saveDraft() {
+        const payload = getReportPayload();
+
+        if (!payload.tenBaoCao || !payload.loaiBaoCao || !payload.nguoiNhanUserId) {
+            alert('Vui lòng điền tiêu đề, loại báo cáo và người nhận báo cáo');
+            return;
+        }
+
+        const request = {
+            ...payload,
+            noiDung: collectReportContent()
+        };
+
+        try {
+            const res = await fetch('/api/report/save-draft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request)
+            });
+            const result = await parseApiResponse(res);
+            if (result.success) {
+                updateStatusBadge('Nháp');
+                updateSidebarProgress();
+                alert('✓ Lưu nháp báo cáo thành công');
+            } else {
+                alert('✗ Lỗi: ' + (result.message || result.Message || 'Không lưu được nháp'));
+            }
+        } catch (err) {
+            alert('✗ Lỗi khi lưu nháp: ' + err.message);
+        }
+    }
+
+    function openPreview() {
+        renderPreviewContent();
+        document.getElementById('reportPreviewModal').classList.add('open');
+        document.getElementById('reportPreviewModal').setAttribute('aria-hidden', 'false');
+    }
+
+    function closePreview() {
+        document.getElementById('reportPreviewModal').classList.remove('open');
+        document.getElementById('reportPreviewModal').setAttribute('aria-hidden', 'true');
+    }
+
+    async function showPreview() {
+        openPreview();
+    }
+
+    async function submitReport() {
+        const payload = getReportPayload();
+
+        if (!payload.tenBaoCao || !payload.loaiBaoCao || !payload.nguoiNhanUserId) {
+            alert('Vui lòng nhập Tên báo cáo, Loại báo cáo và Người nhận báo cáo');
+            return;
+        }
+
+        const request = {
+            ...payload,
+            maYeuCau: payload.maYeuCau,
+            noiDung: collectReportContent()
+        };
+
+        try {
+            const res = await fetch('/api/report/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request)
+            });
+            const result = await parseApiResponse(res);
+            if (result.success) {
+                updateStatusBadge('Đã gửi');
+                updateSidebarProgress();
+                alert('✓ Báo cáo đã được gửi thành công');
+                setTimeout(() => window.location.href = '/Portal', 2000);
+            } else {
+                alert('✗ Lỗi: ' + (result?.message || result?.Message || `HTTP ${res.status}`));
+            }
+        } catch (err) {
+            alert('✗ Lỗi khi gửi báo cáo: ' + err.message);
+        }
+    }
+
+    function collectReportContent() {
+        const content = {
+            completed: document.getElementById('completedWork').value || '',
+            ongoing: document.getElementById('ongoingWork').value || '',
+            challenges: document.getElementById('challenges').value || '',
+            support: document.getElementById('suggestions').value || '',
+            recipientName: getSelectedRecipientName() || ''
+        };
+        return JSON.stringify(content);
+    }
+
+    function collectAttachments() {
+        const items = document.querySelectorAll('#attachmentList .attachment-item');
+        return Array.from(items).map(item => item.querySelector('.attachment-item-name').textContent);
+    }
+
+    function updateStatusBadge(status) {
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = status;
+        badge.className = 'status-badge ' + (status === 'Nháp' ? 'draft' : status === 'Đã gửi' ? 'sent' : status === 'Đang soạn' ? 'unsent' : 'processing');
+    }
+
+    async function downloadReportFile(url, fileName) {
+        const payload = getReportPayload();
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...payload,
+                noiDung: collectReportContent()
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Không thể xuất file');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+    }
+
+    async function exportPdf() {
+        try {
+            await downloadReportFile('/api/report/export-pdf', `${(document.getElementById('reportTitle').value || 'BaoCao').replace(/[^\w\d_-]+/g, '_')}.pdf`);
+        } catch (err) {
+            alert('✗ Lỗi khi xuất PDF: ' + err.message);
+        }
+    }
+
+    async function exportExcel() {
+        try {
+            await downloadReportFile('/api/report/export-excel', `${(document.getElementById('reportTitle').value || 'BaoCao').replace(/[^\w\d_-]+/g, '_')}.xlsx`);
+        } catch (err) {
+            alert('✗ Lỗi khi xuất Excel: ' + err.message);
+        }
+    }
+
+    init();
+</script>

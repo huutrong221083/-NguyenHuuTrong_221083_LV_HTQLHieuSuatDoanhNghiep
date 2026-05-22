@@ -1,0 +1,76 @@
+@model LuanVan.Models.LoginViewModel
+@{
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-page">
+    <div class="auth-panel">
+        <div class="auth-brand">
+            <span class="logo-badge" aria-hidden="true">
+                <svg viewBox="0 0 48 48" role="img" focusable="false">
+                    <defs>
+                        <linearGradient id="authPerfLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2563eb" />
+                            <stop offset="100%" stop-color="#0ea5e9" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="5" y="5" width="38" height="38" rx="11" fill="url(#authPerfLogoGrad)" />
+                    <path d="M15 31h4V21h-4v10zm7 0h4V17h-4v14zm7 0h4V24h-4v7z" fill="#f8fafc" />
+                    <path d="M13 34h22" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </span>
+            <div>
+                <h1>Quản lý hiệu suất</h1>
+                <p>Hệ thống đánh giá hiệu suất và AI</p>
+            </div>
+        </div>
+
+        <section id="loginSection">
+            <h2>Đăng nhập hệ thống</h2>
+
+            @if (TempData["AuthError"] is string authError)
+            {
+                <div class="alert alert-danger">@authError</div>
+            }
+
+            <form id="loginForm" method="post" asp-action="Login" asp-controller="Account" novalidate>
+                @Html.AntiForgeryToken()
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="loginUser">Tài khoản hoặc Email</label>
+                    <input asp-for="UserNameOrEmail" id="loginUser" class="form-control" type="text" placeholder="Nhập tài khoản hoặc email của bạn" autocomplete="username" />
+                    <small id="loginUserError" class="field-error d-none">Vui lòng nhập tài khoản hoặc email.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="loginPassword">Mật khẩu</label>
+                    <div class="password-field-wrap">
+                        <input asp-for="Password" id="loginPassword" class="form-control" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" />
+                        <button id="toggleLoginPassword" class="password-toggle" type="button" aria-label="Hiện mật khẩu" data-target="loginPassword">Hiện</button>
+                    </div>
+                    <small id="loginPasswordError" class="field-error d-none">Vui lòng nhập mật khẩu.</small>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input asp-for="RememberMe" class="form-check-input" type="checkbox" id="remember" />
+                    <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
+                </div>
+
+                <div class="auth-links-row">
+                    <a class="auth-link-btn" asp-controller="Account" asp-action="ForgotPassword">Quên mật khẩu?</a>
+                </div>
+
+                <button id="loginSubmit" class="btn btn-primary w-100" type="submit">
+                    <span class="login-btn-text">Đăng nhập</span>
+                    <span class="spinner-border spinner-border-sm d-none" id="loginLoading" aria-hidden="true"></span>
+                </button>
+            </form>
+        </section>
+
+        <p class="auth-note">Quy trình bảo mật gồm xác thực tài khoản và khôi phục mật khẩu qua email.</p>
+    </div>
+
+</div>
+

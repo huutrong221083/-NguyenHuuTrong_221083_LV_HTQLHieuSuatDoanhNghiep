@@ -1,0 +1,1738 @@
+@{
+    ViewData["Title"] = "Duyệt Tiến Độ Công Việc";
+    var role = (ViewData["Role"]?.ToString() ?? "Manager").Trim().ToLowerInvariant();
+}
+
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --success: #16a34a;
+        --danger: #dc2626;
+        --warning: #f59e0b;
+        --secondary: #64748b;
+        --border: #e2e8f0;
+        --bg-light: #f8fafc;
+        --bg-white: #ffffff;
+        --text-dark: #0f172a;
+        --text-muted: #64748b;
+    }
+
+    .main-container { background: var(--bg-light); }
+
+    .main-content { padding: 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+    .approval-hero {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 16px;
+        padding: 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: linear-gradient(135deg, #ffffff 0%, #eef4ff 55%, #f5f3ff 100%);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .approval-hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .approval-hero h2 {
+        margin: 8px 0 12px;
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text-dark);
+    }
+
+    .approval-hero-sub {
+        margin: 0 0 16px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .approval-hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .approval-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .approval-pill.pending {
+        color: #92400e;
+        background: #fef3c7;
+        border-color: #fde68a;
+    }
+
+    .approval-pill.approved {
+        color: #166534;
+        background: #dcfce7;
+        border-color: #bbf7d0;
+    }
+
+    .approval-pill.rejected {
+        color: #7f1d1d;
+        background: #fee2e2;
+        border-color: #fecaca;
+    }
+
+    .approval-hero-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Compact hero variant: place stats horizontally */
+    .compact-hero .approval-hero-stats {
+        flex-direction: row !important;
+        align-items: center;
+    }
+
+    .stat-box {
+        border: 1px solid #c7d2fe;
+        border-radius: 12px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    }
+
+    .stat-label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--primary);
+        margin: 0;
+    }
+
+    .card {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .filter-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+    }
+
+    .filter-input, .filter-select {
+        height: 38px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 14px;
+        font-family: inherit;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: border-color 0.22s, box-shadow 0.22s;
+    }
+
+    .filter-input:focus, .filter-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn {
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.22s cubic-bezier(0.2,0,0,1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-light);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #15803d;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #b91c1c;
+        transform: translateY(-2px);
+    }
+
+    .btn-sm {
+        height: 32px;
+        padding: 0 10px;
+        font-size: 12px;
+    }
+
+    .btn-outline-soft {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+    }
+
+    .btn-muted {
+        background: var(--bg-light);
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+
+    .filter-controls .filter-group:first-child {
+        min-width: 280px;
+        flex: 1 1 280px;
+    }
+
+    .approval-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .approval-table thead {
+        background: #f1f5f9;
+    }
+
+    .approval-table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-dark);
+        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+    }
+
+    .approval-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-dark);
+    }
+
+    .approval-table tbody tr {
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .approval-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .task-name {
+        font-weight: 600;
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .project-name {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .progress-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .progress-number {
+        font-weight: 700;
+        min-width: 35px;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        border-radius: 3px;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #92400e;
+    }
+
+    .status-approved {
+        background: rgba(22, 163, 74, 0.1);
+        color: #166534;
+    }
+
+    .status-rejected {
+        background: rgba(220, 38, 38, 0.1);
+        color: #991b1b;
+    }
+
+    .employee-name {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .employee-date {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .update-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #1d4ed8;
+        background: #dbeafe;
+        border: 1px solid #bfdbfe;
+    }
+
+    .pending-live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 8px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fde68a;
+    }
+
+    .pending-live-badge.pulse {
+        animation: pendingPulse 0.8s ease;
+    }
+
+    @@keyframes pendingPulse {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.08); }
+        100% { transform: scale(1); }
+    }
+
+    .table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .page-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .page-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .page-size {
+        width: 88px;
+        padding: 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 12px;
+        color: var(--text-dark);
+        background: var(--bg-white);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Modal styles */
+    .modal-content {
+        background: var(--bg-white);
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-content.detail-modal {
+        max-width: 860px;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .detail-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-light);
+        padding: 12px;
+    }
+
+    .detail-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+    }
+
+    .detail-value {
+        font-size: 14px;
+        color: var(--text-dark);
+        font-weight: 600;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .detail-section-title {
+        margin: 14px 0 10px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .detail-note {
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .detail-note.reject {
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        color: #7f1d1d;
+    }
+
+    .detail-note.normal {
+        border: 1px solid var(--border);
+        background: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--text-dark);
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        color: var(--text-dark);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control-readonly {
+        background: var(--bg-light);
+        cursor: not-allowed;
+    }
+
+    @@keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .approval-hero {
+            grid-template-columns: 1fr;
+        }
+        .filter-controls {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            padding: 12px;
+        }
+        .approval-hero {
+            padding: 16px;
+        }
+        .filter-controls {
+            grid-template-columns: 1fr;
+        }
+        .card-header {
+            padding: 16px;
+        }
+        .card-body {
+            padding: 16px;
+        }
+        .approval-table {
+            font-size: 12px;
+        }
+        .approval-table td, .approval-table th {
+            padding: 8px;
+        }
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="main-container">
+    <div class="main-content">
+        <!-- Filter & Controls -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Danh sách cập nhật tiến độ</h3>
+                <div class="approval-hero-stats" style="display:flex;flex-direction:row;gap:12px;align-items:center;flex-wrap:nowrap;margin-left:auto;">
+                    <div class="stat-box" style="padding:10px 14px;min-width:120px;text-align:center;flex:0 0 auto;">
+                        <span class="stat-label">Chờ duyệt</span>
+                        <p class="stat-value" id="pendingCount">0</p>
+                    </div>
+                    <div class="stat-box" style="padding:10px 14px;min-width:120px;text-align:center;flex:0 0 auto;">
+                        <span class="stat-label">Đã xử lý</span>
+                        <p class="stat-value" id="processedToday">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label class="filter-label">Tìm kiếm công việc</label>
+                        <input type="text" id="filterKeyword" class="filter-input" placeholder="Tên công việc, dự án...">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Trạng thái</label>
+                        <select id="filterStatus" class="filter-select">
+                            <option value="">Tất cả</option>
+                            <option value="Chờ duyệt">Chờ duyệt</option>
+                            <option value="Đã duyệt">Đã duyệt</option>
+                            <option value="Từ chối">Từ chối</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Dự án</label>
+                        <select id="filterProject" class="filter-select">
+                            <option value="">Tất cả dự án</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Từ ngày</label>
+                        <input type="date" id="filterFromDate" class="filter-input">
+                    </div>
+                    <button class="btn btn-primary" id="btnRefresh">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </button>
+                </div>
+
+                <!-- Approval Table -->
+                <div id="tableContainer">
+                    <table class="approval-table">
+                        <thead>
+                            <tr>
+                                <th>Công việc</th>
+                                <th>Dự án</th>
+                                <th>Tiến độ</th>
+                                <th>Lần cập nhật</th>
+                                <th>Nhân viên</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                                    <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <div id="pageMeta" class="page-meta">Trang 1/1 - 0 bản ghi</div>
+                    <div class="page-controls">
+                        <select id="pageSize" class="page-size">
+                            <option value="10">10 / trang</option>
+                            <option value="20" selected>20 / trang</option>
+                            <option value="50">50 / trang</option>
+                        </select>
+                        <button class="btn btn-sm btn-muted" id="btnPrevPage">Trước</button>
+                        <button class="btn btn-sm btn-muted" id="btnNextPage">Sau</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+            <div class="card-header">
+                <h3>Duyệt hoàn thành dự án (Admin)</h3>
+            </div>
+            <div class="card-body">
+                <div id="projectApprovalTableContainer">
+                    <table class="approval-table">
+                        <thead>
+                            <tr>
+                                <th>Dự án</th>
+                                <th>Thời gian</th>
+                                <th>Tiến độ công việc</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectApprovalsTableBody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted);">Đang tải dữ liệu...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Phê duyệt tiến độ</h4>
+            <button type="button" class="btn-close" aria-label="Close" onclick="closeApproveModal()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Công việc</label>
+                <input type="text" id="approveTaskName" class="form-control form-control-readonly" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tiến độ</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="approveProgressFill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <span id="approveProgressPercent">0%</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nhân viên cập nhật</label>
+                <input type="text" id="approveEmployeeName" class="form-control form-control-readonly" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ngày cập nhật</label>
+                <input type="text" id="approveUpdateDate" class="form-control form-control-readonly" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ghi chú (tuỳ chọn)</label>
+                <textarea id="approveComment" class="form-control" rows="3" placeholder="Nhập ghi chú phê duyệt..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeApproveModal()">Hủy</button>
+            <button class="btn btn-success" id="btnConfirmApprove" onclick="confirmApprove()">
+                <i class="bi bi-check-lg"></i> Phê duyệt
+            </button>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Từ chối tiến độ</h4>
+            <button type="button" class="btn-close" aria-label="Close" onclick="closeRejectModal()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Công việc</label>
+                <input type="text" id="rejectTaskName" class="form-control form-control-readonly" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tiến độ báo cáo</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="rejectProgressFill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <span id="rejectProgressPercent">0%</span>
+                </div>
+            </div>
+            <div class="form-group" style="background: #fee2e2; padding: 12px; border-radius: 8px; border-left: 4px solid var(--danger);">
+                <strong style="color: var(--danger);"><i class="bi bi-exclamation-triangle-fill"></i> Thao tác này sẽ yêu cầu nhân viên cập nhật lại tiến độ</strong>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Lý do từ chối <span style="color: var(--danger);">*</span></label>
+                <textarea id="rejectReason" class="form-control" rows="4" placeholder="Vui lòng nhập lý do từ chối để nhân viên hiểu rõ..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeRejectModal()">Hủy</button>
+            <button class="btn btn-danger" id="btnConfirmReject" onclick="confirmReject()">
+                <i class="bi bi-x-lg"></i> Từ chối
+            </button>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+    <div class="modal-content detail-modal">
+        <div class="modal-header">
+            <h4>Chi tiết công việc cần duyệt</h4>
+            <button type="button" class="btn-close" aria-label="Close" onclick="closeDetailModal()"></button>
+        </div>
+        <div class="modal-body" id="detailModalBody">
+            <div style="text-align:center; color: var(--text-muted); padding: 22px;">Đang tải chi tiết...</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeDetailModal()">Đóng</button>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Reject Project Completion Modal -->
+<div class="modal fade" id="rejectProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Từ chối hoàn thành dự án</h4>
+            <button type="button" class="btn-close" aria-label="Close" onclick="closeRejectProjectModal()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Lý do từ chối <span style="color: var(--danger);">*</span></label>
+                <textarea id="rejectProjectReason" class="form-control" rows="4" placeholder="Nhập lý do từ chối hoàn thành dự án..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeRejectProjectModal()">Hủy</button>
+            <button class="btn btn-danger" id="btnConfirmRejectProject" onclick="confirmRejectProjectCompletion()">
+                <i class="bi bi-x-lg"></i> Từ chối
+            </button>
+        </div>
+    </div>
+    </div>
+</div>
+
+<script>
+    let currentApprovalId = null;
+    let currentProjectApprovalId = null;
+    let approvals = [];
+    let projectCompletionApprovals = [];
+    let approvalSummary = {
+        pending: 0,
+        approved: 0
+    };
+    const approveModalInstance = window.bootstrap?.Modal ? new bootstrap.Modal(document.getElementById('approveModal')) : null;
+    const rejectModalInstance = window.bootstrap?.Modal ? new bootstrap.Modal(document.getElementById('rejectModal')) : null;
+    const detailModalInstance = window.bootstrap?.Modal ? new bootstrap.Modal(document.getElementById('detailModal')) : null;
+    const rejectProjectModalInstance = window.bootstrap?.Modal ? new bootstrap.Modal(document.getElementById('rejectProjectModal')) : null;
+    const approvalState = {
+        page: 1,
+        size: 20,
+        totalPages: 1,
+        totalItems: 0,
+        lastPending: -1,
+        autoRefreshTimer: null,
+        isLoading: false
+    };
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        setupFilterListeners();
+        loadProjects();
+        loadApprovals();
+        loadProjectCompletionApprovals();
+        startLiveRefresh();
+    });
+
+    function setupFilterListeners() {
+        document.getElementById('btnRefresh').addEventListener('click', () => loadApprovals());
+        document.getElementById('filterKeyword').addEventListener('input', debounce(() => {
+            approvalState.page = 1;
+            loadApprovals();
+        }, 300));
+        document.getElementById('filterStatus').addEventListener('change', () => {
+            approvalState.page = 1;
+            loadApprovals();
+        });
+        document.getElementById('btnRefresh').addEventListener('click', () => loadProjectCompletionApprovals());
+        document.getElementById('filterProject').addEventListener('change', () => {
+            approvalState.page = 1;
+            loadApprovals();
+        });
+        document.getElementById('filterFromDate').addEventListener('change', () => {
+            approvalState.page = 1;
+            loadApprovals();
+        });
+
+        document.getElementById('pageSize').addEventListener('change', (event) => {
+            approvalState.size = Number(event.target.value) || 20;
+            approvalState.page = 1;
+            loadApprovals();
+        });
+
+        document.getElementById('btnPrevPage').addEventListener('click', () => {
+            if (approvalState.page <= 1) return;
+            approvalState.page -= 1;
+            loadApprovals();
+        });
+
+        document.getElementById('btnNextPage').addEventListener('click', () => {
+            if (approvalState.page >= approvalState.totalPages) return;
+            approvalState.page += 1;
+            loadApprovals();
+        });
+
+        const approvalsTbody = document.getElementById('approvalsTableBody');
+        approvalsTbody?.addEventListener('click', (event) => {
+            const target = event.target;
+            const button = target instanceof Element ? target.closest('[data-action]') : null;
+            if (!button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const action = button.getAttribute('data-action');
+            const id = Number(button.getAttribute('data-id'));
+            if (!id) return;
+            if (action === 'view') openDetailModal(id);
+            if (action === 'approve') openApproveModal(id);
+            if (action === 'reject') openRejectModal(id);
+        });
+
+        approvalsTbody?.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target instanceof Element && target.closest('button, a, input, textarea, select, label')) {
+                return;
+            }
+            const row = target instanceof Element ? target.closest('tr[data-row-id]') : null;
+            if (!row) return;
+            const id = Number(row.getAttribute('data-row-id'));
+            if (id) openDetailModal(id);
+        });
+
+        const projectTbody = document.getElementById('projectApprovalsTableBody');
+        projectTbody?.addEventListener('click', (event) => {
+            const target = event.target;
+            const button = target instanceof Element ? target.closest('[data-project-action]') : null;
+            if (!button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const action = button.getAttribute('data-project-action');
+            const id = Number(button.getAttribute('data-project-id'));
+            if (!id) return;
+            if (action === 'approve') approveProjectCompletion(id);
+            if (action === 'reject') openRejectProjectModal(id);
+        });
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    async function requestJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const raw = await response.text();
+        const contentType = response.headers.get('content-type') || '';
+
+        if (!response.ok) {
+            let message = `HTTP ${response.status}`;
+            if (contentType.includes('application/json') && raw) {
+                try {
+                    const errorJson = JSON.parse(raw);
+                    message = errorJson?.message || errorJson?.Message || message;
+                } catch {
+                    message = raw || message;
+                }
+            } else {
+                message = raw || message;
+            }
+
+            throw new Error(message);
+        }
+
+        if (!raw) {
+            return { success: false, message: 'Phản hồi rỗng từ máy chủ.' };
+        }
+
+        if (contentType.includes('application/json')) {
+            return JSON.parse(raw);
+        }
+
+        throw new Error('Máy chủ trả về định dạng không phải JSON.');
+    }
+
+    async function loadProjects() {
+        try {
+            const data = await requestJson('/duan?size=1000');
+            const items = data?.data?.items || data?.data?.Items || [];
+            if (data.success && Array.isArray(items)) {
+                const projectSelect = document.getElementById('filterProject');
+                projectSelect.innerHTML = '<option value="">Tất cả dự án</option>';
+                items.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.maDuAn ?? project.MaDuAn;
+                    option.textContent = project.tenDuAn ?? project.TenDuAn;
+                    projectSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading projects:', error);
+            pushToast(`Không thể tải danh sách dự án: ${error.message || error}`, 'error');
+        }
+    }
+
+    async function loadApprovals(options = {}) {
+        if (approvalState.isLoading) return;
+        approvalState.isLoading = true;
+
+        try {
+            const keyword = document.getElementById('filterKeyword').value;
+            const status = document.getElementById('filterStatus').value;
+            const projectId = document.getElementById('filterProject').value;
+            const fromDate = document.getElementById('filterFromDate').value;
+
+            let url = `/tiendo?page=${approvalState.page}&size=${approvalState.size}`;
+            if (status) url += `&trangthai=${encodeURIComponent(status)}`;
+            if (projectId) url += `&duan=${projectId}`;
+            if (fromDate) url += `&tuNgay=${fromDate}`;
+
+            const data = await requestJson(url);
+
+            if (data.success && data.data.items) {
+                let items = data.data.items;
+                if (keyword) {
+                    const term = keyword.toLowerCase().trim();
+                    items = items.filter(x =>
+                        String(x.tenCongViec || '').toLowerCase().includes(term)
+                        || String(x.tenDuAn || '').toLowerCase().includes(term));
+                }
+
+                approvals = items;
+                approvalState.totalPages = Number(data.data.totalPages || 1);
+                approvalState.totalItems = Number(data.data.totalItems || items.length);
+                renderApprovals();
+                await loadApprovalSummary({ silent: options.silent === true });
+                renderPagination();
+            }
+        } catch (error) {
+            console.error('Error loading approvals:', error);
+            if (!options.silent) {
+                pushToast('Lỗi tải dữ liệu. Vui lòng thử lại.', 'error');
+            }
+            const tbody = document.getElementById('approvalsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px 20px; color: var(--danger);">
+                        Không thể tải dữ liệu duyệt tiến độ
+                    </td>
+                </tr>
+            `;
+        } finally {
+            approvalState.isLoading = false;
+        }
+    }
+
+    function renderApprovals() {
+        const tbody = document.getElementById('approvalsTableBody');
+
+        if (approvals.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px 20px;">
+                        <div style="color: var(--text-muted);">
+                            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                            Không có cập nhật tiến độ
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = approvals.map(approval => {
+            const approvalId = Number(readField(approval, 'maTienDo', 'MaTienDo') || 0);
+            const tenCongViec = readField(approval, 'tenCongViec', 'TenCongViec') || '-';
+            const tenDuAn = readField(approval, 'tenDuAn', 'TenDuAn') || '-';
+            const phanTramHoanThanh = Number(readField(approval, 'phanTramHoanThanh', 'PhanTramHoanThanh') || 0);
+            const ngayCapNhat = readField(approval, 'ngayCapNhat', 'NgayCapNhat');
+            const hoTenNguoiPheDuyet = readField(approval, 'hoTenNguoiPheDuyet', 'HoTenNguoiPheDuyet') || 'Chưa phê duyệt';
+            const trangThaiPheDuyet = readField(approval, 'trangThaiPheDuyet', 'TrangThaiPheDuyet') || '';
+
+            return `
+            <tr data-row-id="${approvalId}">
+                <td>
+                    <div class="task-name">${escapeHtml(tenCongViec)}</div>
+                    <div class="project-name">${escapeHtml(tenDuAn)}</div>
+                </td>
+                <td>${escapeHtml(tenDuAn)}</td>
+                <td>
+                    <div class="progress-display">
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: ${phanTramHoanThanh}%;"></div>
+                        </div>
+                        <span class="progress-number">${phanTramHoanThanh}%</span>
+                    </div>
+                </td>
+                <td><span class="update-badge"><i class="bi bi-clock-history"></i> ${ngayCapNhat ? formatDate(ngayCapNhat) : 'N/A'}</span></td>
+                <td>
+                    <div class="employee-name">${escapeHtml(hoTenNguoiPheDuyet)}</div>
+                    <div class="employee-date">${formatDate(ngayCapNhat)}</div>
+                </td>
+                <td>
+                    <span class="status-badge status-${getStatusClass(trangThaiPheDuyet)}">
+                        ${escapeHtml(trangThaiPheDuyet)}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-soft" type="button" data-action="view" data-id="${approvalId}" onclick="openDetailModal(${approvalId})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        ${trangThaiPheDuyet === 'Chờ duyệt' ? `
+                            <button class="btn btn-sm btn-success" type="button" data-action="approve" data-id="${approvalId}" onclick="openApproveModal(${approvalId})">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" type="button" data-action="reject" data-id="${approvalId}" onclick="openRejectModal(${approvalId})">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-muted" type="button" disabled>
+                                Đã xử lý
+                            </button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+        }).join('');
+    }
+
+    async function loadApprovalSummary(options = {}) {
+        try {
+            const [pendingResponse, approvedResponse] = await Promise.all([
+                requestJson('/tiendo?page=1&size=1&trangthai=Ch%E1%BB%9D%20duy%E1%BB%87t'),
+                requestJson('/tiendo?page=1&size=1&trangthai=%C4%90%C3%A3%20duy%E1%BB%87t')
+            ]);
+
+            approvalSummary.pending = Number(pendingResponse?.data?.totalItems || 0);
+            approvalSummary.approved = Number(approvedResponse?.data?.totalItems || 0);
+        } catch (error) {
+            console.error('Error loading approval summary:', error);
+            if (!options.silent) {
+                pushToast('Không thể tải thống kê duyệt.', 'error');
+            }
+        }
+
+        updateStats(options.silent === true);
+    }
+
+    function updateStats(isSilent = false) {
+        const projectPending = projectCompletionApprovals.length;
+
+        document.getElementById('pendingCount').textContent = approvalSummary.pending + projectPending;
+        document.getElementById('processedToday').textContent = approvalSummary.approved;
+
+        updatePendingLiveBadge(isSilent);
+    }
+
+    function renderPagination() {
+        document.getElementById('pageMeta').textContent = `Trang ${approvalState.page}/${approvalState.totalPages} - ${approvalState.totalItems} bản ghi`;
+        document.getElementById('btnPrevPage').disabled = approvalState.page <= 1;
+        document.getElementById('btnNextPage').disabled = approvalState.page >= approvalState.totalPages;
+    }
+
+    function updatePendingLiveBadge(isSilent) {
+        const pending = approvalSummary.pending + projectCompletionApprovals.length;
+        const badge = document.getElementById('pendingLiveBadge');
+        if (badge) {
+            // preserve legacy badge if present (not shown in compact layout)
+            badge.textContent = String(pending);
+
+            if (approvalState.lastPending >= 0 && pending !== approvalState.lastPending) {
+                badge.classList.remove('pulse');
+                void badge.offsetWidth;
+                badge.classList.add('pulse');
+
+                if (!isSilent) {
+                    pushToast(`Số yêu cầu chờ duyệt đã cập nhật: ${pending}`, 'info');
+                }
+            }
+        } else {
+            if (approvalState.lastPending >= 0 && pending !== approvalState.lastPending && !isSilent) {
+                pushToast(`Số yêu cầu chờ duyệt đã cập nhật: ${pending}`, 'info');
+            }
+        }
+
+        approvalState.lastPending = pending;
+    }
+
+    function startLiveRefresh() {
+        if (approvalState.autoRefreshTimer) {
+            window.clearInterval(approvalState.autoRefreshTimer);
+        }
+
+        approvalState.autoRefreshTimer = window.setInterval(() => {
+            loadApprovals({ silent: true });
+            loadProjectCompletionApprovals({ silent: true });
+        }, 30000);
+    }
+
+    async function loadProjectCompletionApprovals(options = {}) {
+        try {
+            const data = await requestJson('/duan/hoanthanh-cho-duyet');
+            if (data?.success && Array.isArray(data.data)) {
+                projectCompletionApprovals = data.data;
+                renderProjectCompletionApprovals();
+                updateStats(options.silent === true);
+            }
+        } catch (error) {
+            console.error('Error loading project completion approvals:', error);
+            if (!options.silent) {
+                pushToast('Không thể tải danh sách duyệt hoàn thành dự án.', 'error');
+            }
+            const tbody = document.getElementById('projectApprovalsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--danger); padding: 20px;">Không thể tải dữ liệu</td></tr>';
+            }
+        }
+    }
+
+    function renderProjectCompletionApprovals() {
+        const tbody = document.getElementById('projectApprovalsTableBody');
+        if (!tbody) return;
+
+        if (!projectCompletionApprovals.length) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">Không có yêu cầu duyệt hoàn thành dự án</td></tr>';
+            return;
+        }
+
+        const isAdmin = String('@(User.IsInRole("Admin"))').toLowerCase() === 'true';
+        tbody.innerHTML = projectCompletionApprovals.map(item => {
+            const total = Number(item.tongCongViec || 0);
+            const done = Number(item.congViecHoanThanh || 0);
+            const percent = total > 0 ? Math.round((done * 100) / total) : 0;
+            return `
+                <tr>
+                    <td>
+                        <div class="task-name">${escapeHtml(item.tenDuAn || '-')}</div>
+                        <div class="project-name">${escapeHtml(item.moTa || '')}</div>
+                    </td>
+                    <td>${item.ngayBatDau ? formatDate(item.ngayBatDau) : '-'} - ${item.ngayKetThuc ? formatDate(item.ngayKetThuc) : '-'}</td>
+                    <td>
+                        <div class="progress-display">
+                            <div class="progress-bar" style="flex: 1;">
+                                <div class="progress-fill" style="width: ${percent}%;"></div>
+                            </div>
+                            <span class="progress-number">${done}/${total} (${percent}%)</span>
+                        </div>
+                    </td>
+                    <td>
+                        ${isAdmin ? `
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-success" data-project-action="approve" data-project-id="${item.maDuAn}"><i class="bi bi-check-lg"></i></button>
+                                <button class="btn btn-sm btn-danger" data-project-action="reject" data-project-id="${item.maDuAn}"><i class="bi bi-x-lg"></i></button>
+                            </div>
+                        ` : '<span class="status-badge status-pending">Chờ Admin duyệt</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function approveProjectCompletion(projectId) {
+        try {
+            const data = await requestJson(`/duan/${projectId}/approve-completion`, { method: 'PUT' });
+            if (data?.success) {
+                pushToast(data.message || 'Đã duyệt hoàn thành dự án.', 'success');
+                await loadProjectCompletionApprovals();
+                await loadApprovals();
+            } else {
+                pushToast(data?.message || 'Không thể duyệt hoàn thành dự án.', 'error');
+            }
+        } catch (error) {
+            pushToast(error?.message || 'Lỗi khi duyệt hoàn thành dự án.', 'error');
+        }
+    }
+
+    function openRejectProjectModal(projectId) {
+        currentProjectApprovalId = projectId;
+        const textarea = document.getElementById('rejectProjectReason');
+        if (textarea) textarea.value = '';
+        if (rejectProjectModalInstance) rejectProjectModalInstance.show();
+    }
+
+    function closeRejectProjectModal() {
+        if (rejectProjectModalInstance) rejectProjectModalInstance.hide();
+        currentProjectApprovalId = null;
+    }
+
+    async function confirmRejectProjectCompletion() {
+        const reason = (document.getElementById('rejectProjectReason')?.value || '').trim();
+        if (!reason) {
+            pushToast('Vui lòng nhập lý do từ chối.', 'error');
+            return;
+        }
+        const projectId = Number(currentProjectApprovalId || 0);
+        if (!projectId) return;
+        const btn = document.getElementById('btnConfirmRejectProject');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...';
+        }
+        try {
+            const data = await requestJson(`/duan/${projectId}/reject-completion`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lyDoTuChoi: reason })
+            });
+            if (data?.success) {
+                closeRejectProjectModal();
+                pushToast(data.message || 'Đã từ chối hoàn thành dự án.', 'success');
+                await loadProjectCompletionApprovals();
+                await loadApprovals();
+            } else {
+                pushToast(data?.message || 'Không thể từ chối hoàn thành dự án.', 'error');
+            }
+        } catch (error) {
+            pushToast(error?.message || 'Lỗi khi từ chối hoàn thành dự án.', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-x-lg"></i> Từ chối';
+            }
+        }
+    }
+
+    // expose for any remaining inline handlers
+    window.openDetailModal = openDetailModal;
+    window.openApproveModal = openApproveModal;
+    window.openRejectModal = openRejectModal;
+    window.confirmApprove = confirmApprove;
+    window.confirmReject = confirmReject;
+    window.approveProjectCompletion = approveProjectCompletion;
+    window.openRejectProjectModal = openRejectProjectModal;
+    window.closeRejectProjectModal = closeRejectProjectModal;
+    window.confirmRejectProjectCompletion = confirmRejectProjectCompletion;
+
+    function pushToast(message, type = 'info') {
+        if (window.UiToast && typeof window.UiToast.show === 'function') {
+            window.UiToast.show({ message, type });
+            return;
+        }
+
+        const fallback = type === 'error' ? `Lỗi: ${message}` : message;
+        window.alert(fallback);
+    }
+
+    function getStatusClass(status) {
+        if (status === 'Chờ duyệt') return 'pending';
+        if (status === 'Đã duyệt') return 'approved';
+        return 'rejected';
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function readField(obj, camelKey, pascalKey) {
+        if (!obj || typeof obj !== 'object') return null;
+        return obj[camelKey] ?? obj[pascalKey] ?? null;
+    }
+
+    function renderListLabel(items, key1, key2, fallback = 'Chưa có') {
+        if (!Array.isArray(items) || items.length === 0) return fallback;
+        const labels = items
+            .map(item => item?.[key1] ?? item?.[key2])
+            .filter(Boolean)
+            .map(value => String(value).trim())
+            .filter(Boolean);
+        return labels.length ? labels.join(', ') : fallback;
+    }
+
+    function showModalFallback(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        modal.style.display = 'block';
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.add('show');
+
+        let backdrop = document.querySelector(`.modal-backdrop[data-fallback-for="${modalId}"]`);
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.dataset.fallbackFor = modalId;
+            document.body.appendChild(backdrop);
+        }
+
+        document.body.classList.add('modal-open');
+    }
+
+    function hideModalFallback(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+
+        const backdrop = document.querySelector(`.modal-backdrop[data-fallback-for="${modalId}"]`);
+        if (backdrop) {
+            backdrop.remove();
+        }
+
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    async function openDetailModal(approvalId) {
+        const detailModal = document.getElementById('detailModal');
+        const detailBody = document.getElementById('detailModalBody');
+        showModalFallback('detailModal');
+        if (detailModalInstance) {
+            try {
+                detailModalInstance.show();
+            } catch (error) {
+                console.warn('Bootstrap detail modal show failed, using fallback modal.', error);
+            }
+        }
+        detailBody.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 22px;">Đang tải chi tiết...</div>';
+
+        try {
+            const detailResponse = await requestJson(`/tiendo/${approvalId}`);
+            if (!detailResponse?.success || !detailResponse?.data) {
+                throw new Error(detailResponse?.message || 'Không tải được thông tin tiến độ.');
+            }
+
+            const progressDetail = detailResponse.data;
+            const maCongViec = readField(progressDetail, 'maCongViec', 'MaCongViec');
+            let taskDetail = null;
+
+            if (maCongViec) {
+                try {
+                    const taskResponse = await requestJson(`/congviec/${maCongViec}`);
+                    if (taskResponse?.success && taskResponse?.data) {
+                        taskDetail = taskResponse.data;
+                    }
+                } catch (error) {
+                    console.warn('Cannot load task detail from /congviec:', error);
+                }
+            }
+
+            const tenCongViec = readField(progressDetail, 'tenCongViec', 'TenCongViec') || readField(taskDetail, 'tenCongViec', 'TenCongViec') || '-';
+            const tenDuAn = readField(progressDetail, 'tenDuAn', 'TenDuAn') || readField(taskDetail, 'tenDuAn', 'TenDuAn') || '-';
+            const phanTram = readField(progressDetail, 'phanTramHoanThanh', 'PhanTramHoanThanh');
+            const trangThaiPheDuyet = readField(progressDetail, 'trangThaiPheDuyet', 'TrangThaiPheDuyet') || '-';
+            const ngayCapNhat = readField(progressDetail, 'ngayCapNhat', 'NgayCapNhat');
+            const ngayPheDuyet = readField(progressDetail, 'ngayPheDuyet', 'NgayPheDuyet');
+            const nguoiPheDuyet = readField(progressDetail, 'hoTenNguoiPheDuyet', 'HoTenNguoiPheDuyet') || 'Chưa có';
+            const lyDoTuChoi = readField(progressDetail, 'lyDoTuChoi', 'LyDoTuChoi') || '';
+
+            const moTaCongViec = readField(taskDetail, 'moTa', 'MoTa') || 'Chưa có mô tả';
+            const hanHoanThanh = readField(taskDetail, 'hanHoanThanh', 'HanHoanThanh');
+            const tenDoUuTien = readField(taskDetail, 'tenDoUuTien', 'TenDoUuTien') || '-';
+            const tenDoKho = readField(taskDetail, 'tenDoKho', 'TenDoKho') || '-';
+            const tenTrangThai = readField(taskDetail, 'tenTrangThai', 'TenTrangThai') || '-';
+
+            const nguoiDuocGiao = renderListLabel(readField(taskDetail, 'nguoiDuocGiao', 'NguoiDuocGiao'), 'hoTen', 'HoTen');
+            const nhomDuocGiao = renderListLabel(readField(taskDetail, 'nhomDuocGiao', 'NhomDuocGiao'), 'tenNhom', 'TenNhom');
+            const phongBanDuocGiao = renderListLabel(readField(taskDetail, 'phongBanDuocGiao', 'PhongBanDuocGiao'), 'tenPhongBan', 'TenPhongBan');
+
+            detailBody.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-card"><div class="detail-label">Công việc</div><div class="detail-value">${escapeHtml(tenCongViec)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Dự án</div><div class="detail-value">${escapeHtml(tenDuAn)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Tiến độ báo cáo</div><div class="detail-value">${phanTram ?? 0}%</div></div>
+                    <div class="detail-card"><div class="detail-label">Trạng thái duyệt</div><div class="detail-value">${escapeHtml(trangThaiPheDuyet)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Ngày cập nhật</div><div class="detail-value">${ngayCapNhat ? formatDate(ngayCapNhat) : '-'}</div></div>
+                    <div class="detail-card"><div class="detail-label">Ngày duyệt</div><div class="detail-value">${ngayPheDuyet ? formatDate(ngayPheDuyet) : 'Chưa duyệt'}</div></div>
+                </div>
+
+                <div class="detail-section-title">Thông tin duyệt</div>
+                <div class="detail-note normal">
+                    Người duyệt: <strong>${escapeHtml(nguoiPheDuyet)}</strong>
+                </div>
+
+                ${lyDoTuChoi
+                    ? `<div class="detail-section-title">Lý do từ chối</div><div class="detail-note reject">${escapeHtml(lyDoTuChoi)}</div>`
+                    : ''}
+
+                <div class="detail-section-title">Chi tiết công việc</div>
+                <div class="detail-grid">
+                    <div class="detail-card"><div class="detail-label">Deadline</div><div class="detail-value">${hanHoanThanh ? formatDate(hanHoanThanh) : '-'}</div></div>
+                    <div class="detail-card"><div class="detail-label">Trạng thái công việc</div><div class="detail-value">${escapeHtml(tenTrangThai)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Mức ưu tiên</div><div class="detail-value">${escapeHtml(tenDoUuTien)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Độ khó</div><div class="detail-value">${escapeHtml(tenDoKho)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Nhân viên được giao</div><div class="detail-value">${escapeHtml(nguoiDuocGiao)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Nhóm được giao</div><div class="detail-value">${escapeHtml(nhomDuocGiao)}</div></div>
+                </div>
+
+                <div class="detail-card" style="margin-bottom: 12px;">
+                    <div class="detail-label">Phòng ban được giao</div>
+                    <div class="detail-value">${escapeHtml(phongBanDuocGiao)}</div>
+                </div>
+
+                <div class="detail-card">
+                    <div class="detail-label">Mô tả công việc</div>
+                    <div class="detail-value">${escapeHtml(moTaCongViec)}</div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading approval detail:', error);
+            detailBody.innerHTML = `
+                <div style="padding:16px; border:1px solid #fecaca; background:#fef2f2; border-radius:10px; color:#7f1d1d;">
+                    Không thể tải chi tiết công việc cần duyệt: ${escapeHtml(error?.message || 'Lỗi không xác định')}
+                </div>
+            `;
+        }
+    }
+
+    function closeDetailModal() {
+        if (detailModalInstance) detailModalInstance.hide();
+        hideModalFallback('detailModal');
+    }
+
+    function openApproveModal(approvalId) {
+        const approval = approvals.find(a => Number(readField(a, 'maTienDo', 'MaTienDo') || 0) === Number(approvalId));
+        if (!approval) return;
+
+        const tenCongViec = readField(approval, 'tenCongViec', 'TenCongViec') || '-';
+        const hoTenNguoiPheDuyet = readField(approval, 'hoTenNguoiPheDuyet', 'HoTenNguoiPheDuyet') || 'N/A';
+        const ngayCapNhat = readField(approval, 'ngayCapNhat', 'NgayCapNhat');
+        const phanTramHoanThanh = Number(readField(approval, 'phanTramHoanThanh', 'PhanTramHoanThanh') || 0);
+
+        currentApprovalId = approvalId;
+        document.getElementById('approveTaskName').value = tenCongViec;
+        document.getElementById('approveEmployeeName').value = hoTenNguoiPheDuyet;
+        document.getElementById('approveUpdateDate').value = ngayCapNhat ? new Date(ngayCapNhat).toLocaleString('vi-VN') : 'N/A';
+        document.getElementById('approveProgressPercent').textContent = phanTramHoanThanh + '%';
+        document.getElementById('approveProgressFill').style.width = phanTramHoanThanh + '%';
+        document.getElementById('approveComment').value = '';
+
+        showModalFallback('approveModal');
+        if (approveModalInstance) {
+            try {
+                approveModalInstance.show();
+            } catch (error) {
+                console.warn('Bootstrap approve modal show failed, using fallback modal.', error);
+            }
+        }
+    }
+
+    function closeApproveModal() {
+        if (approveModalInstance) approveModalInstance.hide();
+        hideModalFallback('approveModal');
+        currentApprovalId = null;
+    }
+
+    async function confirmApprove() {
+        const btn = document.getElementById('btnConfirmApprove');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...';
+
+        try {
+            const data = await requestJson(`/tiendo/${currentApprovalId}/approve`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    maTienDo: currentApprovalId,
+                    ghiChu: document.getElementById('approveComment').value
+                })
+            });
+
+            if (data.success) {
+                closeApproveModal();
+                pushToast('Phê duyệt thành công', 'success');
+                document.getElementById('filterStatus').value = '';
+                loadApprovals();
+            } else {
+                pushToast(data.message || 'Phê duyệt thất bại', 'error');
+            }
+        } catch (error) {
+            console.error('Error approving:', error);
+            pushToast('Lỗi khi xử lý yêu cầu', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Phê duyệt';
+        }
+    }
+
+    function openRejectModal(approvalId) {
+        const approval = approvals.find(a => Number(readField(a, 'maTienDo', 'MaTienDo') || 0) === Number(approvalId));
+        if (!approval) return;
+
+        const tenCongViec = readField(approval, 'tenCongViec', 'TenCongViec') || '-';
+        const phanTramHoanThanh = Number(readField(approval, 'phanTramHoanThanh', 'PhanTramHoanThanh') || 0);
+
+        currentApprovalId = approvalId;
+        document.getElementById('rejectTaskName').value = tenCongViec;
+        document.getElementById('rejectProgressPercent').textContent = phanTramHoanThanh + '%';
+        document.getElementById('rejectProgressFill').style.width = phanTramHoanThanh + '%';
+        document.getElementById('rejectReason').value = '';
+
+        showModalFallback('rejectModal');
+        if (rejectModalInstance) {
+            try {
+                rejectModalInstance.show();
+            } catch (error) {
+                console.warn('Bootstrap reject modal show failed, using fallback modal.', error);
+            }
+        }
+    }
+
+    function closeRejectModal() {
+        if (rejectModalInstance) rejectModalInstance.hide();
+        hideModalFallback('rejectModal');
+        currentApprovalId = null;
+    }
+
+    async function confirmReject() {
+        const reason = document.getElementById('rejectReason').value.trim();
+        if (!reason) {
+            pushToast('Vui lòng nhập lý do từ chối', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btnConfirmReject');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...';
+
+        try {
+            const data = await requestJson(`/tiendo/${currentApprovalId}/reject`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    maTienDo: currentApprovalId,
+                    lyDoTuChoi: reason
+                })
+            });
+
+            if (data.success) {
+                closeRejectModal();
+                pushToast('Từ chối thành công', 'success');
+                document.getElementById('filterStatus').value = '';
+                loadApprovals();
+            } else {
+                pushToast(data.message || 'Từ chối thất bại', 'error');
+            }
+        } catch (error) {
+            console.error('Error rejecting:', error);
+            pushToast('Lỗi khi xử lý yêu cầu', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-x-lg"></i> Từ chối';
+        }
+    }
+</script>

@@ -1,0 +1,235 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").ToLowerInvariant();
+}
+
+<section class="page-head">
+    <div>
+        @if (role == "employee")
+        {
+            <h2>Đánh giá của tôi</h2>
+            <p class="text-muted">Xem kết quả đánh giá KPI, lịch sử và xu hướng hiệu suất cá nhân.</p>
+        }
+        else
+        {
+            <h2>Đánh giá hiệu suất</h2>
+            <p class="text-muted">Tra cứu kết quả KPI theo nhân viên và chu kỳ tháng/năm.</p>
+        }
+    </div>
+</section>
+
+<nav class="crumb">Trang chủ / Đánh giá hiệu suất</nav>
+
+@if (role == "employee")
+{
+    <div class="result-grid mt-3">
+        <div class="panel"><small>Điểm hiện tại</small><h3 id="myEvalScore" class="mb-0">0</h3></div>
+        <div class="panel"><small>Xếp loại</small><h3 id="myEvalRank" class="mb-0">-</h3></div>
+        <div class="panel"><small>Xu hướng</small><h3 id="myEvalTrend" class="mb-0">-</h3></div>
+    </div>
+
+    <section class="panel mt-4">
+        <header><h4>Lịch sử đánh giá 12 kỳ</h4></header>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>Tháng/năm</th><th>Điểm</th><th>Xếp loại</th></tr>
+                </thead>
+                <tbody id="employeeEvalBody"></tbody>
+            </table>
+        </div>
+    </section>
+}
+else
+{
+    <section class="panel mt-3">
+        <header><h4>Tra cứu nhân viên</h4></header>
+        <div class="toolbar">
+            <select id="evalNhanVien" class="form-select"><option value="">Chọn nhân viên</option></select>
+            <input id="evalThang" type="number" class="form-control" min="1" max="12" placeholder="Tháng" />
+            <input id="evalNam" type="number" class="form-control" min="2000" max="3000" placeholder="Năm" />
+            <button id="btnEvalLoad" class="btn btn-primary">Xem đánh giá</button>
+        </div>
+    </section>
+
+    <section class="panel mt-4">
+        <header><h4>Kết quả đánh giá</h4></header>
+        <div id="evalResult" class="result-grid">
+            <div>
+                <small>Điểm hiện tại</small>
+                <h3>-</h3>
+            </div>
+            <div>
+                <small>Xếp loại</small>
+                <h3>-</h3>
+            </div>
+            <div>
+                <small>Xu hướng</small>
+                <h3>-</h3>
+            </div>
+        </div>
+
+        <div class="table-responsive mt-3">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Tháng/năm</th>
+                        <th>Điểm</th>
+                        <th>Xếp loại</th>
+                    </tr>
+                </thead>
+                <tbody id="evalBody">
+                    <tr><td colspan="3" class="text-muted">Chưa có dữ liệu.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <script>
+        const role = '@role';
+
+        async function initEmployeeEvaluation() {
+            const evalBody = document.getElementById('employeeEvalBody');
+            evalBody.innerHTML = '<tr><td colspan="3" class="text-muted">Đang tải dữ liệu...</td></tr>';
+
+            try {
+                const meRes = await fetch('/nhanvien/me');
+                const meResult = await meRes.json();
+                if (!meResult.success || !meResult.data?.maNhanVien) {
+                    evalBody.innerHTML = `<tr><td colspan="3" class="text-danger">${meResult.message || 'Không xác định được nhân viên hiện tại.'}</td></tr>`;
+                    return;
+                }
+
+                const now = new Date();
+                const query = new URLSearchParams({ thang: String(now.getMonth() + 1), nam: String(now.getFullYear()), maKpi: '1' });
+                const response = await fetch(`/kpi/nhanvien/${meResult.data.maNhanVien}?${query.toString()}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    evalBody.innerHTML = `<tr><td colspan="3" class="text-danger">${result.message || 'Không tải được dữ liệu KPI.'}</td></tr>`;
+                    return;
+                }
+
+                const data = result.data || {};
+                const rows = data.lichSu12Thang || [];
+
+                document.getElementById('myEvalScore').textContent = Number(data.diemHienTai || 0).toFixed(2);
+                document.getElementById('myEvalRank').textContent = data.xepLoai || '-';
+                document.getElementById('myEvalTrend').textContent = data.xuHuongPhanTram == null
+                    ? 'Không đủ dữ liệu'
+                    : `${Number(data.xuHuongPhanTram).toFixed(2)}%`;
+
+                if (rows.length === 0) {
+                    evalBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có dữ liệu KPI lịch sử.</td></tr>';
+                    return;
+                }
+
+                evalBody.innerHTML = rows.map(item => `
+                    <tr>
+                        <td>${item.thang}/${item.nam}</td>
+                        <td>${Number(item.diem ?? 0).toFixed(2)}</td>
+                        <td>${item.xepLoai || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                evalBody.innerHTML = `<tr><td colspan="3" class="text-danger">${error?.message || 'Lỗi tải dữ liệu đánh giá.'}</td></tr>`;
+            }
+        }
+
+        async function initAdminOrManagerEvaluation() {
+            const evalNhanVien = document.getElementById('evalNhanVien');
+            const evalThang = document.getElementById('evalThang');
+            const evalNam = document.getElementById('evalNam');
+            const btnEvalLoad = document.getElementById('btnEvalLoad');
+            const evalResult = document.getElementById('evalResult');
+            const evalBody = document.getElementById('evalBody');
+
+            const now = new Date();
+            evalThang.value = now.getMonth() + 1;
+            evalNam.value = now.getFullYear();
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            function renderSummary(data) {
+                const trend = data.xuHuongPhanTram == null ? 'Không đủ dữ liệu' : `${Number(data.xuHuongPhanTram).toFixed(2)}%`;
+                evalResult.innerHTML = `
+                    <div><small>Điểm hiện tại</small><h3>${Number(data.diemHienTai ?? 0).toFixed(2)}</h3></div>
+                    <div><small>Xếp loại</small><h3>${escapeHtml(data.xepLoai || '-')}</h3></div>
+                    <div><small>Xu hướng</small><h3>${trend}</h3></div>
+                `;
+            }
+
+            async function loadNhanVien() {
+                const response = await fetch('/nhanvien?page=1&size=100');
+                const result = await response.json();
+                if (!result.success) return;
+
+                const items = result.data?.items ?? [];
+                for (const item of items) {
+                    const option = document.createElement('option');
+                    option.value = item.maNhanVien;
+                    option.textContent = `${item.maNhanVien} - ${item.hoTen || ''}`;
+                    evalNhanVien.appendChild(option);
+                }
+
+                if (items.length > 0) {
+                    evalNhanVien.value = String(items[0].maNhanVien);
+                    await loadEvaluation();
+                }
+            }
+
+            async function loadEvaluation() {
+                if (!evalNhanVien.value) {
+                    evalBody.innerHTML = '<tr><td colspan="3" class="text-muted">Vui lòng chọn nhân viên.</td></tr>';
+                    return;
+                }
+
+                evalBody.innerHTML = '<tr><td colspan="3" class="text-muted">Đang tải dữ liệu...</td></tr>';
+                const query = new URLSearchParams({ thang: evalThang.value, nam: evalNam.value, maKpi: '1' });
+                const response = await fetch(`/kpi/nhanvien/${evalNhanVien.value}?${query.toString()}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    evalBody.innerHTML = `<tr><td colspan="3" class="text-danger">${escapeHtml(result.message || 'Không tải được dữ liệu')}</td></tr>`;
+                    return;
+                }
+
+                const data = result.data;
+                renderSummary(data);
+                const rows = data.lichSu12Thang ?? [];
+
+                if (rows.length === 0) {
+                    evalBody.innerHTML = '<tr><td colspan="3" class="text-muted">Không có dữ liệu KPI lịch sử.</td></tr>';
+                    return;
+                }
+
+                evalBody.innerHTML = rows.map(item => `
+                    <tr>
+                        <td>${item.thang}/${item.nam}</td>
+                        <td>${Number(item.diem ?? 0).toFixed(2)}</td>
+                        <td>${escapeHtml(item.xepLoai || '-')}</td>
+                    </tr>
+                `).join('');
+            }
+
+            btnEvalLoad.addEventListener('click', loadEvaluation);
+            await loadNhanVien();
+        }
+
+        if (role === 'employee') {
+            initEmployeeEvaluation();
+        } else {
+            initAdminOrManagerEvaluation();
+        }
+    </script>
+}
+
+
+
+

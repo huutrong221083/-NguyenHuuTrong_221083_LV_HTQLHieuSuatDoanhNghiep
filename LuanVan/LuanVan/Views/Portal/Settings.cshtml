@@ -1,0 +1,3295 @@
+@{
+    var role = (ViewData["Role"]?.ToString() ?? "Admin").Trim().ToLowerInvariant();
+    var canEditSettings = (ViewData["CanEditSettings"] as bool?) ?? false;
+}
+
+<section class="page-head settingsx-head">
+    <div>
+        <h2>Cài đặt hệ thống</h2>
+        <p class="text-muted mb-0">Quản lý role, permission, KPI/AI parameter, bao mat và log hệ thống.</p>
+    </div>
+    <div class="badge role-badge">Role: @role.ToUpperInvariant()</div>
+</section>
+
+<nav class="crumb">Trang chủ / Cài đặt hệ thống</nav>
+
+<section class="settingsx-shell mt-3">
+    <aside class="settingsx-sidebar panel" id="settingsSidebar">
+        <div class="settingsx-sidebar-top">
+            <h5>Settings</h5>
+            <button id="btnToggleSettingsSidebar" class="btn btn-sm btn-light"><i class="bi bi-layout-sidebar-inset"></i></button>
+        </div>
+        <nav id="settingsMenu" class="settingsx-menu">
+            <button class="active" data-page="overview"><i class="bi bi-gear"></i><span>Tổng quan hệ thống</span></button>
+            <button data-page="roles"><i class="bi bi-people"></i><span>Quản lý Role</span></button>
+            <button data-page="permissions"><i class="bi bi-shield-lock"></i><span>Phân quyền</span></button>
+            <button data-page="kpi"><i class="bi bi-bullseye"></i><span>Cấu hình KPI</span></button>
+            <button data-page="ai"><i class="bi bi-robot"></i><span>Cấu hình AI</span></button>
+            <button data-page="notifications"><i class="bi bi-bell"></i><span>Tùy chỉnh giao diện & thông báo</span></button>
+            <button data-page="security"><i class="bi bi-shield-check"></i><span>Kiểm tra hệ thống</span></button>
+            <button data-page="logs"><i class="bi bi-journal-text"></i><span>Log hệ thống</span></button>
+        </nav>
+    </aside>
+
+    <main class="settingsx-main panel">
+        <section id="page-overview" class="settingsx-page active">
+            <header class="settingsx-page-head">
+                <h4>Tổng quan hệ thống</h4>
+            </header>
+            <div id="settingsOverviewCards" class="settingsx-overview-grid"></div>
+        </section>
+
+        <section id="page-roles" class="settingsx-page">
+            <header class="settingsx-page-head d-flex justify-content-between align-items-center gap-2">
+                <h4 class="mb-0">Quản lý Role</h4>
+                <button id="btnOpenRoleCreate" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> Thêm role</button>
+            </header>
+            <div class="table-responsive mt-2">
+                <table class="table align-middle settingsx-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Mo ta</th>
+                            <th>So user</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settingsRoleBody">
+                        <tr><td colspan="4" class="text-muted">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="page-permissions" class="settingsx-page">
+            <header class="settingsx-page-head">
+                <h4>Phân quyền</h4>
+                <small class="text-muted">Gán permission claim theo role và lưu trực tiếp vào AspNetRoleClaims.</small>
+            </header>
+            <div class="row g-2 align-items-end mt-1">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label mb-1">Vai trò</label>
+                    <select id="permissionRoleSelect" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-lg-8 col-md-6">
+                    <div id="permissionClaimInfo" class="small text-muted"></div>
+                </div>
+            </div>
+            <div class="table-responsive mt-2">
+                <table class="table table-bordered settingsx-permission-table mb-0" id="permissionTable">
+                    <thead>
+                        <tr>
+                            <th>Chuc nang</th>
+                            <th>Xem</th>
+                            <th>Thêm</th>
+                            <th>Sửa</th>
+                            <th>Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="settingsx-form-actions mt-2">
+                <button id="btnSavePermissions" class="btn btn-primary btn-sm">Lưu</button>
+                <button id="btnResetPermissions" class="btn btn-light btn-sm">Khôi phục mặc định</button>
+            </div>
+        </section>
+
+        <section id="page-kpi" class="settingsx-page">
+            <header class="settingsx-page-head">
+                <h4>Cấu hình KPI</h4>
+                <small class="text-muted">Xếp loại KPI và danh mục dùng chung (Độ khó / Độ ưu tiên / Loại KPI).</small>
+            </header>
+
+            <section class="panel mt-2">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <h6 class="mb-0">Xếp loại KPI</h6>
+                    <button id="btnOpenKpiGradeCreate" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> Thêm mức xếp loại</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle settingsx-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã</th>
+                                <th>Tên</th>
+                                <th>Khoảng điểm</th>
+                                <th>Màu</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiGradeBody">
+                            <tr><td colspan="6" class="text-muted">Đang tải xếp loại KPI...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p id="kpiGradeWarning" class="small text-warning mt-2 mb-0"></p>
+            </section>
+
+            <section class="panel mt-2">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <h6 class="mb-0">Danh mục dùng chung</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="kpiMasterType" class="form-select form-select-sm" style="max-width:260px;">
+                            <option value="dokho">Độ khó</option>
+                            <option value="douutien">Độ ưu tiên</option>
+                            <option value="loaikpi">Loại KPI</option>
+                        </select>
+                        <button id="btnOpenKpiMasterCreate" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> Thêm danh mục</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle settingsx-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên</th>
+                                <th>Hệ số</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiMasterBody">
+                            <tr><td colspan="5" class="text-muted">Đang tải danh mục...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel mt-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <h6 class="mb-1">Quản lý KPI chi tiết</h6>
+                        <p class="text-muted mb-0">Các thao tác vận hành KPI (danh sách, gán đối tượng, kết quả, phân tích) được quản lý tập trung ở màn KPI riêng.</p>
+                    </div>
+                    <a class="btn btn-sm btn-outline-primary" href="/Portal/Kpi?role=@ViewBag.Role">
+                        <i class="bi bi-box-arrow-up-right"></i> Đi đến Quản lý KPI
+                    </a>
+                </div>
+            </section>
+        </section>
+
+        <section id="page-ai" class="settingsx-page">
+            <header class="settingsx-page-head aix-head">
+                <h4>🤖 CẤU HÌNH THAM SỐ AI</h4>
+                <p class="text-muted mb-0">Tùy chỉnh hành vi và thuật toán AI phục vụ dự báo và đánh giá hiệu suất.</p>
+            </header>
+
+            <div class="aix-tab-nav" id="aiTabNav" role="tablist" aria-label="AI Config Tabs">
+                <button class="active" data-ai-tab="general">1. Cấu hình chung</button>
+                <button data-ai-tab="forecast">2. Dự báo tiến độ (Linear Regression)</button>
+                <button data-ai-tab="performance">3. Đánh giá hiệu suất (Random Forest)</button>
+                <button data-ai-tab="automation">4. Gợi ý &amp; Tự động hóa AI</button>
+            </div>
+
+            <div class="aix-tab-body">
+                <section class="aix-tab-panel active" id="ai-tab-general">
+                    <article class="aix-card">
+                        <h6>🔹 Bật/Tắt AI</h6>
+                        <div class="aix-row">
+                            <label>Kích hoạt AI trong hệ thống</label>
+                            <div class="form-check form-switch">
+                                <input id="aiEnableSystem" class="form-check-input" type="checkbox" checked />
+                            </div>
+                        </div>
+                        <div class="aix-check-grid">
+                            <label class="form-check"><input id="aiApplyAll" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Áp dụng AI cho toàn bộ hệ thống</span></label>
+                            <label class="form-check"><input id="aiApplyManager" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Chỉ áp dụng cho Manager</span></label>
+                            <label class="form-check"><input id="aiApplyDepartment" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Áp dụng cho từng phòng ban</span></label>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Phạm vi dữ liệu AI sử dụng</h6>
+                        <div class="aix-two-col">
+                            <div>
+                                <label class="form-label">Khoảng dữ liệu phân tích</label>
+                                <select id="aiDataWindow" class="form-select form-select-sm">
+                                    <option value="1">1 tháng gần nhất</option>
+                                    <option value="3">3 tháng gần nhất</option>
+                                    <option value="6" selected>6 tháng gần nhất</option>
+                                    <option value="12">12 tháng gần nhất</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Số lượng dữ liệu tối thiểu</label>
+                                <input id="aiMinRecords" type="number" class="form-control form-control-sm" min="30" max="50000" value="100" />
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Tần suất chạy AI</h6>
+                        <div class="aix-radio-grid">
+                            <label class="form-check"><input class="form-check-input" type="radio" name="aiRunMode" value="realtime" /> <span class="form-check-label">Real-time</span></label>
+                            <label class="form-check"><input class="form-check-input" type="radio" name="aiRunMode" value="daily" checked /> <span class="form-check-label">Mỗi ngày</span></label>
+                            <label class="form-check"><input class="form-check-input" type="radio" name="aiRunMode" value="weekly" /> <span class="form-check-label">Mỗi tuần</span></label>
+                            <label class="form-check"><input class="form-check-input" type="radio" name="aiRunMode" value="ondemand" /> <span class="form-check-label">Khi Admin yêu cầu</span></label>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Trọng số dữ liệu đầu vào</h6>
+                        <div class="aix-slider-grid">
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiWeightCompletion" class="mb-0">Tốc độ hoàn thành công việc: <strong id="aiWeightCompletionValue">70%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiWeightCompletion" type="number" class="form-control text-end" min="0" max="100" step="1" value="70" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiWeightOverdue" class="mb-0">Số công việc trễ hạn: <strong id="aiWeightOverdueValue">50%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiWeightOverdue" type="number" class="form-control text-end" min="0" max="100" step="1" value="50" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiWeightKpi" class="mb-0">Điểm KPI: <strong id="aiWeightKpiValue">80%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiWeightKpi" type="number" class="form-control text-end" min="0" max="100" step="1" value="80" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiWeightDifficulty" class="mb-0">Độ khó công việc: <strong id="aiWeightDifficultyValue">60%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiWeightDifficulty" type="number" class="form-control text-end" min="0" max="100" step="1" value="60" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="aix-tab-panel" id="ai-tab-forecast">
+                    <article class="aix-card">
+                        <h6>📈 Mô hình dự báo tiến độ</h6>
+                        <div class="aix-two-col">
+                            <div>
+                                <label class="form-label">Mô hình sử dụng</label>
+                                <select id="aiForecastModel" class="form-select form-select-sm">
+                                    <option selected>Linear Regression</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Cảnh báo nếu xác suất trễ lớn hơn</label>
+                                <div class="input-group input-group-sm">
+                                    <input id="aiDelayThreshold" type="number" class="form-control" min="0" max="100" value="70" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Biến đầu vào</h6>
+                        <div class="aix-check-grid">
+                            <label class="form-check"><input id="aiFeatureCompletion" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">% hoàn thành công việc</span></label>
+                            <label class="form-check"><input id="aiFeatureUsedTime" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Thời gian đã sử dụng</span></label>
+                            <label class="form-check"><input id="aiFeatureRemainWork" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Khối lượng công việc còn lại</span></label>
+                            <label class="form-check"><input id="aiFeatureDifficulty" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Độ khó công việc</span></label>
+                        </div>
+                        <p class="aix-legend mb-0">🟢 &lt; 50% | 🟡 50-70% | 🔴 &gt; 70%</p>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Hiển thị dự báo</h6>
+                        <div class="aix-check-grid">
+                            <label class="form-check"><input id="aiShowExpectedDate" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Hiển thị ngày hoàn thành dự kiến</span></label>
+                            <label class="form-check"><input id="aiShowEarlyWarning" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Hiển thị cảnh báo sớm</span></label>
+                            <label class="form-check"><input id="aiShowTrend" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Hiển thị xu hướng tiến độ (tăng/giảm)</span></label>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="aix-tab-panel" id="ai-tab-performance">
+                    <article class="aix-card">
+                        <h6>🧠 Mô hình đánh giá hiệu suất</h6>
+                        <div class="aix-model-grid">
+                            <div>
+                                <label class="form-label">Mô hình sử dụng</label>
+                                <select id="aiPerformanceModel" class="form-select form-select-sm">
+                                    <option selected>Random Forest</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Mức độ phân tích AI</label>
+                                <select id="aiAnalysisLevel" class="form-select form-select-sm">
+                                    <option value="fast">Nhanh</option>
+                                    <option value="balanced" selected>Cân bằng</option>
+                                    <option value="deep">Chuyên sâu</option>
+                                </select>
+                                <small class="text-muted">Hệ thống tự tối ưu tham số mô hình theo mức bạn chọn.</small>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Tiêu chí đánh giá</h6>
+                        <div class="aix-check-grid">
+                            <label class="form-check"><input id="aiCriteriaOnTime" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Hoàn thành đúng hạn</span></label>
+                            <label class="form-check"><input id="aiCriteriaVolume" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Số lượng công việc</span></label>
+                            <label class="form-check"><input id="aiCriteriaDifficulty" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Độ khó công việc</span></label>
+                            <label class="form-check"><input id="aiCriteriaKpi" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Điểm KPI</span></label>
+                            <label class="form-check"><input id="aiCriteriaFeedback" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Feedback từ Manager</span></label>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Trọng số đánh giá</h6>
+                        <div class="aix-slider-grid">
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiEvalOnTime" class="mb-0">Đúng hạn: <strong id="aiEvalOnTimeValue">80%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiEvalOnTime" type="number" class="form-control text-end" min="0" max="100" step="1" value="80" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiEvalVolume" class="mb-0">Khối lượng: <strong id="aiEvalVolumeValue">60%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiEvalVolume" type="number" class="form-control text-end" min="0" max="100" step="1" value="60" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiEvalDifficulty" class="mb-0">Độ khó: <strong id="aiEvalDifficultyValue">70%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiEvalDifficulty" type="number" class="form-control text-end" min="0" max="100" step="1" value="70" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiEvalKpi" class="mb-0">KPI: <strong id="aiEvalKpiValue">90%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiEvalKpi" type="number" class="form-control text-end" min="0" max="100" step="1" value="90" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <label for="aiEvalFeedback" class="mb-0">Feedback: <strong id="aiEvalFeedbackValue">50%</strong></label>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input id="aiEvalFeedback" type="number" class="form-control text-end" min="0" max="100" step="1" value="50" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Phân loại kết quả</h6>
+                        <div class="aix-two-col">
+                            <div>
+                                <label class="form-label">Xuất kết quả</label>
+                                <input id="aiResultClasses" class="form-control form-control-sm" value="Xuất sắc | Tốt | Trung bình | Kém" />
+                            </div>
+                            <div class="d-flex align-items-end">
+                                <label class="form-check mb-1"><input id="aiAllowAdjustClass" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Cho phép Admin chỉnh ngưỡng phân loại</span></label>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="aix-tab-panel" id="ai-tab-automation">
+                    <article class="aix-card">
+                        <h6>🤖 Gợi ý &amp; tự động hóa AI</h6>
+                        <div class="aix-check-grid">
+                            <label class="form-check"><input id="aiSuggestPeople" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Gợi ý người phù hợp cho công việc</span></label>
+                            <label class="form-check"><input id="aiSuggestBySkillPerformance" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Dựa trên kỹ năng + lịch sử hiệu suất</span></label>
+                            <label class="form-check"><input id="aiSuggestImprovePerformance" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Gợi ý cải thiện hiệu suất nhân viên</span></label>
+                            <label class="form-check"><input id="aiSuggestRebalanceTask" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Gợi ý phân bổ lại công việc</span></label>
+                            <label class="form-check"><input id="aiAutoLateAlert" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Tự động cảnh báo trễ hạn</span></label>
+                            <label class="form-check"><input id="aiAutoSendNotification" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Tự động gửi thông báo</span></label>
+                            <label class="form-check"><input id="aiAutoSuggestDeadline" class="form-check-input" type="checkbox" checked /> <span class="form-check-label">Tự động đề xuất thay đổi deadline</span></label>
+                        </div>
+                    </article>
+
+                    <article class="aix-card">
+                        <h6>🔹 Phong cách gợi ý</h6>
+                        <div class="aix-two-col">
+                            <div>
+                                <label class="form-label">Tông nội dung</label>
+                                <select id="aiSuggestionTone" class="form-select form-select-sm">
+                                    <option value="short" selected>Ngắn gọn</option>
+                                    <option value="detailed">Chi tiết</option>
+                                    <option value="strong_warning">Cảnh báo mạnh</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Mẫu xem trước</label>
+                                <textarea id="aiSuggestionTemplate" class="form-control form-control-sm" rows="3" readonly>Nhân viên {Ten} có nguy cơ trễ hạn do {LyDo}. Đề xuất: {GiaiPhap}</textarea>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            </div>
+
+            <div class="aix-footer-actions mt-3">
+                <button id="btnSaveAiSettings" class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Lưu cấu hình</button>
+                <button id="btnResetAiSettings" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Reset mặc định</button>
+                <button id="btnTestAiSettings" class="btn btn-warning btn-sm"><i class="bi bi-flask"></i> Test AI</button>
+            </div>
+
+            <article class="aix-card mt-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0">🧾 Lịch sử cập nhật cấu hình AI (Top 8)</h6>
+                    <button id="btnRefreshAiHistory" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-arrow-repeat"></i> Làm mới
+                    </button>
+                </div>
+                <div class="table-responsive mt-2">
+                    <table class="table align-middle settingsx-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Kết quả</th>
+                                <th>Nội dung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiHistoryBody">
+                            <tr><td colspan="3" class="text-muted">Đang tải lịch sử...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <section id="page-notifications" class="settingsx-page">
+            <header class="settingsx-page-head"><h4>Tùy chỉnh giao diện & thông báo</h4></header>
+            <div class="settingsx-form-grid">
+                <div class="settingsx-form-row">
+                    <label>Email thông báo hệ thống</label>
+                    <input id="notifyEmail" type="email" class="form-control form-control-sm" placeholder="admin@company.com" />
+                    <small class="text-danger fst-italic" style="font-size:.78rem;">Đây là email nhận cảnh báo hệ thống (thường là Admin).</small>
+                </div>
+                <div class="settingsx-form-row">
+                    <label>Gửi email khi task trễ</label>
+                    <div class="form-check form-switch">
+                        <input id="notifyOverdueTask" class="form-check-input" type="checkbox" checked />
+                    </div>
+                </div>
+                <div class="settingsx-form-row">
+                    <label>Bật thông báo trong hệ thống</label>
+                    <div class="form-check form-switch">
+                        <input id="notifySystem" class="form-check-input" type="checkbox" checked />
+                    </div>
+                </div>
+            </div>
+            <div class="settingsx-form-actions mt-2">
+                <button id="btnSaveNotifySettings" class="btn btn-primary btn-sm">Lưu</button>
+                <button id="btnCancelNotifySettings" class="btn btn-light btn-sm">Hủy</button>
+                <button id="btnResetNotifySettings" class="btn btn-outline-secondary btn-sm">Khôi phục mặc định</button>
+            </div>
+        </section>
+
+        <section id="page-security" class="settingsx-page">
+            <header class="settingsx-page-head"><h4>Kiểm tra hệ thống</h4></header>
+            <div class="settingsx-form-grid">
+                <div class="settingsx-form-row">
+                    <label>Độ dài mật khẩu tối thiểu</label>
+                    <input id="securityMinPasswordLength" type="number" class="form-control form-control-sm" min="6" max="32" value="8" />
+                </div>
+                <div class="settingsx-form-row">
+                    <label>Số lần đăng nhập sai tối đa</label>
+                    <input id="securityMaxFailedLogin" type="number" class="form-control form-control-sm" min="1" max="20" value="5" />
+                </div>
+                <div class="settingsx-form-row">
+                    <label>Khóa tài khoản tự động</label>
+                    <div class="form-check form-switch">
+                        <input id="securityAutoLock" class="form-check-input" type="checkbox" checked />
+                    </div>
+                </div>
+            </div>
+            <div class="settingsx-form-actions mt-2">
+                <button id="btnSaveSecuritySettings" class="btn btn-primary btn-sm">Lưu</button>
+                <button id="btnCancelSecuritySettings" class="btn btn-light btn-sm">Hủy</button>
+                <button id="btnResetSecuritySettings" class="btn btn-outline-secondary btn-sm">Khôi phục mặc định</button>
+            </div>
+        </section>
+
+        <section id="page-logs" class="settingsx-page">
+            <header class="settingsx-page-head d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h4 class="mb-0">Log hệ thống</h4>
+                <div class="settingsx-log-filters">
+                    <input id="logSearch" class="form-control form-control-sm" placeholder="Tìm hành động..." />
+                    <input id="logUserSearch" class="form-control form-control-sm" placeholder="Tìm user..." />
+                    <input id="logObjectSearch" class="form-control form-control-sm" placeholder="Đối tượng (CONGVIEC/KPI...)" />
+                    <div class="input-group input-group-sm" style="max-width: 380px;">
+                        <span class="input-group-text">Từ ngày</span>
+                        <input id="logFromDate" type="date" class="form-control" title="Ngày bắt đầu lọc" />
+                        <span class="input-group-text">Đến ngày</span>
+                        <input id="logToDate" type="date" class="form-control" title="Ngày kết thúc lọc" />
+                    </div>
+                    <button id="btnRefreshLogs" class="btn btn-sm btn-outline-primary">Làm mới</button>
+                </div>
+                <small class="text-muted">Lọc theo thời gian: từ ngày bắt đầu đến hết ngày kết thúc.</small>
+            </header>
+            <div class="table-responsive mt-2">
+                <table class="table align-middle settingsx-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Hành động</th>
+                            <th>Đối tượng</th>
+                            <th>Trạng thái</th>
+                            <th>Thoi gian</th>
+                            <th>IP</th>
+                            <th class="text-end">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settingsLogBody">
+                        <tr><td colspan="7" class="text-muted">Đang tải log...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</section>
+
+<div class="modal fade" id="logDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiết Audit Log</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3 small">
+                    <div class="col-md-6"><strong>User:</strong> <span id="logDetailUser">-</span></div>
+                    <div class="col-md-6"><strong>Hành động:</strong> <span id="logDetailAction">-</span></div>
+                    <div class="col-md-6"><strong>Đối tượng:</strong> <span id="logDetailObject">-</span></div>
+                    <div class="col-md-6"><strong>Thời gian:</strong> <span id="logDetailTime">-</span></div>
+                    <div class="col-md-6"><strong>Trạng thái:</strong> <span id="logDetailStatus">-</span></div>
+                    <div class="col-md-6"><strong>IP:</strong> <span id="logDetailIp">-</span></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="btnToggleLogPayload">Hiện chi tiết</button>
+                <div id="logPayloadPanel" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label">Dữ liệu cũ</label>
+                        <pre id="logDetailOld" class="bg-light border rounded p-2 small mb-0">-</pre>
+                    </div>
+                    <div>
+                        <label class="form-label">Dữ liệu mới</label>
+                        <pre id="logDetailNew" class="bg-light border rounded p-2 small mb-0">-</pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="roleFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="roleFormTitle" class="modal-title">Thêm role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label">Tên role</label>
+                    <input id="roleNameInput" class="form-control" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Mô tả</label>
+                    <input id="roleDescInput" class="form-control" />
+                </div>
+                <div id="roleFormResult" class="small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveRole">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="aiTestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kiểm tra AI với dữ liệu thực tế</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="aix-two-col">
+                    <div>
+                        <label class="form-label">% hoàn thành</label>
+                        <input id="aiTestCompletion" type="number" class="form-control form-control-sm" min="0" max="100" value="55" />
+                    </div>
+                    <div>
+                        <label class="form-label">Thời gian đã sử dụng (%)</label>
+                        <input id="aiTestTimeUsed" type="number" class="form-control form-control-sm" min="0" max="100" value="70" />
+                    </div>
+                    <div>
+                        <label class="form-label">Khối lượng còn lại (%)</label>
+                        <input id="aiTestRemainWork" type="number" class="form-control form-control-sm" min="0" max="100" value="45" />
+                    </div>
+                    <div>
+                        <label class="form-label">Độ khó công việc</label>
+                        <input id="aiTestDifficulty" type="number" class="form-control form-control-sm" min="1" max="10" value="7" />
+                    </div>
+                </div>
+                <div class="alert mt-3 mb-0" id="aiTestResult">Nhấn "Chạy thử" để xem dự đoán.</div>
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Input</th>
+                                <th>Output</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiTestSummaryBody">
+                            <tr><td colspan="2" class="text-muted">Chưa có kết quả chạy thử.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-warning" id="btnRunAiTest">Chạy thử</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kpiAssignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gán KPI cho đối tượng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label">Chọn đối tượng (multi-select)</label>
+                    <select id="kpiAssignObjectSelect" class="form-select" size="7" multiple></select>
+                    <div class="form-text">Giữ Ctrl để chọn nhiều đối tượng.</div>
+                </div>
+
+                <div class="kpix-assign-modal-grid">
+                    <div>
+                        <label class="form-label">Trọng số (%)</label>
+                        <input id="kpiAssignWeightInput" type="number" class="form-control form-control-sm" min="0" max="100" value="10" />
+                    </div>
+                    <div>
+                        <label class="form-label">Mục tiêu</label>
+                        <div class="input-group input-group-sm">
+                            <select id="kpiAssignTargetType" class="form-select">
+                                <option value="score">Số</option>
+                                <option value="percent">%</option>
+                            </select>
+                            <input id="kpiAssignTargetValue" type="number" class="form-control" min="0" value="90" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Từ ngày</label>
+                        <input id="kpiAssignFromDate" type="date" class="form-control form-control-sm" />
+                    </div>
+                    <div>
+                        <label class="form-label">Đến ngày</label>
+                        <input id="kpiAssignToDate" type="date" class="form-control form-control-sm" />
+                    </div>
+                    <div>
+                        <label class="form-label">Trạng thái</label>
+                        <select id="kpiAssignStatus" class="form-select form-select-sm">
+                            <option value="active">Active</option>
+                            <option value="paused">Tạm dừng</option>
+                        </select>
+                    </div>
+                </div>
+                <p id="kpiAssignModalError" class="small text-danger mb-0 mt-2"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveKpiAssignment">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kpiGradeFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="kpiGradeFormTitle" class="modal-title">Thêm mức xếp loại KPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Mã</label>
+                        <select id="kpiGradeCodeInput" class="form-select">
+                            <option value="">-- Chọn mã xếp loại --</option>
+                            <option value="XUAT_SAC">XUAT_SAC - Xuất sắc</option>
+                            <option value="TOT">TOT - Tốt</option>
+                            <option value="TRUNG_BINH">TRUNG_BINH - Trung bình</option>
+                            <option value="KEM">KEM - Kém</option>
+                        </select>
+                        <div class="form-text">Mã dùng cho hệ thống. Khi đã tạo thì không được đổi ở chế độ sửa.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tên mức</label>
+                        <input id="kpiGradeLabelInput" class="form-control" placeholder="Xuất sắc" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Mô tả</label>
+                        <input id="kpiGradeMoTaInput" class="form-control" placeholder="Mô tả mức xếp loại" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Điểm từ</label>
+                        <input id="kpiGradeMinScoreInput" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Điểm đến</label>
+                        <input id="kpiGradeMaxScoreInput" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Màu</label>
+                        <input id="kpiGradeColorHexInput" class="form-control" placeholder="#16A34A" />
+                        <select id="kpiGradeColorPresetInput" class="form-select mt-1">
+                            <option value="">-- Chọn màu gợi ý --</option>
+                            <option value="#16A34A">Xanh lá - Xuất sắc</option>
+                            <option value="#0EA5E9">Xanh dương - Tốt</option>
+                            <option value="#F59E0B">Cam - Trung bình</option>
+                            <option value="#DC2626">Đỏ - Kém</option>
+                            <option value="#64748B">Xám - Trung tính</option>
+                        </select>
+                        <div class="form-text">Bạn có thể chọn nhanh màu gợi ý hoặc nhập mã màu HEX.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Thứ tự</label>
+                        <input id="kpiGradeSortOrderInput" type="number" class="form-control" value="0" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch mt-1">
+                            <input id="kpiGradeIsActiveInput" class="form-check-input" type="checkbox" checked />
+                            <label class="form-check-label" for="kpiGradeIsActiveInput">Đang áp dụng</label>
+                        </div>
+                    </div>
+                </div>
+                <p id="kpiGradeFormResult" class="small mt-2 mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveKpiGrade">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kpiMasterFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="kpiMasterFormTitle" class="modal-title">Thêm danh mục</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label">Tên danh mục</label>
+                    <input id="kpiMasterNameInput" class="form-control" placeholder="Nhập tên danh mục..." />
+                </div>
+                <div class="mb-2" id="kpiMasterHeSoWrap">
+                    <label class="form-label" id="kpiMasterHeSoLabel">Hệ số</label>
+                    <input id="kpiMasterHeSoInput" type="number" step="0.01" min="0.01" max="100" class="form-control" value="1.00" />
+                    <div class="form-text" id="kpiMasterHeSoHint">Dùng cho danh mục Độ khó/Độ ưu tiên để phục vụ tính KPI/AI.</div>
+                </div>
+                <p id="kpiMasterFormResult" class="small mt-2 mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveKpiMaster">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const canEditSettings = @canEditSettings.ToString().ToLowerInvariant();
+        const settingsSidebar = document.getElementById('settingsSidebar');
+        const settingsShell = document.querySelector('.settingsx-shell');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const btnToggleSettingsSidebar = document.getElementById('btnToggleSettingsSidebar');
+
+        const settingsOverviewCards = document.getElementById('settingsOverviewCards');
+        const settingsRoleBody = document.getElementById('settingsRoleBody');
+        const settingsLogBody = document.getElementById('settingsLogBody');
+
+        const btnOpenRoleCreate = document.getElementById('btnOpenRoleCreate');
+        const roleFormModal = new bootstrap.Modal(document.getElementById('roleFormModal'));
+        const roleFormTitle = document.getElementById('roleFormTitle');
+        const roleNameInput = document.getElementById('roleNameInput');
+        const roleDescInput = document.getElementById('roleDescInput');
+        const roleFormResult = document.getElementById('roleFormResult');
+        const btnSaveRole = document.getElementById('btnSaveRole');
+
+        const logSearch = document.getElementById('logSearch');
+        const logUserSearch = document.getElementById('logUserSearch');
+        const logObjectSearch = document.getElementById('logObjectSearch');
+        const logFromDate = document.getElementById('logFromDate');
+        const logToDate = document.getElementById('logToDate');
+        const btnRefreshLogs = document.getElementById('btnRefreshLogs');
+        const aiHistoryBody = document.getElementById('aiHistoryBody');
+        const btnRefreshAiHistory = document.getElementById('btnRefreshAiHistory');
+
+        const logDetailModalEl = document.getElementById('logDetailModal');
+        const logDetailModal = logDetailModalEl ? new bootstrap.Modal(logDetailModalEl) : null;
+        const logPayloadPanel = document.getElementById('logPayloadPanel');
+        const btnToggleLogPayload = document.getElementById('btnToggleLogPayload');
+
+        const permissionTableBody = document.querySelector('#permissionTable tbody');
+        const permissionRoleSelect = document.getElementById('permissionRoleSelect');
+        const permissionClaimInfo = document.getElementById('permissionClaimInfo');
+        const kpiGradeBody = document.getElementById('kpiGradeBody');
+        const kpiGradeWarning = document.getElementById('kpiGradeWarning');
+        const btnOpenKpiGradeCreate = document.getElementById('btnOpenKpiGradeCreate');
+        const btnSaveKpiGrade = document.getElementById('btnSaveKpiGrade');
+        const kpiGradeFormModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('kpiGradeFormModal'));
+        const kpiGradeFormTitle = document.getElementById('kpiGradeFormTitle');
+        const kpiGradeCodeInput = document.getElementById('kpiGradeCodeInput');
+        const kpiGradeLabelInput = document.getElementById('kpiGradeLabelInput');
+        const kpiGradeMoTaInput = document.getElementById('kpiGradeMoTaInput');
+        const kpiGradeMinScoreInput = document.getElementById('kpiGradeMinScoreInput');
+        const kpiGradeMaxScoreInput = document.getElementById('kpiGradeMaxScoreInput');
+        const kpiGradeColorHexInput = document.getElementById('kpiGradeColorHexInput');
+        const kpiGradeColorPresetInput = document.getElementById('kpiGradeColorPresetInput');
+        const kpiGradeSortOrderInput = document.getElementById('kpiGradeSortOrderInput');
+        const kpiGradeIsActiveInput = document.getElementById('kpiGradeIsActiveInput');
+        const kpiGradeFormResult = document.getElementById('kpiGradeFormResult');
+        const kpiMasterType = document.getElementById('kpiMasterType');
+        const kpiMasterBody = document.getElementById('kpiMasterBody');
+        const btnOpenKpiMasterCreate = document.getElementById('btnOpenKpiMasterCreate');
+        const btnSaveKpiMaster = document.getElementById('btnSaveKpiMaster');
+        const kpiMasterFormModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('kpiMasterFormModal'));
+        const kpiMasterFormTitle = document.getElementById('kpiMasterFormTitle');
+        const kpiMasterNameInput = document.getElementById('kpiMasterNameInput');
+        const kpiMasterHeSoWrap = document.getElementById('kpiMasterHeSoWrap');
+        const kpiMasterHeSoLabel = document.getElementById('kpiMasterHeSoLabel');
+        const kpiMasterHeSoHint = document.getElementById('kpiMasterHeSoHint');
+        const kpiMasterHeSoInput = document.getElementById('kpiMasterHeSoInput');
+        const kpiMasterFormResult = document.getElementById('kpiMasterFormResult');
+
+        const STORAGE_KEY = {
+            roleDesc: 'settingsx.roleDesc.v1',
+            kpi: 'settingsx.kpi.v1',
+            ai: 'settingsx.ai.v1',
+            notify: 'settingsx.notify.v1',
+            security: 'settingsx.security.v1'
+        };
+
+        const state = {
+            overview: null,
+            roles: [],
+            logs: [],
+            clientSettingsStore: {},
+            selectedPage: 'overview',
+            editingRoleId: null,
+            editingKpiGradeId: null,
+            editingKpiMasterId: null,
+            roleDescMap: {},
+            selectedPermissionRoleId: null,
+            selectedPermissionClaims: new Set(),
+            kpiGrades: [],
+            kpiMasterItems: [],
+            selectedKpiId: null,
+            selectedKpiTab: 'info',
+            selectedObjectType: 'all',
+            draggingObjectId: null,
+            kpi: {
+                definitions: [],
+                objects: [],
+                assignments: {}
+            },
+            selection: {
+                available: new Set(),
+                assigned: new Set()
+            },
+            permissionRows: [
+                { key: 'employees', claimGroup: 'Employees', label: 'Quản lý nhân viên' },
+                { key: 'projects', claimGroup: 'Projects', label: 'Quản lý dự án' },
+                { key: 'tasks', claimGroup: 'Tasks', label: 'Quản lý công việc' },
+                { key: 'settings', claimGroup: 'Settings', label: 'Cài đặt hệ thống' }
+            ]
+        };
+
+        const permissionFields = ['view', 'create', 'edit', 'delete'];
+
+        const defaultPermissionByRole = {
+            Admin: {
+                employees: { view: true, create: true, edit: true, delete: true },
+                projects: { view: true, create: true, edit: true, delete: true },
+                tasks: { view: true, create: true, edit: true, delete: true },
+                settings: { view: true, create: true, edit: true, delete: true }
+            },
+            Manager: {
+                employees: { view: true, create: false, edit: true, delete: false },
+                projects: { view: true, create: true, edit: true, delete: false },
+                tasks: { view: true, create: true, edit: true, delete: true },
+                settings: { view: false, create: false, edit: false, delete: false }
+            },
+            Employee: {
+                employees: { view: false, create: false, edit: false, delete: false },
+                projects: { view: true, create: false, edit: false, delete: false },
+                tasks: { view: true, create: false, edit: true, delete: false },
+                settings: { view: false, create: false, edit: false, delete: false }
+            }
+        };
+
+        const defaultKpi = {
+            definitions: [],
+            objects: [],
+            assignments: {}
+        };
+        const defaultAi = {
+            general: {
+                enabled: true,
+                applyAll: true,
+                applyManager: true,
+                applyDepartment: true,
+                dataWindow: 6,
+                minRecords: 100,
+                runMode: 'daily',
+                weights: { completion: 70, overdue: 50, kpi: 80, difficulty: 60 }
+            },
+            forecast: {
+                model: 'Linear Regression',
+                delayThreshold: 70,
+                features: { completion: true, usedTime: true, remainWork: true, difficulty: true },
+                display: { expectedDate: true, earlyWarning: true, trend: true }
+            },
+            performance: {
+                model: 'Random Forest',
+                analysisLevel: 'balanced',
+                estimators: 100,
+                maxDepth: 10,
+                criteria: { onTime: true, volume: true, difficulty: true, kpi: true, feedback: true },
+                weights: { onTime: 80, volume: 60, difficulty: 70, kpi: 90, feedback: 50 },
+                resultClasses: 'Xuất sắc | Tốt | Trung bình | Kém',
+                allowAdjustClass: true
+            },
+            automation: {
+                suggestPeople: true,
+                suggestBySkillPerformance: true,
+                suggestImprovePerformance: true,
+                suggestRebalanceTask: true,
+                autoLateAlert: true,
+                autoSendNotification: true,
+                autoSuggestDeadline: true,
+                suggestionTone: 'short',
+                suggestionTemplate: 'Nhân viên {Ten} có nguy cơ trễ hạn do {LyDo}.\nĐề xuất: {GiaiPhap}'
+            }
+        };
+        const defaultNotify = { email: '', overdueTask: true, system: true };
+        const defaultSecurity = { minLength: 8, maxFailed: 5, autoLock: true };
+        const kpiGradeCodeHints = {
+            XUAT_SAC: { label: 'Xuất sắc', moTa: 'Nhân viên hoàn thành vượt kỳ vọng', colorHex: '#16A34A' },
+            TOT: { label: 'Tốt', moTa: 'Nhân viên hoàn thành tốt mục tiêu', colorHex: '#0EA5E9' },
+            TRUNG_BINH: { label: 'Trung bình', moTa: 'Nhân viên đạt mức trung bình', colorHex: '#F59E0B' },
+            KEM: { label: 'Kém', moTa: 'Nhân viên chưa đạt yêu cầu', colorHex: '#DC2626' }
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        const safeParse = (raw, fallback) => {
+            try {
+                return raw ? JSON.parse(raw) : fallback;
+            } catch {
+                return fallback;
+            }
+        };
+
+        const formatDateTime = (value) => {
+            if (!value) return '-';
+            const d = new Date(value);
+            return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString('vi-VN');
+        };
+
+        const deepClone = (value) => JSON.parse(JSON.stringify(value));
+
+        function getClientSetting(key) {
+            return state.clientSettingsStore[key] ?? null;
+        }
+
+        function setClientSetting(key, jsonStringValue) {
+            if (!canEditSettings) {
+                return;
+            }
+
+            state.clientSettingsStore[key] = jsonStringValue;
+
+            let payload;
+            try {
+                payload = JSON.parse(jsonStringValue);
+            } catch {
+                payload = jsonStringValue;
+            }
+
+            fetchJson(`/settings/ui/${encodeURIComponent(key)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: payload })
+            });
+        }
+
+        function enforceReadOnlySettingsMode() {
+            if (canEditSettings) return;
+
+            const writeButtonIds = [
+                'btnOpenRoleCreate',
+                'btnSaveRole',
+                'btnSavePermissions',
+                'btnResetPermissions',
+                'btnSaveAiSettings',
+                'btnResetAiSettings',
+                'btnSaveNotifySettings',
+                'btnResetNotifySettings',
+                'btnSaveSecuritySettings',
+                'btnResetSecuritySettings',
+                'btnOpenKpiGradeCreate',
+                'btnSaveKpiGrade',
+                'btnOpenKpiMasterCreate',
+                'btnSaveKpiMaster',
+                'btnCreateKpi',
+                'btnAssignObjects',
+                'btnUnassignObjects',
+                'btnOpenKpiAssignModal',
+                'btnSaveKpiAssignment'
+            ];
+
+            writeButtonIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = true;
+                el.classList.add('disabled');
+                el.title = 'Bạn chỉ có quyền xem Cài đặt hệ thống.';
+            });
+        }
+
+        async function initializeClientSettingsStore() {
+            const keys = Object.values(STORAGE_KEY);
+            await Promise.all(keys.map(async key => {
+                const res = await fetchJson(`/settings/ui/${encodeURIComponent(key)}`);
+                if (res.success && res.data != null) {
+                    state.clientSettingsStore[key] = JSON.stringify(res.data);
+                }
+            }));
+        }
+
+        const objectTypeLabel = {
+            nhanvien: 'Nhân viên',
+            nhom: 'Nhóm',
+            phongban: 'Phòng ban',
+            duan: 'Dự án'
+        };
+
+        function getKpiStorage() {
+            const saved = safeParse(getClientSetting(STORAGE_KEY.kpi), defaultKpi);
+            return {
+                definitions: Array.isArray(saved?.definitions) ? saved.definitions : deepClone(defaultKpi.definitions),
+                objects: Array.isArray(saved?.objects) ? saved.objects : deepClone(defaultKpi.objects),
+                assignments: typeof saved?.assignments === 'object' && saved.assignments
+                    ? saved.assignments
+                    : deepClone(defaultKpi.assignments)
+            };
+        }
+
+        function saveKpiStorage() {
+            setClientSetting(STORAGE_KEY.kpi, JSON.stringify(state.kpi));
+        }
+
+        async function loadKpiRuntimeData() {
+            // Settings ưu tiên các API /settings/*.
+            // Không gọi /kpi/* ở bước init để tránh làm hỏng toàn bộ trang khi module KPI backend đang lỗi.
+            const catalogItems = [];
+            const employeeItems = [];
+            const teamItems = [];
+
+            const definitions = catalogItems.map(item => {
+                const maKpi = Number(item?.maKpi ?? 0);
+                return {
+                    id: `KPI-${maKpi}`,
+                    code: `KPI-${maKpi}`,
+                    name: item?.tenKpi || `KPI ${maKpi}`,
+                    type: item?.tenLoaiKpi || 'Khác',
+                    cycle: '-',
+                    status: String(item?.trangThai || '').toLowerCase() === 'active' ? 'active' : 'paused',
+                    owner: 'Hệ thống',
+                    description: item?.moTa || '',
+                    rawId: maKpi
+                };
+            });
+
+            const employeeObjects = employeeItems.map(item => ({
+                id: `EMP-${Number(item?.maNhanVien ?? 0)}`,
+                name: item?.hoTen || `NV ${Number(item?.maNhanVien ?? 0)}`,
+                type: 'nhanvien',
+                department: item?.tenPhongBan || '-'
+            }));
+
+            const teamObjects = teamItems.map(item => ({
+                id: `TEAM-${Number(item?.maNhom ?? 0)}`,
+                name: item?.tenNhom || `Nhóm ${Number(item?.maNhom ?? 0)}`,
+                type: 'nhom',
+                department: '-'
+            }));
+
+            const objectsMap = new Map();
+            [...employeeObjects, ...teamObjects].forEach(obj => objectsMap.set(obj.id, obj));
+            const objects = Array.from(objectsMap.values());
+
+            const existingAssignments = (state.kpi && typeof state.kpi.assignments === 'object' && state.kpi.assignments)
+                ? state.kpi.assignments
+                : {};
+            const assignments = {};
+            definitions.forEach(def => {
+                assignments[def.id] = Array.isArray(existingAssignments[def.id]) ? existingAssignments[def.id] : [];
+            });
+
+            state.kpi = { definitions, objects, assignments };
+            if (!state.selectedKpiId || !definitions.some(x => x.id === state.selectedKpiId)) {
+                state.selectedKpiId = definitions[0]?.id || null;
+            }
+            saveKpiStorage();
+        }
+
+        function getSelectedKpi() {
+            return state.kpi.definitions.find(x => x.id === state.selectedKpiId) || null;
+        }
+
+        function getAssignmentsByKpiId(kpiId) {
+            if (!kpiId) return [];
+            if (!Array.isArray(state.kpi.assignments[kpiId])) state.kpi.assignments[kpiId] = [];
+            return state.kpi.assignments[kpiId];
+        }
+
+        function getObjectById(objectId) {
+            return state.kpi.objects.find(x => x.id === objectId) || null;
+        }
+
+        function getTypeBadge(type) {
+            const map = {
+                nhanvien: 'kpix-type-employee',
+                nhom: 'kpix-type-team',
+                phongban: 'kpix-type-department',
+                duan: 'kpix-type-project'
+            };
+            const css = map[type] || 'kpix-type-employee';
+            return `<span class="kpix-type-badge ${css}">${escapeHtml(objectTypeLabel[type] || type || '-')}</span>`;
+        }
+
+        function resolveStatusLabel(status) {
+            return status === 'paused' ? 'Tạm dừng' : 'Active';
+        }
+
+        function targetText(targetType, targetValue) {
+            return targetType === 'percent' ? `>= ${targetValue}%` : `>= ${targetValue} điểm`;
+        }
+
+        function assignmentKey(item) {
+            return `${item.objectId}|${item.fromDate}|${item.toDate}`;
+        }
+
+        function isDateOverlap(aFrom, aTo, bFrom, bTo) {
+            if (!aFrom || !aTo || !bFrom || !bTo) return false;
+            return aFrom <= bTo && bFrom <= aTo;
+        }
+
+        function setObjectTypeFilter(type) {
+            state.selectedObjectType = type || 'all';
+            const objectTypeFilter = document.getElementById('kpiObjectTypeFilter');
+            if (objectTypeFilter) objectTypeFilter.value = state.selectedObjectType;
+            document.querySelectorAll('#kpiObjectTypeTabs button[data-object-type]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-object-type') === state.selectedObjectType);
+            });
+            renderKpiAssignmentPanel();
+        }
+
+        function getFilteredKpiDefinitions() {
+            const search = (document.getElementById('kpiSearchInput')?.value || '').toLowerCase().trim();
+            const type = (document.getElementById('kpiTypeFilter')?.value || 'all').toLowerCase();
+
+            return state.kpi.definitions.filter(item => {
+                if (type !== 'all' && item.type !== type) return false;
+                if (!search) return true;
+                return item.name.toLowerCase().includes(search) || item.code.toLowerCase().includes(search);
+            });
+        }
+
+        function getKpiWeightSummary(kpiId) {
+            const total = getAssignmentsByKpiId(kpiId).reduce((sum, x) => sum + Number(x.weight || 0), 0);
+            let level = 'ok';
+            if (total > 100) level = 'danger';
+            else if (total < 100) level = 'warning';
+            return { total, level };
+        }
+
+        function refreshKpiWeightSummary() {
+            const summaryEl = document.getElementById('kpiWeightSummary');
+            const warningEl = document.getElementById('kpiAssignWarning');
+            if (!summaryEl || !warningEl) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                summaryEl.className = 'kpix-weight-summary';
+                summaryEl.textContent = 'Tổng trọng số: 0%';
+                warningEl.className = 'small mb-0 mt-2 text-muted';
+                warningEl.textContent = 'Chọn KPI để bắt đầu gán đối tượng.';
+                return;
+            }
+
+            const { total, level } = getKpiWeightSummary(kpi.id);
+            summaryEl.className = `kpix-weight-summary ${level}`;
+            summaryEl.textContent = `Tổng trọng số: ${total}%`;
+
+            warningEl.className = 'small mb-0 mt-2';
+            if (level === 'danger') {
+                warningEl.classList.add('text-danger');
+                warningEl.textContent = 'Tổng trọng số vượt quá 100%. Vui lòng điều chỉnh lại.';
+            } else if (level === 'warning') {
+                warningEl.classList.add('text-warning');
+                warningEl.textContent = 'Tổng trọng số chưa đạt 100%. KPI có thể chưa cân bằng.';
+            } else {
+                warningEl.classList.add('text-success');
+                warningEl.textContent = 'Tổng trọng số đạt 100%.';
+            }
+        }
+
+        function renderKpiList() {
+            const body = document.getElementById('kpiListBody');
+            if (!body) return;
+
+            const rows = getFilteredKpiDefinitions();
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="5" class="text-muted">Không tìm thấy KPI phù hợp.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = rows.map(item => {
+                const selected = item.id === state.selectedKpiId;
+                const statusCss = item.status === 'paused' ? 'text-bg-warning' : 'text-bg-success';
+                return `
+                    <tr class="${selected ? 'kpix-selected-row' : ''}" data-kpi-id="${item.id}">
+                        <td>${escapeHtml(item.code)}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td><span class="badge text-bg-light border">${escapeHtml(item.type)}</span></td>
+                        <td>${escapeHtml(item.cycle || '-')}</td>
+                        <td><span class="badge ${statusCss}">${escapeHtml(resolveStatusLabel(item.status))}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderKpiInfoTab() {
+            const panel = document.getElementById('kpiInfoGrid');
+            if (!panel) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                panel.innerHTML = '<p class="text-muted mb-0">Chưa chọn KPI.</p>';
+                return;
+            }
+
+            const assignedCount = getAssignmentsByKpiId(kpi.id).length;
+            const summary = getKpiWeightSummary(kpi.id);
+
+            panel.innerHTML = `
+                <article class="kpix-info-card"><h6>Mã KPI</h6><p>${escapeHtml(kpi.code)}</p></article>
+                <article class="kpix-info-card"><h6>Loại</h6><p>${escapeHtml(kpi.type)}</p></article>
+                <article class="kpix-info-card"><h6>Chu kỳ</h6><p>${escapeHtml(kpi.cycle || '-')}</p></article>
+                <article class="kpix-info-card"><h6>Chủ sở hữu</h6><p>${escapeHtml(kpi.owner || '-')}</p></article>
+                <article class="kpix-info-card"><h6>Số đối tượng đã gán</h6><p>${assignedCount}</p></article>
+                <article class="kpix-info-card"><h6>Tổng trọng số</h6><p>${summary.total}%</p></article>
+                <article class="kpix-info-card kpix-span-2"><h6>Mô tả</h6><p>${escapeHtml(kpi.description || '-')}</p></article>
+            `;
+        }
+
+        function getVisibleAvailableObjects() {
+            const kpi = getSelectedKpi();
+            if (!kpi) return [];
+
+            const assignedIds = new Set(getAssignmentsByKpiId(kpi.id).map(x => x.objectId));
+            const type = state.selectedObjectType;
+            const kw = (document.getElementById('kpiAvailableSearch')?.value || '').toLowerCase().trim();
+
+            return state.kpi.objects
+                .filter(obj => !assignedIds.has(obj.id))
+                .filter(obj => type === 'all' || obj.type === type)
+                .filter(obj => !kw || obj.name.toLowerCase().includes(kw) || (obj.department || '').toLowerCase().includes(kw));
+        }
+
+        function getVisibleAssignedRows() {
+            const kpi = getSelectedKpi();
+            if (!kpi) return [];
+
+            const kw = (document.getElementById('kpiAssignedSearch')?.value || '').toLowerCase().trim();
+            const type = state.selectedObjectType;
+
+            return getAssignmentsByKpiId(kpi.id)
+                .map(item => ({ item, obj: getObjectById(item.objectId) }))
+                .filter(({ obj }) => !!obj)
+                .filter(({ obj }) => type === 'all' || obj.type === type)
+                .filter(({ obj }) => !kw || obj.name.toLowerCase().includes(kw) || (obj.department || '').toLowerCase().includes(kw));
+        }
+
+        function renderKpiDualListTables() {
+            const availableBody = document.getElementById('kpiAvailableBody');
+            const assignedBody = document.getElementById('kpiAssignedPreviewBody');
+            if (!availableBody || !assignedBody) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                availableBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chọn KPI để xem đối tượng chưa gán.</td></tr>';
+                assignedBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chọn KPI để xem danh sách đã gán.</td></tr>';
+                return;
+            }
+
+            const available = getVisibleAvailableObjects();
+            const assigned = getVisibleAssignedRows();
+
+            availableBody.innerHTML = available.length
+                ? available.map(obj => `
+                    <tr draggable="true" data-drag-id="${obj.id}" data-list="available">
+                        <td><input type="checkbox" class="kpi-available-check" data-object-id="${obj.id}" ${state.selection.available.has(obj.id) ? 'checked' : ''} /></td>
+                        <td>${escapeHtml(obj.name)}</td>
+                        <td>${getTypeBadge(obj.type)}</td>
+                        <td>${escapeHtml(obj.department || '-')}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="text-muted">Không còn đối tượng phù hợp.</td></tr>';
+
+            assignedBody.innerHTML = assigned.length
+                ? assigned.map(({ item, obj }) => `
+                    <tr draggable="true" data-drag-id="${obj.id}" data-list="assigned">
+                        <td><input type="checkbox" class="kpi-assigned-check" data-object-id="${obj.id}" ${state.selection.assigned.has(obj.id) ? 'checked' : ''} /></td>
+                        <td>${escapeHtml(obj.name)}</td>
+                        <td>${getTypeBadge(obj.type)}</td>
+                        <td>${Number(item.weight || 0)}%</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="text-muted">Chưa có đối tượng được gán.</td></tr>';
+        }
+
+        function detectDuplicateAssignments(kpiId) {
+            const rows = getAssignmentsByKpiId(kpiId);
+            const duplicateKeys = new Set();
+
+            for (let i = 0; i < rows.length; i += 1) {
+                for (let j = i + 1; j < rows.length; j += 1) {
+                    if (rows[i].objectId !== rows[j].objectId) continue;
+                    if (isDateOverlap(rows[i].fromDate, rows[i].toDate, rows[j].fromDate, rows[j].toDate)) {
+                        duplicateKeys.add(assignmentKey(rows[i]));
+                        duplicateKeys.add(assignmentKey(rows[j]));
+                    }
+                }
+            }
+            return duplicateKeys;
+        }
+
+        function renderKpiAssignedConfigTable() {
+            const body = document.getElementById('kpiAssignedConfigBody');
+            if (!body) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                body.innerHTML = '<tr><td colspan="7" class="text-muted">Chọn KPI để cấu hình gán.</td></tr>';
+                refreshKpiWeightSummary();
+                return;
+            }
+
+            const rows = getAssignmentsByKpiId(kpi.id).map(item => ({ item, obj: getObjectById(item.objectId) })).filter(x => !!x.obj);
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="7" class="text-muted">Chưa có đối tượng được gán KPI.</td></tr>';
+                refreshKpiWeightSummary();
+                return;
+            }
+
+            const duplicateKeys = detectDuplicateAssignments(kpi.id);
+            body.innerHTML = rows.map(({ item, obj }) => {
+                const targetType = item.targetType || 'score';
+                const key = assignmentKey(item);
+                const duplicateClass = duplicateKeys.has(key) ? 'kpix-duplicate-row' : '';
+                return `
+                    <tr class="${duplicateClass}">
+                        <td>${escapeHtml(obj.name)}</td>
+                        <td>${getTypeBadge(obj.type)}</td>
+                        <td>
+                            <div class="input-group input-group-sm" title="Trọng số là mức ảnh hưởng của KPI này">
+                                <input type="number" class="form-control kpi-weight-input" min="0" max="100" value="${Number(item.weight || 0)}" data-object-id="${obj.id}" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control kpi-target-input" min="0" value="${Number(item.targetValue || 0)}" data-object-id="${obj.id}" />
+                                <select class="form-select kpi-target-type" data-object-id="${obj.id}">
+                                    <option value="score" ${targetType === 'score' ? 'selected' : ''}>Số</option>
+                                    <option value="percent" ${targetType === 'percent' ? 'selected' : ''}>%</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="kpix-time-range">
+                                <input type="date" class="form-control form-control-sm kpi-from-input" value="${escapeHtml(item.fromDate || '')}" data-object-id="${obj.id}" />
+                                <input type="date" class="form-control form-control-sm kpi-to-input" value="${escapeHtml(item.toDate || '')}" data-object-id="${obj.id}" />
+                            </div>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm kpi-status-input" data-object-id="${obj.id}">
+                                <option value="active" ${item.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="paused" ${item.status === 'paused' ? 'selected' : ''}>Tạm dừng</option>
+                            </select>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary" data-action="edit-assign" data-object-id="${obj.id}"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" data-action="remove-assign" data-object-id="${obj.id}"><i class="bi bi-x-circle"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            refreshKpiWeightSummary();
+        }
+
+        function renderKpiResultTab() {
+            const grid = document.getElementById('kpiResultGrid');
+            const body = document.getElementById('kpiResultBody');
+            if (!grid || !body) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                grid.innerHTML = '';
+                body.innerHTML = '<tr><td colspan="5" class="text-muted">Chọn KPI để xem kết quả.</td></tr>';
+                return;
+            }
+
+            const rows = getAssignmentsByKpiId(kpi.id).map(item => ({ item, obj: getObjectById(item.objectId) })).filter(x => !!x.obj);
+            const avg = rows.length ? Math.round(rows.reduce((sum, x) => sum + Number(x.item.progress || 0), 0) / rows.length) : 0;
+            const activeCount = rows.filter(x => x.item.status === 'active').length;
+
+            grid.innerHTML = `
+                <article class="kpix-result-card"><h6>Đối tượng đã gán</h6><p>${rows.length}</p></article>
+                <article class="kpix-result-card"><h6>Đang active</h6><p>${activeCount}</p></article>
+                <article class="kpix-result-card"><h6>Tiến độ trung bình</h6><p>${avg}%</p></article>
+            `;
+
+            body.innerHTML = rows.length ? rows.map(({ item, obj }) => {
+                const progress = Number(item.progress || 0);
+                const level = progress >= 85 ? 'Tốt' : (progress >= 70 ? 'Cần theo dõi' : 'Rủi ro');
+                return `
+                    <tr>
+                        <td>${escapeHtml(obj.name)}</td>
+                        <td>${getTypeBadge(obj.type)}</td>
+                        <td>${escapeHtml(targetText(item.targetType, item.targetValue))}</td>
+                        <td>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: ${progress}%;" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small>${progress}%</small>
+                        </td>
+                        <td>${level}</td>
+                    </tr>
+                `;
+            }).join('') : '<tr><td colspan="5" class="text-muted">Chưa có dữ liệu kết quả.</td></tr>';
+        }
+
+        function renderKpiAnalysisTab() {
+            const shell = document.getElementById('kpiAnalysisShell');
+            if (!shell) return;
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                shell.innerHTML = '<p class="text-muted mb-0">Chọn KPI để xem phân tích.</p>';
+                return;
+            }
+
+            const rows = getAssignmentsByKpiId(kpi.id);
+            const duplicateCount = detectDuplicateAssignments(kpi.id).size;
+            const weightSummary = getKpiWeightSummary(kpi.id);
+            const riskCount = rows.filter(x => Number(x.progress || 0) < 70).length;
+
+            shell.innerHTML = `
+                <article class="kpix-analysis-card">
+                    <h6>Kiểm soát nghiệp vụ</h6>
+                    <ul class="mb-0">
+                        <li>1 KPI -> nhiều đối tượng: <strong>Đang áp dụng (${rows.length})</strong></li>
+                        <li>1 đối tượng -> nhiều KPI: <strong>Cho phép</strong></li>
+                        <li>Tổng trọng số hiện tại: <strong>${weightSummary.total}%</strong></li>
+                        <li>Cảnh báo trùng KPI cùng thời gian: <strong>${duplicateCount > 0 ? `${duplicateCount} mục` : 'Không có'}</strong></li>
+                    </ul>
+                </article>
+                <article class="kpix-analysis-card">
+                    <h6>Nhận định</h6>
+                    <p class="mb-2">Có <strong>${riskCount}</strong> đối tượng có tiến độ dưới 70% cần theo dõi.</p>
+                    <p class="mb-0">Gợi ý: ưu tiên điều chỉnh trọng số cho nhóm/phòng ban có tiến độ thấp để tránh dồn áp lực vào cá nhân.</p>
+                </article>
+            `;
+        }
+
+        function renderKpiAssignmentPanel() {
+            renderKpiDualListTables();
+            renderKpiAssignedConfigTable();
+            renderKpiResultTab();
+            renderKpiAnalysisTab();
+        }
+
+        function renderKpiDetail() {
+            const title = document.getElementById('kpiDetailTitle');
+            const subtitle = document.getElementById('kpiDetailSubtitle');
+            const status = document.getElementById('kpiDetailStatus');
+
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                if (title) title.textContent = 'Chọn KPI để xem chi tiết';
+                if (subtitle) subtitle.textContent = 'Chi tiết KPI sẽ hiển thị ở đây.';
+                if (status) {
+                    status.className = 'badge text-bg-secondary';
+                    status.textContent = 'Chưa chọn';
+                }
+                renderKpiInfoTab();
+                renderKpiAssignmentPanel();
+                return;
+            }
+
+            if (title) title.textContent = `${kpi.code} - ${kpi.name}`;
+            if (subtitle) subtitle.textContent = `${kpi.description || 'Không có mô tả.'} | Chủ sở hữu: ${kpi.owner || '-'}`;
+            if (status) {
+                status.className = `badge ${kpi.status === 'paused' ? 'text-bg-warning' : 'text-bg-success'}`;
+                status.textContent = resolveStatusLabel(kpi.status);
+            }
+
+            renderKpiInfoTab();
+            renderKpiAssignmentPanel();
+        }
+
+        function addAssignmentsToCurrentKpi(objectIds, defaults = {}) {
+            const kpi = getSelectedKpi();
+            if (!kpi) return;
+
+            const rows = getAssignmentsByKpiId(kpi.id);
+            const fromDate = defaults.fromDate || new Date().toISOString().slice(0, 10);
+            const toDate = defaults.toDate || fromDate;
+            const targetType = defaults.targetType || 'score';
+            const targetValue = Number(defaults.targetValue || 90);
+            const weight = Number(defaults.weight || 10);
+            const status = defaults.status || 'active';
+
+            objectIds.forEach(objectId => {
+                if (rows.some(x => x.objectId === objectId)) return;
+                rows.push({
+                    objectId,
+                    weight,
+                    targetType,
+                    targetValue,
+                    fromDate,
+                    toDate,
+                    period: `${fromDate} - ${toDate}`,
+                    status,
+                    progress: 0
+                });
+            });
+
+            saveKpiStorage();
+            state.selection.available.clear();
+            renderKpiDetail();
+            renderKpiList();
+        }
+
+        function removeAssignmentsFromCurrentKpi(objectIds) {
+            const kpi = getSelectedKpi();
+            if (!kpi) return;
+            state.kpi.assignments[kpi.id] = getAssignmentsByKpiId(kpi.id).filter(x => !objectIds.includes(x.objectId));
+            saveKpiStorage();
+            state.selection.assigned.clear();
+            renderKpiDetail();
+            renderKpiList();
+        }
+
+        function openKpiAssignModal() {
+            const kpi = getSelectedKpi();
+            if (!kpi) {
+                alert('Vui lòng chọn KPI trước khi gán.');
+                return;
+            }
+
+            const modalEl = document.getElementById('kpiAssignModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const select = document.getElementById('kpiAssignObjectSelect');
+            const errorEl = document.getElementById('kpiAssignModalError');
+
+            const available = getVisibleAvailableObjects();
+            select.innerHTML = available.map(obj => `<option value="${obj.id}">${escapeHtml(obj.name)} - ${escapeHtml(objectTypeLabel[obj.type] || obj.type)}</option>`).join('');
+            errorEl.textContent = '';
+            modal.show();
+        }
+
+        function handleSaveKpiAssignmentModal() {
+            const select = document.getElementById('kpiAssignObjectSelect');
+            const weight = Number(document.getElementById('kpiAssignWeightInput').value || 0);
+            const targetType = document.getElementById('kpiAssignTargetType').value;
+            const targetValue = Number(document.getElementById('kpiAssignTargetValue').value || 0);
+            const fromDate = document.getElementById('kpiAssignFromDate').value;
+            const toDate = document.getElementById('kpiAssignToDate').value;
+            const status = document.getElementById('kpiAssignStatus').value;
+            const errorEl = document.getElementById('kpiAssignModalError');
+
+            const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+            if (!selected.length) {
+                errorEl.textContent = 'Chọn ít nhất 1 đối tượng để gán.';
+                return;
+            }
+            if (!fromDate || !toDate || fromDate > toDate) {
+                errorEl.textContent = 'Khoảng thời gian không hợp lệ.';
+                return;
+            }
+
+            errorEl.textContent = '';
+            addAssignmentsToCurrentKpi(selected, { weight, targetType, targetValue, fromDate, toDate, status });
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('kpiAssignModal')).hide();
+        }
+
+        function createNewKpi() {
+            const nowId = `KPI-${Date.now()}`;
+            const newKpi = {
+                id: nowId,
+                code: nowId,
+                name: 'KPI mới',
+                type: 'hiệu suất',
+                cycle: 'Tháng',
+                status: 'active',
+                owner: 'Admin',
+                description: 'KPI mới được tạo từ giao diện quản lý KPI.'
+            };
+            state.kpi.definitions.unshift(newKpi);
+            state.kpi.assignments[nowId] = [];
+            state.selectedKpiId = nowId;
+            saveKpiStorage();
+            renderKpiList();
+            renderKpiDetail();
+        }
+
+        function bindKpiEvents() {
+            const kpiListBody = document.getElementById('kpiListBody');
+            const detailTabs = document.getElementById('kpiDetailTabs');
+            const objectTypeFilter = document.getElementById('kpiObjectTypeFilter');
+            const objectTypeTabs = document.getElementById('kpiObjectTypeTabs');
+            const availableBody = document.getElementById('kpiAvailableBody');
+            const assignedPreviewBody = document.getElementById('kpiAssignedPreviewBody');
+            const assignedConfigBody = document.getElementById('kpiAssignedConfigBody');
+
+            document.getElementById('kpiSearchInput')?.addEventListener('input', renderKpiList);
+            document.getElementById('kpiTypeFilter')?.addEventListener('change', renderKpiList);
+            document.getElementById('btnCreateKpi')?.addEventListener('click', createNewKpi);
+
+            kpiListBody?.addEventListener('click', (e) => {
+                const row = e.target.closest('tr[data-kpi-id]');
+                if (!row) return;
+                state.selectedKpiId = row.getAttribute('data-kpi-id');
+                state.selection.available.clear();
+                state.selection.assigned.clear();
+                renderKpiList();
+                renderKpiDetail();
+            });
+
+            detailTabs?.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-kpi-tab]');
+                if (!btn) return;
+                state.selectedKpiTab = btn.getAttribute('data-kpi-tab');
+                detailTabs.querySelectorAll('button[data-kpi-tab]').forEach(x => x.classList.toggle('active', x === btn));
+                document.querySelectorAll('.kpix-tab-panel').forEach(panel => panel.classList.remove('active'));
+                document.getElementById(`kpi-tab-${state.selectedKpiTab}`)?.classList.add('active');
+            });
+
+            objectTypeFilter?.addEventListener('change', (e) => setObjectTypeFilter(e.target.value));
+            objectTypeTabs?.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-object-type]');
+                if (!btn) return;
+                setObjectTypeFilter(btn.getAttribute('data-object-type'));
+            });
+
+            document.getElementById('kpiAvailableSearch')?.addEventListener('input', renderKpiDualListTables);
+            document.getElementById('kpiAssignedSearch')?.addEventListener('input', renderKpiDualListTables);
+
+            document.getElementById('kpiAvailableCheckAll')?.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                getVisibleAvailableObjects().forEach(obj => {
+                    if (checked) state.selection.available.add(obj.id);
+                    else state.selection.available.delete(obj.id);
+                });
+                renderKpiDualListTables();
+            });
+
+            document.getElementById('kpiAssignedCheckAll')?.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                getVisibleAssignedRows().forEach(({ obj }) => {
+                    if (checked) state.selection.assigned.add(obj.id);
+                    else state.selection.assigned.delete(obj.id);
+                });
+                renderKpiDualListTables();
+            });
+
+            availableBody?.addEventListener('change', (e) => {
+                const input = e.target.closest('.kpi-available-check');
+                if (!input) return;
+                const objectId = input.getAttribute('data-object-id');
+                if (input.checked) state.selection.available.add(objectId);
+                else state.selection.available.delete(objectId);
+            });
+
+            assignedPreviewBody?.addEventListener('change', (e) => {
+                const input = e.target.closest('.kpi-assigned-check');
+                if (!input) return;
+                const objectId = input.getAttribute('data-object-id');
+                if (input.checked) state.selection.assigned.add(objectId);
+                else state.selection.assigned.delete(objectId);
+            });
+
+            document.getElementById('btnAssignObjects')?.addEventListener('click', () => {
+                const ids = Array.from(state.selection.available);
+                if (!ids.length) {
+                    alert('Chọn đối tượng chưa gán để thêm vào KPI.');
+                    return;
+                }
+                addAssignmentsToCurrentKpi(ids);
+            });
+
+            document.getElementById('btnUnassignObjects')?.addEventListener('click', () => {
+                const ids = Array.from(state.selection.assigned);
+                if (!ids.length) {
+                    alert('Chọn đối tượng đã gán để gỡ khỏi KPI.');
+                    return;
+                }
+                removeAssignmentsFromCurrentKpi(ids);
+            });
+
+            document.getElementById('btnOpenKpiAssignModal')?.addEventListener('click', openKpiAssignModal);
+            document.getElementById('btnSaveKpiAssignment')?.addEventListener('click', handleSaveKpiAssignmentModal);
+
+            assignedConfigBody?.addEventListener('input', (e) => {
+                const kpi = getSelectedKpi();
+                if (!kpi) return;
+                const objectId = e.target.getAttribute('data-object-id');
+                if (!objectId) return;
+
+                const row = getAssignmentsByKpiId(kpi.id).find(x => x.objectId === objectId);
+                if (!row) return;
+
+                if (e.target.classList.contains('kpi-weight-input')) row.weight = Number(e.target.value || 0);
+                if (e.target.classList.contains('kpi-target-input')) row.targetValue = Number(e.target.value || 0);
+                if (e.target.classList.contains('kpi-from-input')) row.fromDate = e.target.value;
+                if (e.target.classList.contains('kpi-to-input')) row.toDate = e.target.value;
+                if (e.target.classList.contains('kpi-target-type')) row.targetType = e.target.value;
+                if (e.target.classList.contains('kpi-status-input')) row.status = e.target.value;
+
+                row.period = `${row.fromDate || '-'} - ${row.toDate || '-'}`;
+                saveKpiStorage();
+                renderKpiAssignedConfigTable();
+                renderKpiResultTab();
+                renderKpiAnalysisTab();
+            });
+
+            assignedConfigBody?.addEventListener('click', (e) => {
+                const removeButton = e.target.closest('button[data-action="remove-assign"]');
+                if (removeButton) {
+                    removeAssignmentsFromCurrentKpi([removeButton.getAttribute('data-object-id')]);
+                    return;
+                }
+
+                const editButton = e.target.closest('button[data-action="edit-assign"]');
+                if (editButton) {
+                    const row = editButton.closest('tr');
+                    row?.querySelector('.kpi-weight-input')?.focus();
+                }
+            });
+
+            const availableDropZone = document.getElementById('kpiAvailableDropZone');
+            const assignedDropZone = document.getElementById('kpiAssignedDropZone');
+
+            function bindDragSource(host) {
+                host?.addEventListener('dragstart', (e) => {
+                    const row = e.target.closest('tr[data-drag-id]');
+                    if (!row) return;
+                    state.draggingObjectId = row.getAttribute('data-drag-id');
+                    e.dataTransfer?.setData('text/plain', state.draggingObjectId);
+                });
+            }
+
+            function bindDropTarget(host, targetList) {
+                host?.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    host.classList.add('kpix-drop-active');
+                });
+                host?.addEventListener('dragleave', () => host.classList.remove('kpix-drop-active'));
+                host?.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    host.classList.remove('kpix-drop-active');
+                    const objectId = e.dataTransfer?.getData('text/plain') || state.draggingObjectId;
+                    if (!objectId) return;
+                    if (targetList === 'assigned') addAssignmentsToCurrentKpi([objectId]);
+                    if (targetList === 'available') removeAssignmentsFromCurrentKpi([objectId]);
+                    state.draggingObjectId = null;
+                });
+            }
+
+            bindDragSource(availableBody);
+            bindDragSource(assignedPreviewBody);
+            bindDropTarget(availableDropZone, 'available');
+            bindDropTarget(assignedDropZone, 'assigned');
+        }
+
+        async function initKpiModule() {
+            state.kpi = getKpiStorage();
+            await loadKpiRuntimeData();
+            state.selectedKpiId = state.kpi.definitions[0]?.id || null;
+            state.selectedObjectType = 'all';
+            renderKpiList();
+            renderKpiDetail();
+            bindKpiEvents();
+        }
+
+        function setRangeValue(inputId, valueId, value) {
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(valueId);
+            if (!input || !label) return;
+            input.value = Number(value);
+            label.textContent = `${Number(value)}%`;
+        }
+
+        function bindRangeLabel(inputId, valueId) {
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(valueId);
+            if (!input || !label) return;
+            const sync = () => label.textContent = `${Number(input.value || 0)}%`;
+            input.addEventListener('input', sync);
+            sync();
+        }
+
+        function getCheckedRadioValue(name, fallback) {
+            return document.querySelector(`input[name="${name}"]:checked`)?.value || fallback;
+        }
+
+        function setCheckedRadioValue(name, value) {
+            const target = document.querySelector(`input[name="${name}"][value="${value}"]`)
+                || document.querySelector(`input[name="${name}"]`);
+            if (target) target.checked = true;
+        }
+
+        function getPerformancePresetByLevel(level) {
+            const map = {
+                fast: { estimators: 60, maxDepth: 6 },
+                balanced: { estimators: 100, maxDepth: 10 },
+                deep: { estimators: 180, maxDepth: 16 }
+            };
+            return map[level] || map.balanced;
+        }
+
+        function resolveAnalysisLevelFromHyperParams(estimators, maxDepth) {
+            if (Number(estimators) >= 160 || Number(maxDepth) >= 14) return 'deep';
+            if (Number(estimators) <= 70 || Number(maxDepth) <= 7) return 'fast';
+            return 'balanced';
+        }
+
+        function getSuggestionTemplateByTone(tone) {
+            const templates = {
+                short: 'Nhân viên {Ten} có nguy cơ trễ hạn do {LyDo}. Đề xuất: {GiaiPhap}',
+                detailed: 'Nhân viên {Ten} đang có nguy cơ trễ hạn vì {LyDo}. Mức độ ảnh hưởng: {MucDo}. Đề xuất hành động: {GiaiPhap}. Thời điểm cần theo dõi lại: {ThoiDiem}.',
+                strong_warning: 'CẢNH BÁO: Nhân viên {Ten} có nguy cơ trễ hạn cao do {LyDo}. Cần xử lý ngay: {GiaiPhap}.'
+            };
+            return templates[tone] || templates.short;
+        }
+
+        function syncSuggestionTemplatePreview() {
+            const tone = document.getElementById('aiSuggestionTone')?.value || 'short';
+            const template = getSuggestionTemplateByTone(tone);
+            const preview = document.getElementById('aiSuggestionTemplate');
+            if (preview) preview.value = template;
+        }
+
+        function bindAiTabNavigation() {
+            const tabNav = document.getElementById('aiTabNav');
+            if (!tabNav) return;
+
+            tabNav.addEventListener('click', (e) => {
+                const button = e.target.closest('button[data-ai-tab]');
+                if (!button) return;
+                const tab = button.getAttribute('data-ai-tab');
+
+                tabNav.querySelectorAll('button[data-ai-tab]').forEach(btn => {
+                    btn.classList.toggle('active', btn === button);
+                });
+
+                document.querySelectorAll('.aix-tab-panel').forEach(panel => panel.classList.remove('active'));
+                document.getElementById(`ai-tab-${tab}`)?.classList.add('active');
+            });
+        }
+
+        function collectAiSettingsFromForm() {
+            return {
+                general: {
+                    enabled: document.getElementById('aiEnableSystem').checked,
+                    applyAll: document.getElementById('aiApplyAll').checked,
+                    applyManager: document.getElementById('aiApplyManager').checked,
+                    applyDepartment: document.getElementById('aiApplyDepartment').checked,
+                    dataWindow: Number(document.getElementById('aiDataWindow').value),
+                    minRecords: Number(document.getElementById('aiMinRecords').value),
+                    runMode: getCheckedRadioValue('aiRunMode', 'daily'),
+                    weights: {
+                        completion: Number(document.getElementById('aiWeightCompletion').value),
+                        overdue: Number(document.getElementById('aiWeightOverdue').value),
+                        kpi: Number(document.getElementById('aiWeightKpi').value),
+                        difficulty: Number(document.getElementById('aiWeightDifficulty').value)
+                    }
+                },
+                forecast: {
+                    model: document.getElementById('aiForecastModel').value,
+                    delayThreshold: Number(document.getElementById('aiDelayThreshold').value),
+                    features: {
+                        completion: document.getElementById('aiFeatureCompletion').checked,
+                        usedTime: document.getElementById('aiFeatureUsedTime').checked,
+                        remainWork: document.getElementById('aiFeatureRemainWork').checked,
+                        difficulty: document.getElementById('aiFeatureDifficulty').checked
+                    },
+                    display: {
+                        expectedDate: document.getElementById('aiShowExpectedDate').checked,
+                        earlyWarning: document.getElementById('aiShowEarlyWarning').checked,
+                        trend: document.getElementById('aiShowTrend').checked
+                    }
+                },
+                performance: {
+                    model: document.getElementById('aiPerformanceModel').value,
+                    analysisLevel: document.getElementById('aiAnalysisLevel').value,
+                    estimators: getPerformancePresetByLevel(document.getElementById('aiAnalysisLevel').value).estimators,
+                    maxDepth: getPerformancePresetByLevel(document.getElementById('aiAnalysisLevel').value).maxDepth,
+                    criteria: {
+                        onTime: document.getElementById('aiCriteriaOnTime').checked,
+                        volume: document.getElementById('aiCriteriaVolume').checked,
+                        difficulty: document.getElementById('aiCriteriaDifficulty').checked,
+                        kpi: document.getElementById('aiCriteriaKpi').checked,
+                        feedback: document.getElementById('aiCriteriaFeedback').checked
+                    },
+                    weights: {
+                        onTime: Number(document.getElementById('aiEvalOnTime').value),
+                        volume: Number(document.getElementById('aiEvalVolume').value),
+                        difficulty: Number(document.getElementById('aiEvalDifficulty').value),
+                        kpi: Number(document.getElementById('aiEvalKpi').value),
+                        feedback: Number(document.getElementById('aiEvalFeedback').value)
+                    },
+                    resultClasses: document.getElementById('aiResultClasses').value.trim(),
+                    allowAdjustClass: document.getElementById('aiAllowAdjustClass').checked
+                },
+                automation: {
+                    suggestPeople: document.getElementById('aiSuggestPeople').checked,
+                    suggestBySkillPerformance: document.getElementById('aiSuggestBySkillPerformance').checked,
+                    suggestImprovePerformance: document.getElementById('aiSuggestImprovePerformance').checked,
+                    suggestRebalanceTask: document.getElementById('aiSuggestRebalanceTask').checked,
+                    autoLateAlert: document.getElementById('aiAutoLateAlert').checked,
+                    autoSendNotification: document.getElementById('aiAutoSendNotification').checked,
+                    autoSuggestDeadline: document.getElementById('aiAutoSuggestDeadline').checked,
+                    suggestionTone: document.getElementById('aiSuggestionTone').value,
+                    suggestionTemplate: getSuggestionTemplateByTone(document.getElementById('aiSuggestionTone').value)
+                }
+            };
+        }
+
+        function applyAiSettingsToForm(ai) {
+            const config = ai || defaultAi;
+
+            document.getElementById('aiEnableSystem').checked = !!config.general.enabled;
+            document.getElementById('aiApplyAll').checked = !!config.general.applyAll;
+            document.getElementById('aiApplyManager').checked = !!config.general.applyManager;
+            document.getElementById('aiApplyDepartment').checked = !!config.general.applyDepartment;
+            document.getElementById('aiDataWindow').value = String(config.general.dataWindow);
+            document.getElementById('aiMinRecords').value = Number(config.general.minRecords);
+            setCheckedRadioValue('aiRunMode', config.general.runMode);
+
+            setRangeValue('aiWeightCompletion', 'aiWeightCompletionValue', config.general.weights.completion);
+            setRangeValue('aiWeightOverdue', 'aiWeightOverdueValue', config.general.weights.overdue);
+            setRangeValue('aiWeightKpi', 'aiWeightKpiValue', config.general.weights.kpi);
+            setRangeValue('aiWeightDifficulty', 'aiWeightDifficultyValue', config.general.weights.difficulty);
+
+            document.getElementById('aiForecastModel').value = config.forecast.model;
+            document.getElementById('aiDelayThreshold').value = Number(config.forecast.delayThreshold);
+            document.getElementById('aiFeatureCompletion').checked = !!config.forecast.features.completion;
+            document.getElementById('aiFeatureUsedTime').checked = !!config.forecast.features.usedTime;
+            document.getElementById('aiFeatureRemainWork').checked = !!config.forecast.features.remainWork;
+            document.getElementById('aiFeatureDifficulty').checked = !!config.forecast.features.difficulty;
+            document.getElementById('aiShowExpectedDate').checked = !!config.forecast.display.expectedDate;
+            document.getElementById('aiShowEarlyWarning').checked = !!config.forecast.display.earlyWarning;
+            document.getElementById('aiShowTrend').checked = !!config.forecast.display.trend;
+
+            document.getElementById('aiPerformanceModel').value = config.performance.model;
+            const resolvedLevel = config.performance.analysisLevel
+                || resolveAnalysisLevelFromHyperParams(config.performance.estimators, config.performance.maxDepth);
+            document.getElementById('aiAnalysisLevel').value = resolvedLevel;
+            document.getElementById('aiCriteriaOnTime').checked = !!config.performance.criteria.onTime;
+            document.getElementById('aiCriteriaVolume').checked = !!config.performance.criteria.volume;
+            document.getElementById('aiCriteriaDifficulty').checked = !!config.performance.criteria.difficulty;
+            document.getElementById('aiCriteriaKpi').checked = !!config.performance.criteria.kpi;
+            document.getElementById('aiCriteriaFeedback').checked = !!config.performance.criteria.feedback;
+
+            setRangeValue('aiEvalOnTime', 'aiEvalOnTimeValue', config.performance.weights.onTime);
+            setRangeValue('aiEvalVolume', 'aiEvalVolumeValue', config.performance.weights.volume);
+            setRangeValue('aiEvalDifficulty', 'aiEvalDifficultyValue', config.performance.weights.difficulty);
+            setRangeValue('aiEvalKpi', 'aiEvalKpiValue', config.performance.weights.kpi);
+            setRangeValue('aiEvalFeedback', 'aiEvalFeedbackValue', config.performance.weights.feedback);
+
+            document.getElementById('aiResultClasses').value = config.performance.resultClasses;
+            document.getElementById('aiAllowAdjustClass').checked = !!config.performance.allowAdjustClass;
+
+            document.getElementById('aiSuggestPeople').checked = !!config.automation.suggestPeople;
+            document.getElementById('aiSuggestBySkillPerformance').checked = !!config.automation.suggestBySkillPerformance;
+            document.getElementById('aiSuggestImprovePerformance').checked = !!config.automation.suggestImprovePerformance;
+            document.getElementById('aiSuggestRebalanceTask').checked = !!config.automation.suggestRebalanceTask;
+            document.getElementById('aiAutoLateAlert').checked = !!config.automation.autoLateAlert;
+            document.getElementById('aiAutoSendNotification').checked = !!config.automation.autoSendNotification;
+            document.getElementById('aiAutoSuggestDeadline').checked = !!config.automation.autoSuggestDeadline;
+            document.getElementById('aiSuggestionTone').value = config.automation.suggestionTone || 'short';
+            document.getElementById('aiSuggestionTemplate').value = config.automation.suggestionTemplate || getSuggestionTemplateByTone(document.getElementById('aiSuggestionTone').value);
+        }
+
+        function mergeAiSettings(ai) {
+            return {
+                ...deepClone(defaultAi),
+                ...(ai || {}),
+                general: {
+                    ...deepClone(defaultAi.general),
+                    ...(ai?.general || {}),
+                    weights: { ...deepClone(defaultAi.general.weights), ...(ai?.general?.weights || {}) }
+                },
+                forecast: {
+                    ...deepClone(defaultAi.forecast),
+                    ...(ai?.forecast || {}),
+                    features: { ...deepClone(defaultAi.forecast.features), ...(ai?.forecast?.features || {}) },
+                    display: { ...deepClone(defaultAi.forecast.display), ...(ai?.forecast?.display || {}) }
+                },
+                performance: {
+                    ...deepClone(defaultAi.performance),
+                    ...(ai?.performance || {}),
+                    criteria: { ...deepClone(defaultAi.performance.criteria), ...(ai?.performance?.criteria || {}) },
+                    weights: { ...deepClone(defaultAi.performance.weights), ...(ai?.performance?.weights || {}) }
+                },
+                automation: {
+                    ...deepClone(defaultAi.automation),
+                    ...(ai?.automation || {})
+                }
+            };
+        }
+
+        async function fetchJson(url, options, apiName) {
+            const label = apiName || url;
+            try {
+                const response = await fetch(url, options);
+                const raw = await response.text();
+                const contentType = response.headers.get('content-type') || '';
+                const isJsonResponse = contentType.includes('application/json') || contentType.includes('application/problem+json');
+
+                let payload = {};
+                if (raw && isJsonResponse) {
+                    payload = JSON.parse(raw);
+                }
+
+                if (!response.ok) {
+                    const fallbackMessage = raw && !isJsonResponse
+                        ? `API ${label} lỗi (${response.status}).`
+                        : `API ${label} lỗi.`;
+
+                    return {
+                        success: false,
+                        message: payload?.message || fallbackMessage,
+                        statusCode: response.status
+                    };
+                }
+
+                if (raw && !isJsonResponse) {
+                    return { success: true, data: raw };
+                }
+
+                if (payload && typeof payload.success === 'boolean') return payload;
+                return { success: true, data: payload };
+            } catch (error) {
+                console.error('[SETTINGSX]', label, error);
+                return { success: false, message: `Không kết nối được API ${label}.` };
+            }
+        }
+
+        function loadLocalSettings() {
+            state.roleDescMap = safeParse(getClientSetting(STORAGE_KEY.roleDesc), {
+                Admin: 'Toan quyền hệ thống',
+                Manager: 'Quản lý team/dự án',
+                Employee: 'Tac nghiep cá nhân'
+            });
+
+            state.kpi = getKpiStorage();
+
+            applyAiSettingsToForm(deepClone(defaultAi));
+
+            const notify = safeParse(getClientSetting(STORAGE_KEY.notify), defaultNotify);
+            document.getElementById('notifyEmail').value = notify.email || '';
+            document.getElementById('notifyOverdueTask').checked = !!notify.overdueTask;
+            document.getElementById('notifySystem').checked = !!notify.system;
+
+            const security = safeParse(getClientSetting(STORAGE_KEY.security), defaultSecurity);
+            document.getElementById('securityMinPasswordLength').value = security.minLength;
+            document.getElementById('securityMaxFailedLogin').value = security.maxFailed;
+            document.getElementById('securityAutoLock').checked = !!security.autoLock;
+
+            if (document.getElementById('kpiListBody')) {
+                if (!state.selectedKpiId || !state.kpi.definitions.some(x => x.id === state.selectedKpiId)) {
+                    state.selectedKpiId = state.kpi.definitions[0]?.id || null;
+                }
+                renderKpiList();
+                renderKpiDetail();
+            }
+        }
+
+        async function loadAiSettingsFromServer() {
+            const res = await fetchJson('/settings/ai/config');
+            if (!res.success) {
+                console.warn('[SETTINGSX] Không tải được cấu hình AI từ server:', res.message);
+                return;
+            }
+
+            if (!res.data) {
+                applyAiSettingsToForm(deepClone(defaultAi));
+                return;
+            }
+
+            applyAiSettingsToForm(mergeAiSettings(res.data));
+        }
+
+        function renderAiHistoryRows(rows) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                aiHistoryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Chưa có lịch sử cập nhật cấu hình AI.</td></tr>';
+                return;
+            }
+
+            aiHistoryBody.innerHTML = rows.map(item => {
+                const result = (item.ketQua || 'SUCCESS').toUpperCase();
+                const resultCss = result === 'SUCCESS' ? 'text-success' : 'text-danger';
+                return `
+                    <tr>
+                        <td>${escapeHtml(formatDateTime(item.thoiGian))}</td>
+                        <td class="${resultCss}"><strong>${escapeHtml(result)}</strong></td>
+                        <td>${escapeHtml(item.noiDung || '-')}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadAiSettingsHistory(top = 8) {
+            aiHistoryBody.innerHTML = '<tr><td colspan="3" class="text-muted">Đang tải lịch sử...</td></tr>';
+            const res = await fetchJson(`/settings/ai/history?top=${encodeURIComponent(top)}`);
+            if (!res.success) {
+                aiHistoryBody.innerHTML = `<tr><td colspan="3" class="text-danger">${escapeHtml(res.message || 'Không tải được lịch sử cấu hình AI.')}</td></tr>`;
+                return;
+            }
+
+            renderAiHistoryRows(res.data || []);
+        }
+
+        async function loadKpiGrades() {
+            if (!kpiGradeBody) return;
+            kpiGradeBody.innerHTML = '<tr><td colspan="6" class="text-muted">Đang tải xếp loại KPI...</td></tr>';
+            const res = await fetchJson('/settings/kpi-grades');
+            if (!res.success) {
+                kpiGradeBody.innerHTML = `<tr><td colspan="6" class="text-danger">${escapeHtml(res.message || 'Không tải được xếp loại KPI.')}</td></tr>`;
+                return;
+            }
+            state.kpiGrades = Array.isArray(res.data) ? res.data : [];
+            renderKpiGrades();
+        }
+
+        function renderKpiGrades() {
+            if (!kpiGradeBody) return;
+            if (!state.kpiGrades.length) {
+                kpiGradeBody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có dữ liệu xếp loại KPI.</td></tr>';
+                return;
+            }
+
+            kpiGradeBody.innerHTML = state.kpiGrades.map(item => `
+                <tr>
+                    <td><code>${escapeHtml(item.code || '-')}</code></td>
+                    <td>${escapeHtml(item.label || '-')}<div class="small text-muted">${escapeHtml(item.moTa || '')}</div></td>
+                    <td>${Number(item.minScore ?? 0).toFixed(2)} - ${Number(item.maxScore ?? 0).toFixed(2)}</td>
+                    <td><span class="badge" style="background:${escapeHtml(item.colorHex || '#64748B')}">${escapeHtml(item.colorHex || '#64748B')}</span></td>
+                    <td>${item.isActive ? '<span class="text-success">Đang áp dụng</span>' : '<span class="text-muted">Ngưng áp dụng</span>'}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" data-action="edit-grade" data-id="${item.id}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-${item.isActive ? 'warning' : 'success'}" data-action="toggle-grade" data-id="${item.id}" data-active="${item.isActive ? '1' : '0'}">${item.isActive ? 'Ngưng áp dụng' : 'Bật lại'}</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const scoreStep = 0.01;
+            const grades = state.kpiGrades.filter(x => x.isActive).map(x => ({ min: Number(x.minScore || 0), max: Number(x.maxScore || 0) })).sort((a, b) => a.min - b.min);
+            let cursor = 0;
+            let covered = true;
+            for (const row of grades) {
+                if (row.min > cursor + scoreStep) { covered = false; break; }
+                cursor = Math.max(cursor, row.max);
+            }
+            if (cursor < 100 - scoreStep) covered = false;
+            if (kpiGradeWarning) {
+                kpiGradeWarning.textContent = covered ? '' : 'Cảnh báo: cấu hình xếp loại chưa bao phủ toàn bộ dải điểm 0-100.';
+            }
+        }
+
+        function applyKpiGradeCodeHint(code) {
+            const hint = kpiGradeCodeHints[(code || '').trim().toUpperCase()];
+            if (!hint) return;
+
+            if (!(kpiGradeLabelInput.value || '').trim()) {
+                kpiGradeLabelInput.value = hint.label;
+            }
+            if (!(kpiGradeMoTaInput.value || '').trim()) {
+                kpiGradeMoTaInput.value = hint.moTa;
+            }
+            if (!(kpiGradeColorHexInput.value || '').trim()) {
+                kpiGradeColorHexInput.value = hint.colorHex;
+            }
+            if (kpiGradeColorPresetInput) {
+                kpiGradeColorPresetInput.value = hint.colorHex;
+            }
+        }
+
+        function syncKpiGradeColorPresetFromHex() {
+            if (!kpiGradeColorPresetInput) return;
+            const hex = (kpiGradeColorHexInput.value || '').trim().toUpperCase();
+            const matched = Array.from(kpiGradeColorPresetInput.options)
+                .some(x => (x.value || '').trim().toUpperCase() === hex);
+            kpiGradeColorPresetInput.value = matched ? hex : '';
+        }
+
+        function openKpiGradeCreateModal() {
+            state.editingKpiGradeId = null;
+            kpiGradeFormTitle.textContent = 'Thêm mức xếp loại KPI';
+            kpiGradeCodeInput.value = '';
+            kpiGradeCodeInput.disabled = false;
+            kpiGradeLabelInput.value = '';
+            kpiGradeMoTaInput.value = '';
+            kpiGradeMinScoreInput.value = '0';
+            kpiGradeMaxScoreInput.value = '100';
+            kpiGradeColorHexInput.value = '#64748B';
+            if (kpiGradeColorPresetInput) kpiGradeColorPresetInput.value = '#64748B';
+            kpiGradeSortOrderInput.value = '0';
+            kpiGradeIsActiveInput.checked = true;
+            kpiGradeFormResult.textContent = '';
+            kpiGradeFormResult.className = 'small mt-2 mb-0';
+            kpiGradeFormModal.show();
+        }
+
+        function openKpiGradeEditModal(id) {
+            const item = state.kpiGrades.find(x => Number(x.id) === Number(id));
+            if (!item) return;
+            state.editingKpiGradeId = Number(item.id);
+            kpiGradeFormTitle.textContent = 'Sửa mức xếp loại KPI';
+            const existingOption = Array.from(kpiGradeCodeInput.options).some(x => x.value === (item.code || ''));
+            if (!existingOption && item.code) {
+                const opt = document.createElement('option');
+                opt.value = item.code;
+                opt.textContent = `${item.code} - (Mã hiện tại)`;
+                kpiGradeCodeInput.appendChild(opt);
+            }
+            kpiGradeCodeInput.value = item.code || '';
+            kpiGradeCodeInput.disabled = true;
+            kpiGradeLabelInput.value = item.label || '';
+            kpiGradeMoTaInput.value = item.moTa || '';
+            kpiGradeMinScoreInput.value = Number(item.minScore ?? 0).toFixed(2);
+            kpiGradeMaxScoreInput.value = Number(item.maxScore ?? 0).toFixed(2);
+            kpiGradeColorHexInput.value = item.colorHex || '#64748B';
+            syncKpiGradeColorPresetFromHex();
+            kpiGradeSortOrderInput.value = String(item.sortOrder ?? 0);
+            kpiGradeIsActiveInput.checked = !!item.isActive;
+            kpiGradeFormResult.textContent = '';
+            kpiGradeFormResult.className = 'small mt-2 mb-0';
+            kpiGradeFormModal.show();
+        }
+
+        async function saveKpiGradeForm() {
+            const code = (kpiGradeCodeInput.value || '').trim().toUpperCase();
+            const label = (kpiGradeLabelInput.value || '').trim();
+            const minScore = Number(kpiGradeMinScoreInput.value);
+            const maxScore = Number(kpiGradeMaxScoreInput.value);
+            const colorHex = (kpiGradeColorHexInput.value || '').trim();
+            const sortOrder = Number(kpiGradeSortOrderInput.value || 0);
+            const moTa = (kpiGradeMoTaInput.value || '').trim();
+            const isActive = !!kpiGradeIsActiveInput.checked;
+
+            if (!code || !label || Number.isNaN(minScore) || Number.isNaN(maxScore)) {
+                kpiGradeFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiGradeFormResult.textContent = 'Vui lòng nhập đầy đủ Mã, Tên mức, Điểm từ/Điểm đến.';
+                return;
+            }
+            if (minScore > maxScore) {
+                kpiGradeFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiGradeFormResult.textContent = 'Điểm từ phải nhỏ hơn hoặc bằng Điểm đến.';
+                return;
+            }
+
+            const payload = { code, label, moTa, minScore, maxScore, colorHex, sortOrder, isActive };
+            const isEdit = Number.isInteger(state.editingKpiGradeId);
+            const url = isEdit ? `/settings/kpi-grades/${encodeURIComponent(state.editingKpiGradeId)}` : '/settings/kpi-grades';
+            const method = isEdit ? 'PUT' : 'POST';
+            const res = await fetchJson(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.success) {
+                kpiGradeFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiGradeFormResult.textContent = res.message || 'Không lưu được mức xếp loại KPI.';
+                return;
+            }
+
+            kpiGradeFormModal.hide();
+            await loadKpiGrades();
+            alert(res.message || (isEdit ? 'Đã cập nhật mức xếp loại KPI.' : 'Đã thêm mức xếp loại KPI.'));
+        }
+
+        async function loadKpiMaster() {
+            if (!kpiMasterBody || !kpiMasterType) return;
+            const type = kpiMasterType.value || 'dokho';
+            kpiMasterBody.innerHTML = '<tr><td colspan="5" class="text-muted">Đang tải danh mục...</td></tr>';
+            const res = await fetchJson(`/settings/kpi-master/${encodeURIComponent(type)}`);
+            if (!res.success) {
+                kpiMasterBody.innerHTML = `<tr><td colspan="5" class="text-danger">${escapeHtml(res.message || 'Không tải được danh mục dùng chung.')}</td></tr>`;
+                return;
+            }
+
+            state.kpiMasterItems = Array.isArray(res.data) ? res.data : [];
+            updateKpiMasterHeSoUiByType(type);
+            kpiMasterBody.innerHTML = state.kpiMasterItems.map(item => `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${escapeHtml(item.name || '-')}</td>
+                    <td>${(type === 'dokho' || type === 'douutien' || type === 'loaikpi') ? Number(item.heSo ?? 1).toFixed(2) : '-'}</td>
+                    <td>${item.isActive ? '<span class="text-success">Đang áp dụng</span>' : '<span class="text-muted">Ngưng áp dụng</span>'}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" data-action="edit-master" data-id="${item.id}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-${item.isActive ? 'warning' : 'success'}" data-action="toggle-master" data-id="${item.id}" data-active="${item.isActive ? '1' : '0'}">${item.isActive ? 'Ngưng áp dụng' : 'Bật lại'}</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openKpiMasterCreateModal() {
+            state.editingKpiMasterId = null;
+            kpiMasterFormTitle.textContent = 'Thêm danh mục';
+            kpiMasterNameInput.value = '';
+            if (kpiMasterHeSoInput) kpiMasterHeSoInput.value = '1.00';
+            updateKpiMasterHeSoUiByType(kpiMasterType?.value || 'dokho');
+            kpiMasterFormResult.textContent = '';
+            kpiMasterFormResult.className = 'small mt-2 mb-0';
+            kpiMasterFormModal.show();
+        }
+
+        function openKpiMasterEditModal(id) {
+            const item = state.kpiMasterItems.find(x => Number(x.id) === Number(id));
+            if (!item) return;
+            state.editingKpiMasterId = Number(item.id);
+            kpiMasterFormTitle.textContent = 'Sửa danh mục';
+            kpiMasterNameInput.value = item.name || '';
+            if (kpiMasterHeSoInput) kpiMasterHeSoInput.value = Number(item.heSo ?? 1).toFixed(2);
+            updateKpiMasterHeSoUiByType(kpiMasterType?.value || 'dokho');
+            kpiMasterFormResult.textContent = '';
+            kpiMasterFormResult.className = 'small mt-2 mb-0';
+            kpiMasterFormModal.show();
+        }
+
+        function updateKpiMasterHeSoUiByType(type) {
+            const visible = type === 'dokho' || type === 'douutien' || type === 'loaikpi';
+            if (kpiMasterHeSoWrap) kpiMasterHeSoWrap.classList.toggle('d-none', !visible);
+            if (kpiMasterHeSoLabel) {
+                kpiMasterHeSoLabel.textContent = type === 'douutien'
+                    ? 'Hệ số độ ưu tiên'
+                    : (type === 'loaikpi' ? 'Hệ số loại KPI' : 'Hệ số độ khó');
+            }
+        }
+
+        async function saveKpiMasterForm() {
+            const type = kpiMasterType?.value || 'dokho';
+            const name = (kpiMasterNameInput.value || '').trim();
+            const heSo = Number(kpiMasterHeSoInput?.value || 1);
+            if (!name) {
+                kpiMasterFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiMasterFormResult.textContent = 'Vui lòng nhập tên danh mục.';
+                return;
+            }
+            if ((type === 'dokho' || type === 'douutien' || type === 'loaikpi') && (!Number.isFinite(heSo) || heSo <= 0)) {
+                kpiMasterFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiMasterFormResult.textContent = 'Hệ số phải lớn hơn 0.';
+                return;
+            }
+
+            const isEdit = Number.isInteger(state.editingKpiMasterId);
+            const url = isEdit
+                ? `/settings/kpi-master/${encodeURIComponent(type)}/${encodeURIComponent(state.editingKpiMasterId)}`
+                : `/settings/kpi-master/${encodeURIComponent(type)}`;
+            const method = isEdit ? 'PUT' : 'POST';
+            const res = await fetchJson(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, heSo: (type === 'dokho' || type === 'douutien' || type === 'loaikpi') ? heSo : null })
+            });
+
+            if (!res.success) {
+                kpiMasterFormResult.className = 'small mt-2 mb-0 text-danger';
+                kpiMasterFormResult.textContent = res.message || 'Không lưu được danh mục.';
+                return;
+            }
+
+            kpiMasterFormModal.hide();
+            await loadKpiMaster();
+            alert(res.message || (isEdit ? 'Đã cập nhật danh mục.' : 'Đã thêm danh mục.'));
+        }
+
+        function renderOverview() {
+            const users = state.overview?.users || [];
+            const roles = state.roles || [];
+            const logs = state.logs || [];
+
+            settingsOverviewCards.innerHTML = `
+                <article class="settingsx-overview-card">
+                    <i class="bi bi-people"></i>
+                    <div>
+                        <h6>So user</h6>
+                        <p>${users.length}</p>
+                    </div>
+                </article>
+                <article class="settingsx-overview-card">
+                    <i class="bi bi-diagram-3"></i>
+                    <div>
+                        <h6>So role</h6>
+                        <p>${roles.length}</p>
+                    </div>
+                </article>
+                <article class="settingsx-overview-card">
+                    <i class="bi bi-journal-text"></i>
+                    <div>
+                        <h6>So log</h6>
+                        <p>${logs.length}</p>
+                    </div>
+                </article>
+                <article class="settingsx-overview-card">
+                    <i class="bi bi-heart-pulse"></i>
+                    <div>
+                        <h6>Trạng thái hệ thống</h6>
+                        <p class="text-success">On dinh</p>
+                    </div>
+                </article>
+            `;
+        }
+
+        function roleBadge(roleName) {
+            const role = roleName || 'Employee';
+            const css = role === 'Admin' ? 'role-admin' : (role === 'Manager' ? 'role-manager' : 'role-employee');
+            return `<span class="role-tag ${css}">${escapeHtml(role)}</span>`;
+        }
+
+        function renderRoles() {
+            if (!state.roles.length) {
+                settingsRoleBody.innerHTML = '<tr><td colspan="4" class="text-muted">Chưa có vai trò.</td></tr>';
+                return;
+            }
+
+            settingsRoleBody.innerHTML = state.roles.map(role => `
+                <tr>
+                    <td>${roleBadge(role.name)}</td>
+                    <td>${escapeHtml(state.roleDescMap[role.name] || '-') }</td>
+                    <td>${role.userCount || 0}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" data-action="edit-role" data-id="${role.id}" data-name="${escapeHtml(role.name)}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" data-action="delete-role" data-id="${role.id}" data-users="${role.userCount || 0}"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function toPermissionClaimValue(row, field) {
+            const normalizedField = String(field || '').toLowerCase();
+            const action = normalizedField.length > 0
+                ? normalizedField.charAt(0).toUpperCase() + normalizedField.slice(1)
+                : '';
+            return `${row.claimGroup}.${action}`;
+        }
+
+        function getSelectedPermissionRole() {
+            return (state.roles || []).find(x => x.id === state.selectedPermissionRoleId) || null;
+        }
+
+        function setPermissionInfoMessage(message, isError = false) {
+            permissionClaimInfo.textContent = message || '';
+            permissionClaimInfo.className = isError ? 'small text-danger' : 'small text-muted';
+        }
+
+        function renderPermissionRoleOptions() {
+            if (!permissionRoleSelect) {
+                return;
+            }
+
+            if (!state.roles.length) {
+                permissionRoleSelect.innerHTML = '<option value="">Chưa có role</option>';
+                permissionRoleSelect.disabled = true;
+                return;
+            }
+
+            permissionRoleSelect.disabled = false;
+            permissionRoleSelect.innerHTML = state.roles
+                .map(role => `<option value="${role.id}">${escapeHtml(role.name)}</option>`)
+                .join('');
+
+            if (!state.selectedPermissionRoleId || !state.roles.some(x => x.id === state.selectedPermissionRoleId)) {
+                state.selectedPermissionRoleId = state.roles[0].id;
+            }
+
+            permissionRoleSelect.value = state.selectedPermissionRoleId;
+        }
+
+        async function loadPermissionClaimsForRole(roleId) {
+            if (!roleId) {
+                state.selectedPermissionClaims = new Set();
+                renderPermissions();
+                return;
+            }
+
+            setPermissionInfoMessage('Đang tải quyền claim theo vai trò...');
+            const res = await fetchJson(`/system/roles/${encodeURIComponent(roleId)}/claims`);
+            if (!res.success) {
+                state.selectedPermissionClaims = new Set();
+                renderPermissions();
+                setPermissionInfoMessage(res.message || 'Không tải được claim của vai trò.', true);
+                return;
+            }
+
+            const claims = (res.data?.permissionClaims || []).map(x => String(x));
+            state.selectedPermissionClaims = new Set(claims);
+            state.selectedPermissionRoleId = roleId;
+            renderPermissions();
+
+            const roleName = res.data?.roleName || getSelectedPermissionRole()?.name || '-';
+            setPermissionInfoMessage(`Role ${roleName}: ${claims.length} permission claim.`);
+        }
+
+        function renderPermissions() {
+            const selectedRole = getSelectedPermissionRole();
+            if (!selectedRole) {
+                permissionTableBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có role để cấu hình claim.</td></tr>';
+                return;
+            }
+
+            permissionTableBody.innerHTML = state.permissionRows.map(row => `
+                <tr>
+                    <td>${escapeHtml(row.label)}</td>
+                    ${permissionFields.map(field => {
+                        const claimValue = toPermissionClaimValue(row, field);
+                        const checked = state.selectedPermissionClaims.has(claimValue);
+                        return `<td><input type="checkbox" data-claim="${claimValue}" ${checked ? 'checked' : ''} /></td>`;
+                    }).join('')}
+                </tr>
+            `).join('');
+        }
+
+        function renderLogs() {
+            const kw = (logSearch.value || '').toLowerCase().trim();
+            const userKw = (logUserSearch.value || '').toLowerCase().trim();
+            const objectKw = (logObjectSearch?.value || '').toLowerCase().trim();
+
+            const filtered = state.logs.filter(x => {
+                const action = (x.hanhDong || '').toLowerCase();
+                const user = (x.hoTenNhanVien || '').toLowerCase();
+                const obj = (x.doiTuong || '').toLowerCase();
+                if (kw && !action.includes(kw)) return false;
+                if (userKw && !user.includes(userKw)) return false;
+                if (objectKw && !obj.includes(objectKw)) return false;
+                return true;
+            });
+
+            if (!filtered.length) {
+                settingsLogBody.innerHTML = '<tr><td colspan="7" class="text-muted">Không có log phù hợp.</td></tr>';
+                return;
+            }
+
+            settingsLogBody.innerHTML = filtered.map(item => `
+                <tr>
+                    <td>${escapeHtml(item.hoTenNhanVien || `NV ${item.maNhanVien || '-'}`)}</td>
+                    <td>${escapeHtml(item.hanhDong || '-')}</td>
+                    <td>${escapeHtml(formatLogObject(item.doiTuong, item))}</td>
+                    <td>${escapeHtml(formatLogStatus(item.trangThai))}</td>
+                    <td>${formatDateTime(item.thoiGian)}</td>
+                    <td>${escapeHtml(item.ip || '-')}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" data-action="log-detail" data-id="${item.maNhatKyHoatDong}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function formatLogStatus(status) {
+            const s = String(status || '').trim().toUpperCase();
+            if (!s) return '-';
+            if (s === 'SUCCESS') return 'Thành công';
+            if (s === 'FAILED' || s === 'FAIL' || s === 'ERROR') return 'Thất bại';
+            if (s === 'WARNING' || s === 'WARN') return 'Cảnh báo';
+            if (s === 'PENDING') return 'Đang chờ';
+            return status;
+        }
+
+        function formatLogObject(rawObject, item) {
+            const objectText = String(rawObject || '').trim();
+            if (!objectText) return '-';
+
+            if (objectText.startsWith('ACCOUNT:')) {
+                const userName = readAuditPayload(item?.duLieuMoi)?.userName
+                    || readAuditPayload(item?.duLieuCu)?.userName;
+                return userName ? `Tài khoản: ${userName}` : 'Tài khoản';
+            }
+            if (objectText.startsWith('CONGVIEC:')) return 'Công việc';
+            if (objectText.startsWith('KPI:')) return 'KPI';
+            if (objectText === 'SYSTEM') return 'Hệ thống';
+            return objectText;
+        }
+
+        function readAuditPayload(value) {
+            if (!value) return null;
+            if (typeof value === 'object') return value;
+            try {
+                return JSON.parse(value);
+            } catch {
+                return null;
+            }
+        }
+
+        function normalizeAuditPayload(payload) {
+            if (!payload || typeof payload !== 'object') return payload;
+
+            const hiddenKeys = new Set([
+                'password', 'pass', 'token', 'securityStamp', 'concurrencyStamp',
+                'normalizedEmail', 'normalizedUserName'
+            ]);
+
+            const keyMap = {
+                userName: 'Tài khoản',
+                email: 'Email',
+                role: 'Vai trò',
+                roles: 'Danh sách vai trò',
+                maNhanVien: 'Mã nhân viên',
+                phone: 'Số điện thoại',
+                isLocked: 'Trạng thái khóa',
+                accessFailedCount: 'Số lần đăng nhập sai',
+                passwordStatus: 'Trạng thái mật khẩu',
+                actionSource: 'Nguồn thao tác',
+                performedBy: 'Người thực hiện',
+                changedAt: 'Thời điểm'
+            };
+
+            const result = {};
+            Object.keys(payload).forEach(key => {
+                if (hiddenKeys.has(key)) return;
+                const label = keyMap[key] || key;
+                let val = payload[key];
+                if (key === 'isLocked') {
+                    val = val ? 'Đang khóa' : 'Đang hoạt động';
+                }
+                result[label] = val;
+            });
+            return result;
+        }
+
+        function stringifyAuditJson(value) {
+            if (!value) {
+                return '-';
+            }
+
+            const payload = readAuditPayload(value);
+            if (!payload) return String(value);
+            return JSON.stringify(normalizeAuditPayload(payload), null, 2);
+        }
+
+        function openLogDetail(logId) {
+            const item = (state.logs || []).find(x => x.maNhatKyHoatDong === Number(logId));
+            if (!item || !logDetailModal) {
+                return;
+            }
+
+            logPayloadPanel?.classList.add('d-none');
+            if (btnToggleLogPayload) {
+                btnToggleLogPayload.textContent = 'Hiện chi tiết';
+            }
+
+            document.getElementById('logDetailUser').textContent = item.hoTenNhanVien || `NV ${item.maNhanVien || '-'}`;
+            document.getElementById('logDetailAction').textContent = item.hanhDong || '-';
+            document.getElementById('logDetailObject').textContent = formatLogObject(item.doiTuong, item);
+            document.getElementById('logDetailTime').textContent = formatDateTime(item.thoiGian);
+            document.getElementById('logDetailStatus').textContent = formatLogStatus(item.trangThai);
+            document.getElementById('logDetailIp').textContent = item.ip || '-';
+            document.getElementById('logDetailOld').textContent = stringifyAuditJson(item.duLieuCu);
+            document.getElementById('logDetailNew').textContent = stringifyAuditJson(item.duLieuMoi);
+
+            logDetailModal.show();
+        }
+
+        function buildLogApiQuery() {
+            const params = new URLSearchParams({ page: '1', size: '300' });
+
+            const action = (logSearch.value || '').trim();
+            const target = (logObjectSearch?.value || '').trim();
+            const from = logFromDate?.value;
+            const to = logToDate?.value;
+
+            if (action) params.set('hanhDong', action);
+            if (target) params.set('doiTuong', target);
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+
+            return params.toString();
+        }
+
+        async function loadLogs(options = {}) {
+            const { retryOnFail = true } = options;
+            settingsLogBody.innerHTML = '<tr><td colspan="7" class="text-muted">Đang tải log...</td></tr>';
+            const logsRes = await fetchJson(`/nhatkyhoatdong?${buildLogApiQuery()}`);
+            if (!logsRes.success) {
+                if (retryOnFail) {
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    return loadLogs({ retryOnFail: false });
+                }
+
+                state.logs = [];
+                settingsLogBody.innerHTML = `<tr><td colspan="7" class="text-danger">${escapeHtml(logsRes.message || 'Không tải được log hệ thống.')}</td></tr>`;
+                renderOverview();
+                return;
+            }
+
+            state.logs = logsRes.data?.items || [];
+            renderOverview();
+            renderLogs();
+        }
+
+        function showPage(page) {
+            state.selectedPage = page;
+            document.querySelectorAll('.settingsx-page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${page}`)?.classList.add('active');
+            settingsMenu.querySelectorAll('button[data-page]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-page') === page);
+            });
+
+            if (page === 'logs') {
+                btnRefreshLogs?.click();
+            }
+        }
+
+        function readPermissionTable() {
+            const claims = [];
+            permissionTableBody.querySelectorAll('input[type="checkbox"][data-claim]').forEach(input => {
+                const claim = input.getAttribute('data-claim');
+                if (!claim || !input.checked) {
+                    return;
+                }
+
+                claims.push(claim);
+            });
+
+            return Array.from(new Set(claims));
+        }
+
+        function getDefaultPermissionTemplateByRole(roleName) {
+            return defaultPermissionByRole[roleName] || {
+                employees: { view: false, create: false, edit: false, delete: false },
+                projects: { view: false, create: false, edit: false, delete: false },
+                tasks: { view: false, create: false, edit: false, delete: false },
+                reports: { view: false, create: false, edit: false, delete: false },
+                settings: { view: false, create: false, edit: false, delete: false }
+            };
+        }
+
+        function buildDefaultClaimsForRole(roleName) {
+            const template = getDefaultPermissionTemplateByRole(roleName);
+            const claims = [];
+            state.permissionRows.forEach(row => {
+                const rowTemplate = template[row.key] || {};
+                permissionFields.forEach(field => {
+                    if (rowTemplate[field]) {
+                        claims.push(toPermissionClaimValue(row, field));
+                    }
+                });
+            });
+            return Array.from(new Set(claims));
+        }
+
+        function confirmSave(message = 'Bạn có chắc chắn muốn lưu thay đổi?') {
+            return confirm(message);
+        }
+
+        function bindSettingActions() {
+            enforceReadOnlySettingsMode();
+            bindAiTabNavigation();
+            [
+                ['aiWeightCompletion', 'aiWeightCompletionValue'],
+                ['aiWeightOverdue', 'aiWeightOverdueValue'],
+                ['aiWeightKpi', 'aiWeightKpiValue'],
+                ['aiWeightDifficulty', 'aiWeightDifficultyValue'],
+                ['aiEvalOnTime', 'aiEvalOnTimeValue'],
+                ['aiEvalVolume', 'aiEvalVolumeValue'],
+                ['aiEvalDifficulty', 'aiEvalDifficultyValue'],
+                ['aiEvalKpi', 'aiEvalKpiValue'],
+                ['aiEvalFeedback', 'aiEvalFeedbackValue']
+            ].forEach(([inputId, valueId]) => bindRangeLabel(inputId, valueId));
+            document.getElementById('aiSuggestionTone')?.addEventListener('change', syncSuggestionTemplatePreview);
+
+            document.getElementById('btnSavePermissions').addEventListener('click', async () => {
+                if (!canEditSettings) return;
+                if (!confirmSave()) return;
+
+                const roleId = state.selectedPermissionRoleId;
+                if (!roleId) {
+                    alert('Vui lòng chọn role trước khi lưu claim.');
+                    return;
+                }
+
+                const permissionClaims = readPermissionTable();
+                const res = await fetchJson(`/system/roles/${encodeURIComponent(roleId)}/claims`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ permissionClaims })
+                });
+
+                if (!res.success) {
+                    setPermissionInfoMessage(res.message || 'Lưu permission claim thất bại.', true);
+                    alert(res.message || 'Lưu permission claim thất bại.');
+                    return;
+                }
+
+                state.selectedPermissionClaims = new Set((res.data?.permissionClaims || []).map(x => String(x)));
+                renderPermissions();
+                setPermissionInfoMessage(`Role ${res.data?.roleName || '-'} đã được cập nhật ${res.data?.permissionClaims?.length || 0} claim.`);
+                alert('Đã lưu phân quyền theo claim vào AspNetRoleClaims.');
+            });
+
+            document.getElementById('btnResetPermissions').addEventListener('click', async () => {
+                if (!canEditSettings) return;
+                if (!confirmSave('Bạn có chắc muốn khôi phục phân quyền claim của vai trò này?')) return;
+
+                const selectedRole = getSelectedPermissionRole();
+                if (!selectedRole) {
+                    alert('Không có role để reset claim.');
+                    return;
+                }
+
+                const permissionClaims = buildDefaultClaimsForRole(selectedRole.name);
+                const res = await fetchJson(`/system/roles/${encodeURIComponent(selectedRole.id)}/claims`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ permissionClaims })
+                });
+
+                if (!res.success) {
+                    setPermissionInfoMessage(res.message || 'Reset permission claim thất bại.', true);
+                    alert(res.message || 'Reset permission claim thất bại.');
+                    return;
+                }
+
+                state.selectedPermissionClaims = new Set((res.data?.permissionClaims || []).map(x => String(x)));
+                renderPermissions();
+                setPermissionInfoMessage(`Đã reset claim cho role ${res.data?.roleName || '-'} theo mẫu mặc định.`);
+            });
+
+            permissionRoleSelect?.addEventListener('change', async () => {
+                const roleId = permissionRoleSelect.value;
+                state.selectedPermissionRoleId = roleId || null;
+                await loadPermissionClaimsForRole(state.selectedPermissionRoleId);
+            });
+
+            document.getElementById('btnSaveAiSettings').addEventListener('click', async () => {
+                if (!canEditSettings) return;
+                if (!confirmSave()) return;
+                const payload = collectAiSettingsFromForm();
+
+                const res = await fetchJson('/settings/ai/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings: payload })
+                });
+
+                if (!res.success) {
+                    alert(res.message || 'Lưu cấu hình AI thất bại.');
+                    return;
+                }
+
+                alert('Đã lưu cấu hình tham số AI.');
+                await loadAiSettingsHistory(8);
+            });
+            document.getElementById('btnResetAiSettings').addEventListener('click', async () => {
+                if (!canEditSettings) return;
+                if (!confirmSave('Bạn có chắc muốn khôi phục cấu hình AI về mặc định?')) return;
+
+                const defaultPayload = deepClone(defaultAi);
+                const res = await fetchJson('/settings/ai/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings: defaultPayload })
+                });
+
+                if (!res.success) {
+                    alert(res.message || 'Reset cấu hình AI thất bại.');
+                    return;
+                }
+
+                applyAiSettingsToForm(defaultPayload);
+                await loadAiSettingsHistory(8);
+            });
+
+            const aiTestModal = new bootstrap.Modal(document.getElementById('aiTestModal'));
+            const aiTestResult = document.getElementById('aiTestResult');
+            const aiTestSummaryBody = document.getElementById('aiTestSummaryBody');
+
+            document.getElementById('btnTestAiSettings').addEventListener('click', () => {
+                aiTestResult.className = 'alert alert-secondary mt-3 mb-0';
+                aiTestResult.textContent = 'Nhấn "Chạy thử" để xem dự đoán.';
+                if (aiTestSummaryBody) {
+                    aiTestSummaryBody.innerHTML = '<tr><td colspan="2" class="text-muted">Chưa có kết quả chạy thử.</td></tr>';
+                }
+                aiTestModal.show();
+            });
+
+            document.getElementById('btnRunAiTest').addEventListener('click', () => {
+                const completion = Number(document.getElementById('aiTestCompletion').value || 0);
+                const timeUsed = Number(document.getElementById('aiTestTimeUsed').value || 0);
+                const remainWork = Number(document.getElementById('aiTestRemainWork').value || 0);
+                const difficulty = Number(document.getElementById('aiTestDifficulty').value || 1);
+
+                const score = Math.max(0, Math.min(100,
+                    (timeUsed * 0.38) + (remainWork * 0.3) + ((difficulty * 10) * 0.18) + ((100 - completion) * 0.14)
+                ));
+
+                let levelClass = 'alert-success';
+                let levelText = 'Thấp';
+                if (score >= 70) {
+                    levelClass = 'alert-danger';
+                    levelText = 'Cao';
+                } else if (score >= 50) {
+                    levelClass = 'alert-warning';
+                    levelText = 'Trung bình';
+                }
+
+                aiTestResult.className = `alert ${levelClass} mt-3 mb-0`;
+                aiTestResult.textContent = `Xác suất trễ hạn dự kiến: ${score.toFixed(1)}% (${levelText}).`;
+                if (aiTestSummaryBody) {
+                    aiTestSummaryBody.innerHTML = `
+                        <tr>
+                            <td>Tiến độ ${completion}% | Thời gian đã dùng ${timeUsed}% | Khối lượng còn lại ${remainWork}% | Độ khó ${difficulty}</td>
+                            <td>Nguy cơ trễ: ${score.toFixed(1)}% (${levelText})</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            document.getElementById('btnSaveNotifySettings').addEventListener('click', () => {
+                if (!canEditSettings) return;
+                if (!confirmSave()) return;
+                const payload = {
+                    email: document.getElementById('notifyEmail').value.trim(),
+                    overdueTask: document.getElementById('notifyOverdueTask').checked,
+                    system: document.getElementById('notifySystem').checked
+                };
+                setClientSetting(STORAGE_KEY.notify, JSON.stringify(payload));
+                alert('Đã lưu cài đặt thông báo.');
+            });
+            document.getElementById('btnCancelNotifySettings').addEventListener('click', loadLocalSettings);
+            document.getElementById('btnResetNotifySettings').addEventListener('click', () => {
+                if (!canEditSettings) return;
+                if (!confirmSave('Bạn có chắc muốn khôi phục cài đặt thông báo mặc định?')) return;
+                setClientSetting(STORAGE_KEY.notify, JSON.stringify(defaultNotify));
+                loadLocalSettings();
+            });
+
+            document.getElementById('btnSaveSecuritySettings').addEventListener('click', () => {
+                if (!canEditSettings) return;
+                if (!confirmSave()) return;
+                const payload = {
+                    minLength: Number(document.getElementById('securityMinPasswordLength').value),
+                    maxFailed: Number(document.getElementById('securityMaxFailedLogin').value),
+                    autoLock: document.getElementById('securityAutoLock').checked
+                };
+                setClientSetting(STORAGE_KEY.security, JSON.stringify(payload));
+                alert('Đã lưu cài đặt bảo mật.');
+            });
+            document.getElementById('btnCancelSecuritySettings').addEventListener('click', loadLocalSettings);
+            document.getElementById('btnResetSecuritySettings').addEventListener('click', () => {
+                if (!canEditSettings) return;
+                if (!confirmSave('Bạn có chắc muốn khôi phục cài đặt bảo mật mặc định?')) return;
+                setClientSetting(STORAGE_KEY.security, JSON.stringify(defaultSecurity));
+                loadLocalSettings();
+            });
+        }
+
+        async function loadOverview() {
+            const [overviewRes, rolesRes] = await Promise.all([
+                fetchJson('/system/settings-overview'),
+                fetchJson('/system/roles')
+            ]);
+
+            state.overview = overviewRes.success ? overviewRes.data : { users: [], roles: [] };
+            state.roles = rolesRes.success ? (rolesRes.data || []) : [];
+
+            renderOverview();
+            renderRoles();
+            renderPermissionRoleOptions();
+            await loadPermissionClaimsForRole(state.selectedPermissionRoleId);
+        }
+
+        function openRoleCreate() {
+            state.editingRoleId = null;
+            roleFormTitle.textContent = 'Thêm role';
+            roleNameInput.value = '';
+            roleDescInput.value = '';
+            roleFormResult.textContent = '';
+            roleFormResult.className = 'small';
+            roleFormModal.show();
+        }
+
+        function openRoleEdit(roleId, roleName) {
+            state.editingRoleId = roleId;
+            roleFormTitle.textContent = 'Sửa role';
+            roleNameInput.value = roleName;
+            roleDescInput.value = state.roleDescMap[roleName] || '';
+            roleFormResult.textContent = '';
+            roleFormResult.className = 'small';
+            roleFormModal.show();
+        }
+
+        async function saveRole() {
+            if (!canEditSettings) {
+                roleFormResult.className = 'small text-danger';
+                roleFormResult.textContent = 'Bạn chỉ có quyền xem Cài đặt hệ thống.';
+                return;
+            }
+
+            const name = roleNameInput.value.trim();
+            const desc = roleDescInput.value.trim();
+            if (!name) {
+                roleFormResult.className = 'small text-danger';
+                roleFormResult.textContent = 'Tên role là bắt buộc.';
+                return;
+            }
+
+            let res;
+            if (!state.editingRoleId) {
+                res = await fetchJson('/system/roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+            } else {
+                res = await fetchJson(`/system/roles/${encodeURIComponent(state.editingRoleId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+            }
+
+            if (!res.success) {
+                roleFormResult.className = 'small text-danger';
+                roleFormResult.textContent = res.message || 'Lưu vai trò thất bại.';
+                return;
+            }
+
+            state.roleDescMap[name] = desc;
+            setClientSetting(STORAGE_KEY.roleDesc, JSON.stringify(state.roleDescMap));
+            roleFormModal.hide();
+            await loadOverview();
+        }
+
+        async function deleteRole(roleId, userCount) {
+            if (!canEditSettings) {
+                alert('Bạn chỉ có quyền xem Cài đặt hệ thống.');
+                return;
+            }
+
+            if (Number(userCount || 0) > 0) {
+                alert('Vai trò đang có người dùng, không thể xóa.');
+                return;
+            }
+            if (!confirm('Bạn có chắc muốn xóa vai trò này?')) return;
+
+            const res = await fetchJson(`/system/roles/${encodeURIComponent(roleId)}`, {
+                method: 'DELETE'
+            });
+            if (!res.success) {
+                alert(res.message || 'Xóa vai trò thất bại.');
+                return;
+            }
+            await loadOverview();
+        }
+
+        btnToggleSettingsSidebar.addEventListener('click', () => {
+            settingsSidebar.classList.toggle('collapsed');
+            settingsShell?.classList.toggle('sidebar-collapsed', settingsSidebar.classList.contains('collapsed'));
+        });
+
+        settingsMenu.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-page]');
+            if (!button) return;
+            showPage(button.getAttribute('data-page'));
+        });
+
+        btnOpenRoleCreate.addEventListener('click', openRoleCreate);
+        btnSaveRole.addEventListener('click', saveRole);
+        btnOpenKpiGradeCreate?.addEventListener('click', () => {
+            if (!canEditSettings) return;
+            openKpiGradeCreateModal();
+        });
+        kpiGradeCodeInput?.addEventListener('change', () => {
+            applyKpiGradeCodeHint(kpiGradeCodeInput.value);
+        });
+        kpiGradeColorPresetInput?.addEventListener('change', () => {
+            const selected = (kpiGradeColorPresetInput.value || '').trim();
+            if (!selected) return;
+            kpiGradeColorHexInput.value = selected;
+        });
+        kpiGradeColorHexInput?.addEventListener('input', () => {
+            syncKpiGradeColorPresetFromHex();
+        });
+        btnSaveKpiGrade?.addEventListener('click', async () => {
+            if (!canEditSettings) return;
+            await saveKpiGradeForm();
+        });
+        btnOpenKpiMasterCreate?.addEventListener('click', () => {
+            if (!canEditSettings) return;
+            openKpiMasterCreateModal();
+        });
+        btnSaveKpiMaster?.addEventListener('click', async () => {
+            if (!canEditSettings) return;
+            await saveKpiMasterForm();
+        });
+
+        settingsRoleBody.addEventListener('click', async (e) => {
+            const editButton = e.target.closest('button[data-action="edit-role"]');
+            if (editButton) {
+                openRoleEdit(editButton.getAttribute('data-id'), editButton.getAttribute('data-name'));
+                return;
+            }
+
+            const deleteButton = e.target.closest('button[data-action="delete-role"]');
+            if (deleteButton) {
+                await deleteRole(deleteButton.getAttribute('data-id'), deleteButton.getAttribute('data-users'));
+            }
+        });
+
+        settingsLogBody.addEventListener('click', (e) => {
+            const detailButton = e.target.closest('button[data-action="log-detail"]');
+            if (!detailButton) {
+                return;
+            }
+
+            openLogDetail(detailButton.getAttribute('data-id'));
+        });
+
+        btnToggleLogPayload?.addEventListener('click', () => {
+            const isHidden = logPayloadPanel?.classList.contains('d-none');
+            if (isHidden) {
+                logPayloadPanel?.classList.remove('d-none');
+                btnToggleLogPayload.textContent = 'Ẩn chi tiết';
+                return;
+            }
+
+            logPayloadPanel?.classList.add('d-none');
+            btnToggleLogPayload.textContent = 'Hiện chi tiết';
+        });
+
+        kpiGradeBody?.addEventListener('click', async (e) => {
+            if (!canEditSettings) return;
+            const editBtn = e.target.closest('button[data-action="edit-grade"]');
+            if (editBtn) {
+                openKpiGradeEditModal(Number(editBtn.getAttribute('data-id')));
+                return;
+            }
+
+            const btn = e.target.closest('button[data-action="toggle-grade"]');
+            if (!btn) return;
+            const id = Number(btn.getAttribute('data-id'));
+            const isActive = btn.getAttribute('data-active') === '1';
+            const res = await fetchJson(`/settings/kpi-grades/${encodeURIComponent(id)}/toggle`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: !isActive })
+            });
+            if (!res.success) {
+                alert(res.message || 'Không cập nhật được trạng thái mức xếp loại.');
+                return;
+            }
+            await loadKpiGrades();
+        });
+
+        kpiMasterBody?.addEventListener('click', async (e) => {
+            if (!canEditSettings) return;
+            const editBtn = e.target.closest('button[data-action="edit-master"]');
+            if (editBtn) {
+                openKpiMasterEditModal(Number(editBtn.getAttribute('data-id')));
+                return;
+            }
+
+            const btn = e.target.closest('button[data-action="toggle-master"]');
+            if (!btn) return;
+            const id = Number(btn.getAttribute('data-id'));
+            const isActive = btn.getAttribute('data-active') === '1';
+            const type = kpiMasterType?.value || 'dokho';
+            const res = await fetchJson(`/settings/kpi-master/${encodeURIComponent(type)}/${encodeURIComponent(id)}/toggle`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: !isActive })
+            });
+            if (!res.success) {
+                alert(res.message || 'Không cập nhật được trạng thái danh mục.');
+                return;
+            }
+            await loadKpiMaster();
+        });
+
+        kpiMasterType?.addEventListener('change', loadKpiMaster);
+
+        logSearch.addEventListener('input', renderLogs);
+        logUserSearch.addEventListener('input', renderLogs);
+        logObjectSearch?.addEventListener('input', renderLogs);
+        logFromDate?.addEventListener('change', loadLogs);
+        logToDate?.addEventListener('change', loadLogs);
+        btnRefreshLogs.addEventListener('click', loadLogs);
+        btnRefreshAiHistory?.addEventListener('click', () => loadAiSettingsHistory(8));
+
+        (async function init() {
+            await initializeClientSettingsStore();
+            bindSettingActions();
+            loadLocalSettings();
+            loadAiSettingsFromServer();
+            loadAiSettingsHistory(8);
+            syncSuggestionTemplatePreview();
+            await loadKpiGrades();
+            await loadKpiMaster();
+            await loadOverview();
+            // Không tải log quá sớm ở init để tránh lỗi khởi động tạm thời.
+            // Dữ liệu log sẽ được tải khi mở tab "Log hệ thống".
+        })();
+
+        if (window.bootstrap?.Tooltip) {
+            document.querySelectorAll('[title]').forEach(el => new bootstrap.Tooltip(el));
+        }
+    </script>
+}
+
+
+
+
+

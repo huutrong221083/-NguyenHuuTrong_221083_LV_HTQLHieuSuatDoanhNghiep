@@ -1,0 +1,25 @@
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Không có quyền truy cập";
+}
+
+<div class="auth-page">
+    <div class="auth-panel">
+        <div class="auth-brand">
+            <span class="logo-badge">LV</span>
+            <div>
+                <h1>403 - Không có quyền</h1>
+                <p>Bạn không có quyền truy cập tài nguyên này.</p>
+            </div>
+        </div>
+
+        <div class="alert alert-warning">Vui lòng liên hệ quản trị viên nếu bạn tin rằng đây là nhầm lẫn về phân quyền.</div>
+
+        <a class="btn btn-primary w-100" asp-controller="Account" asp-action="Login">Quay về đăng nhập</a>
+    </div>
+
+    <div class="auth-hero">
+        <h3>Kiểm soát truy cập theo Role/Claims</h3>
+        <p>Hệ thống đang áp dụng chính sách phân quyền dựa trên Identity để bảo vệ dữ liệu và các chức năng nghiệp vụ trọng yếu.</p>
+    </div>
+</div>

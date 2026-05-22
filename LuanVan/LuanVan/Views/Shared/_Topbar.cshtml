@@ -1,0 +1,67 @@
+@{
+    var displayRole = ViewData["LayoutDisplayRole"]?.ToString() ?? (ViewData["RoleKey"]?.ToString() ?? "admin").Trim().ToLowerInvariant();
+    var displayName = ViewData["LayoutDisplayName"]?.ToString() ?? "Quản trị viên";
+    var avatar = ViewData["LayoutAvatar"]?.ToString() ?? "QT";
+    var searchHint = ViewData["LayoutSearchHint"]?.ToString() ?? "Tìm nhân viên, task, phòng ban...";
+    var quickActionLabel = ViewData["LayoutQuickActionLabel"]?.ToString() ?? "Quản lý dự án";
+    var quickActionIcon = ViewData["LayoutQuickActionIcon"]?.ToString() ?? "bi bi-kanban-fill";
+    var quickActionTarget = ViewData["LayoutQuickActionTarget"]?.ToString() ?? "Projects";
+}
+
+<header class="topbar">
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary d-lg-none" id="btnOpenSidebar" type="button">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+
+    <div class="topbar-actions">
+        <a class="btn btn-primary btn-sm quick-action" asp-controller="Portal" asp-action="@quickActionTarget" asp-route-role="@displayRole">
+            <i class="@quickActionIcon"></i>
+            <span class="d-none d-md-inline">@quickActionLabel</span>
+        </a>
+
+        <div class="dropdown notification-wrap" id="notificationBell" data-role="@displayRole" data-role-key="@displayRole.ToLowerInvariant()">
+            <button class="btn btn-icon position-relative notification-trigger" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Thông báo">
+                <i class="bi bi-bell-fill"></i>
+                <span class="notification-badge d-none" id="notificationUnreadBadge">0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" id="notificationDropdownMenu">
+                <div class="notification-header">
+                    <h6 class="mb-0">Thông báo</h6>
+                    <button class="btn btn-sm btn-link text-decoration-none" type="button" id="btnMarkAllNotificationsRead">Đánh dấu tất cả đã đọc</button>
+                </div>
+
+                <div class="notification-tabs" role="tablist" aria-label="Lọc thông báo">
+                    <button class="notification-tab active" type="button" data-tab="all">Tất cả</button>
+                    <button class="notification-tab" type="button" data-tab="unread">Chưa đọc</button>
+                </div>
+
+                <div class="notification-list" id="notificationListPreview">
+                    <div class="notification-empty">Đang tải thông báo...</div>
+                </div>
+
+                <div class="notification-footer">
+                    <a asp-controller="Portal" asp-action="Notifications" asp-route-role="@displayRole" id="notificationViewAllLink">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn profile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="avatar">@avatar</span>
+                <span class="d-none d-md-inline">@displayName</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" asp-controller="Portal" asp-action="Profile" asp-route-role="@displayRole">Hồ sơ cá nhân</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <form method="post" asp-controller="Account" asp-action="Logout">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dropdown-item">Đăng xuất</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
