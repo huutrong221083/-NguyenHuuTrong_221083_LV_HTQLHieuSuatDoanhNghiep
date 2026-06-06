@@ -54,7 +54,7 @@ else
             <h4 class="mb-0">Danh sách nhóm</h4>
             <div class="d-flex gap-2 align-items-center">
                 <input id="nhomSearch" class="form-control form-control-sm" placeholder="Tìm tên nhóm..." />
-                @if (role == "admin" || role == "manager")
+                @if (role == "admin")
                 {
                     <button id="btnCreateNhom" class="btn btn-outline-primary btn-sm" type="button"><i class="bi bi-plus-circle"></i> Tạo nhóm</button>
                 }
@@ -457,7 +457,6 @@ else
                 kpiByDepartment: new Map(),
                 selectedDept: null,
                 editingDeptId: null,
-                managerScopedDeptId: null,
                 selectedTeamId: null,
                 selectedTeamDetail: null,
                 barChart: null,
@@ -466,8 +465,7 @@ else
                 pendingTransferEmpId: null,
                 pendingTransferEmpName: null,
                 pendingTransferFromDeptId: null,
-                pendingTransferToDeptId: null,
-                currentUserEmployeeId: null
+                pendingTransferToDeptId: null
             };
 
             const escapeHtml = (value) => String(value ?? '')
@@ -535,12 +533,6 @@ else
                     const month = new Date().getMonth() + 1;
                     const year = new Date().getFullYear();
                     
-                    // For Manager, fetch current user to get their department
-                    let currentUserResult = null;
-                    if (role === 'manager') {
-                        currentUserResult = await fetchJson('/nhanvien/me');
-                    }
-                    
                     const [deptResult, empResult] = await Promise.all([
                         fetchJson('/phongban'),
                         fetchJson('/nhanvien?page=1&size=300')
@@ -568,13 +560,6 @@ else
                         state.kpiByDepartment = new Map();
                     }
 
-                    if (role === 'manager' && currentUserResult?.success && currentUserResult?.data) {
-                        state.currentUserEmployeeId = Number(currentUserResult.data.maNhanVien || 0) || null;
-                        if (currentUserResult.data.maPhongBan) {
-                            state.managerScopedDeptId = currentUserResult.data.maPhongBan;
-                        }
-                    }
-
                     renderLeadOptions();
                     applyFilters();
                     await loadNhoms();
@@ -591,23 +576,14 @@ else
                     return;
                 }
 
-                const teams = result.data || [];
-                if (role === 'manager') {
-                    const managerId = Number(state.currentUserEmployeeId || 0);
-                    state.teams = teams.filter(item => Number(item.truongNhom || 0) === managerId);
-                    if (!state.teams.length) {
-                        toggleNhomSection(false);
-                        return;
-                    }
-
-                    toggleNhomSection(true);
-                } else {
-                    state.teams = teams;
-                    toggleNhomSection(true);
-                }
+                state.teams = result.data || [];
+                toggleNhomSection(true);
 
                 if (!state.teams.length) {
-                    nhomTableBody.innerHTML = '<tr><td colspan="5" class="text-muted">Chưa có nhóm nào.</td></tr>';
+                    const emptyMessage = role === 'manager'
+                        ? 'Không có nhóm nào trong phạm vi quản lý.'
+                        : 'Chưa có nhóm nào.';
+                    nhomTableBody.innerHTML = `<tr><td colspan="5" class="text-muted">${emptyMessage}</td></tr>`;
                     return;
                 }
 
@@ -627,7 +603,7 @@ else
             }
 
             function openCreateNhomModal() {
-                if (role !== 'admin' && role !== 'manager') return;
+                if (role !== 'admin') return;
                 state.selectedTeamId = null;
                 nhomModalTitle.textContent = 'Tạo nhóm';
                 nhomEditName.value = '';
@@ -936,9 +912,6 @@ else
                 const statusFilter = filterStatus.value;
 
                 let items = [...state.departments];
-                if (role === 'manager' && state.managerScopedDeptId) {
-                    items = items.filter(x => x.maPhongBan === state.managerScopedDeptId);
-                }
 
                 if (keyword) {
                     items = items.filter(item => {
@@ -972,7 +945,10 @@ else
 
             function renderCards() {
                 if (!state.filtered.length) {
-                    deptCards.innerHTML = '<article class="panel mini"><p class="text-muted mb-0">Không có phòng ban phù hợp.</p></article>';
+                    const emptyMessage = role === 'manager'
+                        ? 'Không có phòng ban quản lý nào.'
+                        : 'Không có phòng ban phù hợp.';
+                    deptCards.innerHTML = `<article class="panel mini"><p class="text-muted mb-0">${emptyMessage}</p></article>`;
                     return;
                 }
 

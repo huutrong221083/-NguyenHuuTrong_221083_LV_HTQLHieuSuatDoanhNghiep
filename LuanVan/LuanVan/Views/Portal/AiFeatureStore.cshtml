@@ -1,416 +1,90 @@
 @{
-    ViewData["Title"] = "AI - Feature Store";
+    ViewData["Title"] = "Dữ liệu huấn luyện AI";
 }
 
 <style>
-    .aifs-shell {
-        --aifs-card: rgba(255, 255, 255, 0.95);
-        --aifs-border: rgba(27, 55, 99, 0.12);
-        --aifs-ink: #12304f;
-        --aifs-muted: #64748b;
-        color: var(--aifs-ink);
-    }
-
-    .aifs-hero {
-        border: 1px solid var(--aifs-border);
-        border-radius: 14px;
-        padding: 16px 18px;
-        background: #ffffff;
-        box-shadow: 0 6px 18px rgba(11, 31, 56, 0.06);
-    }
-
-    .aifs-hero h2 {
-        margin: 0;
-        color: #0f2742;
-        font-size: 32px;
-        font-weight: 700;
-    }
-
-    .aifs-hero p {
-        margin-top: 8px;
-        margin-bottom: 0;
-        color: #4b647f;
-    }
-
-    .aifs-stats {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .aifs-stat {
-        position: relative;
-        overflow: hidden;
-        min-height: 110px;
-        padding: 16px;
-        border-radius: 16px;
-        background: var(--aifs-card);
-        border: 1px solid var(--aifs-border);
-        box-shadow: 0 10px 28px rgba(11, 31, 56, 0.06);
-    }
-
-    .aifs-stat::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, #2563eb, #06b6d4);
-    }
-
-    .aifs-stat .label {
-        display: block;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--aifs-muted);
-        margin-bottom: 10px;
-        font-weight: 700;
-    }
-
-    .aifs-stat strong {
-        display: block;
-        font-size: 24px;
-        line-height: 1.1;
-        margin-bottom: 6px;
-        color: var(--aifs-ink);
-    }
-
-    .aifs-toolbar {
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid var(--aifs-border);
-        border-radius: 16px;
-        padding: 14px;
-        box-shadow: 0 10px 24px rgba(11, 31, 56, 0.05);
-    }
-
-    .aifs-toolbar-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 1.1fr 1fr 1fr 1.1fr auto;
-        gap: 10px;
-        align-items: end;
-    }
-
-    .aifs-toolbar .form-select,
-    .aifs-toolbar .form-control {
-        border-color: #d5e2f0;
-        background-color: #fff;
-    }
-
-    .aifs-toolbar .form-select:focus,
-    .aifs-toolbar .form-control:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.15);
-    }
-
-    .aifs-hint {
-        display: none;
-        margin-top: 12px;
-        border-radius: 12px;
-        border: 1px solid #fde68a;
-        background: #fffaf0;
-        color: #8a5600;
-        padding: 8px 12px;
-        font-size: 13px;
-    }
-
-    .aifs-hint.show {
-        display: block;
-    }
-
-    .aifs-table-wrap {
-        border: 1px solid var(--aifs-border);
-        border-radius: 16px;
-        overflow: hidden;
-        background: #fff;
-        box-shadow: 0 10px 24px rgba(11, 31, 56, 0.05);
-    }
-
-    .aifs-table-wrap .table {
-        margin-bottom: 0;
-    }
-
-    .aifs-shell .aifs-table-wrap thead th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        background: #f8fbff;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
-        color: #314a67;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        white-space: nowrap;
-    }
-
-    .aifs-row:hover {
-        background: #f8fbff;
-    }
-
-    .aifs-row-risk td:first-child {
-        border-left: 3px solid #f59e0b;
-    }
-
-    .aifs-row-drift td:first-child {
-        border-left: 3px solid #ef4444;
-    }
-
-    .aifs-cell-main {
-        font-weight: 600;
-        color: #10233b;
-    }
-
-    .aifs-cell-sub {
-        color: var(--aifs-muted);
-        font-size: 12px;
-        margin-top: 3px;
-    }
-
-    .aifs-pill {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 4px 8px;
-        font-size: 12px;
-        font-weight: 700;
-        background: #eef4ff;
-        color: #1d4ed8;
-    }
-
-    .aifs-pill-semantic {
-        min-width: 80px;
-        justify-content: center;
-        padding: 3px 7px;
-        font-size: 10.5px;
-        background: rgba(148, 163, 184, 0.14);
-        color: #475569;
-    }
-
-    .aifs-pill-risk {
-        background: #fff7db;
-        color: #8a5600;
-    }
-
-    .aifs-pill-drift {
-        background: #feeceb;
-        color: #9f1239;
-    }
-
-    .aifs-pill-freshness {
-        background: #e8f8ef;
-        color: #166534;
-    }
-
-    .aifs-pill-freshness.delayed {
-        background: #fff8e0;
-        color: #8a5600;
-    }
-
-    .aifs-pill-freshness.outdated {
-        background: #fef2f2;
-        color: #991b1b;
-    }
-
-    .aifs-explain {
-        display: block;
-        max-width: 260px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        cursor: help;
-        position: relative;
-        line-height: 1.2;
-        font-size: 12px;
-    }
-
-    .aifs-explain-generic {
-        font-style: italic;
-        font-size: 11px;
-        color: #7b8794;
-    }
-
-    .aifs-tip::after {
-        content: attr(data-tip);
-        position: absolute;
-        left: 0;
-        bottom: calc(100% + 6px);
-        max-width: 340px;
-        width: max-content;
-        background: rgba(15, 23, 42, 0.96);
-        color: #fff;
-        border-radius: 8px;
-        padding: 6px 9px;
-        font-size: 12px;
-        line-height: 1.35;
-        white-space: normal;
-        opacity: 0;
-        pointer-events: none;
-        transform: translateY(4px);
-        transition: opacity 0.18s ease, transform 0.18s ease;
-        transition-delay: 0.24s;
-        z-index: 5;
-    }
-
-    .aifs-tip:hover::after {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .aifs-status {
-        min-height: 22px;
-        color: var(--aifs-muted);
-        font-size: 13px;
-    }
-
-    .aifs-status.error {
-        color: #b91c1c;
-    }
-
-    .aifs-empty {
-        padding: 42px 20px;
-        text-align: center;
-        color: var(--aifs-muted);
-    }
-
-    .aifs-empty-actions {
-        margin-top: 10px;
-    }
-
-    .aifs-shell .aifs-stat-monitoring {
-        background: rgba(248, 250, 252, 0.96);
-    }
-
-    .aifs-shell .aifs-stat-monitoring::before {
-        height: 3px;
-    }
-
-    .aifs-shell .aifs-stat-monitoring-fresh::before {
-        background: rgba(14, 116, 144, 0.45);
-    }
-
-    .aifs-shell .aifs-stat-monitoring-watch::before {
-        background: rgba(217, 119, 6, 0.45);
-    }
-
-    .aifs-shell .aifs-value-cell {
-        text-align: right;
-    }
-
-    .aifs-shell .aifs-value-badge {
-        min-width: 58px;
-        justify-content: center;
-    }
-
+    .train-shell { color: #12304f; }
+    .train-hero { background: #fff; border: 1px solid #d8e2ef; border-radius: 14px; padding: 16px; }
+    .train-hero h2 { margin: 0; font-size: 28px; font-weight: 700; }
+    .train-hero p { margin: 8px 0 0; color: #54657a; }
+    .train-note { margin-top: 8px; font-size: 13px; color: #6b7280; }
+    .train-toolbar { margin-top: 12px; background: #fff; border: 1px solid #d8e2ef; border-radius: 14px; padding: 12px; }
+    .train-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 10px; align-items: end; }
+    .train-meta { margin-top: 12px; background: #fff; border: 1px solid #d8e2ef; border-radius: 14px; padding: 12px; }
+    .train-meta ul { margin: 0; padding-left: 18px; }
+    .train-meta-compact { display: grid; grid-template-columns: 1.2fr 1fr 1.4fr; gap: 10px; }
+    .train-meta-card { border: 1px solid #e6edf7; border-radius: 10px; padding: 8px 10px; background: #fbfdff; }
+    .train-meta-title { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 6px; font-weight: 700; letter-spacing: .02em; }
+    .train-meta-main { font-size: 14px; color: #10233b; line-height: 1.4; }
+    .train-chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+    .train-chip { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #edf4ff; color: #1e40af; font-size: 12px; }
+    .train-table-wrap { margin-top: 12px; background: #fff; border: 1px solid #d8e2ef; border-radius: 14px; overflow: hidden; }
+    .train-empty { padding: 28px; text-align: center; color: #6b7280; }
+    .train-warning { margin-top: 10px; border-radius: 10px; padding: 8px 10px; border: 1px solid #fde68a; background: #fffaf0; color: #8a5600; display: none; }
+    .train-warning.show { display: block; }
     @@media (max-width: 1200px) {
-        .aifs-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        .aifs-toolbar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .train-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+        .train-meta-compact { grid-template-columns: 1fr; }
     }
-
-    @@media (max-width: 768px) {
-        .aifs-stats { grid-template-columns: 1fr; }
-        .aifs-toolbar-grid { grid-template-columns: 1fr; }
-        .aifs-hero h2 { font-size: 24px; }
-        .aifs-explain { max-width: 210px; }
-    }
+    @@media (max-width: 768px) { .train-grid { grid-template-columns: 1fr; } }
 </style>
 
-<section class="aifs-shell mt-2">
-    <div class="aifs-hero">
-        <h2>Dữ liệu AI & Feature Store</h2>
-        <p>Theo dõi dữ liệu đặc trưng được AI sử dụng trong dự báo, phân loại hiệu suất và đánh giá mô hình.</p>
+<section class="train-shell mt-2">
+    <div class="train-hero">
+        <h2>Dữ liệu huấn luyện AI</h2>
     </div>
 
-    <div class="aifs-stats mt-3">
-        <article class="aifs-stat">
-            <span class="label">Bản ghi hiển thị</span>
-            <strong id="statRecords">0</strong>
-            <small class="text-muted">Trên tập dữ liệu đã tải</small>
-        </article>
-        <article class="aifs-stat">
-            <span class="label">Dự án liên quan</span>
-            <strong id="statProjects">0</strong>
-            <small class="text-muted">Số mã dự án khác nhau</small>
-        </article>
-        <article class="aifs-stat">
-            <span class="label">Nhân viên liên quan</span>
-            <strong id="statEmployees">0</strong>
-            <small class="text-muted">Feature có gắn nhân sự</small>
-        </article>
-        <article class="aifs-stat">
-            <span class="label">Model liên quan</span>
-            <strong id="statModels">0</strong>
-            <small class="text-muted">Dữ liệu model input/output</small>
-        </article>
-        <article class="aifs-stat aifs-stat-monitoring aifs-stat-monitoring-fresh">
-            <span class="label">Lần đồng bộ gần nhất</span>
-            <strong id="statFreshness">—</strong>
-            <small id="statFreshnessSub" class="text-muted">Không có dữ liệu sau khi lọc</small>
-        </article>
-        <article class="aifs-stat aifs-stat-monitoring aifs-stat-monitoring-watch">
-            <span class="label">Feature cần theo dõi</span>
-            <strong id="statReview">0</strong>
-            <small id="statReviewSub" class="text-muted">Thiếu dữ liệu / quá hạn / biến động cần theo dõi</small>
-        </article>
-    </div>
-
-    <div class="aifs-toolbar mt-3">
-        <div class="aifs-toolbar-grid">
-            <div>
-                <label class="form-label small mb-1">Dự án</label>
-                <select id="fsProject" class="form-select form-select-sm">
-                    <option value="">Tất cả dự án</option>
-                </select>
-            </div>
-            <div>
-                <label class="form-label small mb-1">Nhân viên</label>
-                <select id="fsEmployee" class="form-select form-select-sm">
-                    <option value="">Tất cả nhân viên</option>
-                </select>
-            </div>
-            <div>
-                <label class="form-label small mb-1">Mô hình</label>
-                <select id="fsModel" class="form-select form-select-sm">
-                    <option value="">Tất cả mô hình</option>
-                </select>
-            </div>
+    <div class="train-toolbar">
+        <ul class="nav nav-pills mb-3" id="trainingTabs">
+            <li class="nav-item"><button class="nav-link active" data-model="task-delay" type="button">Dự báo trễ hạn</button></li>
+            <li class="nav-item"><button class="nav-link" data-model="performance" type="button">Hiệu suất nhân sự</button></li>
+        </ul>
+        <div class="train-grid">
             <div>
                 <label class="form-label small mb-1">Từ ngày</label>
-                <input id="fsFrom" type="date" class="form-control form-control-sm" />
+                <input id="fromDate" type="date" class="form-control form-control-sm" />
             </div>
             <div>
                 <label class="form-label small mb-1">Đến ngày</label>
-                <input id="fsTo" type="date" class="form-control form-control-sm" />
+                <input id="toDate" type="date" class="form-control form-control-sm" />
             </div>
-            <div class="d-flex gap-2 flex-wrap justify-content-end">
-                <button id="btnFsReset" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Xóa lọc</button>
-                <button id="btnFsExport" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> ⬇ Xuất CSV</button>
+            <div>
+                <label class="form-label small mb-1">Nhân viên</label>
+                <input id="employeeId" type="number" min="1" class="form-control form-control-sm" placeholder="Mã nhân viên" />
+            </div>
+            <div>
+                <label class="form-label small mb-1">Dự án</label>
+                <input id="projectId" type="number" min="1" class="form-control form-control-sm" placeholder="Mã dự án" />
+            </div>
+            <div>
+                <label class="form-label small mb-1">Từ khóa</label>
+                <input id="keyword" type="text" class="form-control form-control-sm" placeholder="Tên nhân viên/công việc" />
+            </div>
+            <div class="d-flex gap-2">
+                <button id="btnApply" class="btn btn-primary btn-sm">Lọc</button>
+                <button id="btnReset" class="btn btn-outline-secondary btn-sm">Xóa lọc</button>
+                <button id="btnExport" class="btn btn-outline-primary btn-sm">Xuất CSV</button>
             </div>
         </div>
-        <div id="fsStatus" class="aifs-status mt-3">Đang chờ tải dữ liệu feature store...</div>
-        <div id="fsHint" class="aifs-hint">Một số feature cần được theo dõi thêm do có biến động dữ liệu gần đây.</div>
+        <div class="d-flex justify-content-between mt-2">
+            <div id="statusText" class="small text-muted">Đang chờ tải dữ liệu...</div>
+            <div class="d-flex align-items-center gap-2">
+                <button id="btnPrev" class="btn btn-outline-secondary btn-sm">Trước</button>
+                <span id="pageText" class="small text-muted">Trang 1</span>
+                <button id="btnNext" class="btn btn-outline-secondary btn-sm">Sau</button>
+            </div>
+        </div>
+        <div id="warningBox" class="train-warning"></div>
     </div>
 
-    <div class="aifs-table-wrap mt-3">
-        <div class="table-responsive" style="max-height: 68vh;">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 84px;">ID</th>
-                        <th>Dự án / Công việc</th>
-                        <th>Nhân viên</th>
-                        <th>Model</th>
-                        <th>Tên đặc trưng</th>
-                        <th class="aifs-value-cell">Giá trị</th>
-                        <th style="width: 170px;">Thời điểm chốt</th>
-                        <th style="width: 130px;">Mã chạy</th>
-                    </tr>
-                </thead>
-                <tbody id="fsBody">
-                    <tr>
-                        <td colspan="8" class="aifs-empty">Chưa có dữ liệu.</td>
-                    </tr>
+    <div class="train-meta" id="metaBox"></div>
+
+    <div class="train-table-wrap">
+        <div class="table-responsive" style="max-height:65vh;">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody">
+                    <tr><td class="train-empty">Chưa có dữ liệu.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -418,718 +92,264 @@
 </section>
 
 @section Scripts {
-    <script>
-        (() => {
-            const apiUrl = '/ai/feature-store';
-            const fallbackSymbol = '—';
-            const genericExplain = 'Đặc trưng dữ liệu được AI sử dụng để hỗ trợ phân tích và dự báo.';
-            const featureMeta = {
-                late_task_ratio: { semantic: 'Tỷ lệ', explain: 'Tỷ lệ công việc trễ hạn trong kỳ gần nhất.', signal: 'risk' },
-                completion_rate: { semantic: 'Tỷ lệ', explain: 'Tỷ lệ công việc hoàn thành đúng hạn trong kỳ đánh giá.', signal: 'normal' },
-                overdue_score: { semantic: 'Rủi ro', explain: 'Điểm rủi ro trễ hạn tổng hợp trong kỳ gần nhất.', signal: 'risk' },
-                risk_score: { semantic: 'Rủi ro', explain: 'Điểm rủi ro tổng hợp để cảnh báo các trường hợp cần theo dõi thêm.', signal: 'risk' },
-                model_drift: { semantic: 'Biến động', explain: 'Chỉ báo theo dõi biến động dữ liệu đầu vào của mô hình.', signal: 'drift' },
-                budget_stability: { semantic: 'Điểm', explain: 'Mức ổn định ngân sách giữa kế hoạch và thực tế theo chu kỳ dự án.', signal: 'normal' },
-                avg_cycle_time: { semantic: 'Thời lượng', explain: 'Thời gian trung bình để xử lý một vòng công việc.', signal: 'normal' },
-                conversion_rate: { semantic: 'Tỷ lệ', explain: 'Tỷ lệ chuyển đổi trạng thái công việc sang hoàn tất.', signal: 'normal' },
-                dokho: { semantic: 'Điểm', explain: 'Mức độ khó của công việc được dùng làm tín hiệu đầu vào cho dự báo.', signal: 'normal' },
-                douutien: { semantic: 'KPI', explain: 'Mức ưu tiên xử lý công việc trong pipeline dự báo.', signal: 'normal' },
-                songuoithamgia: { semantic: 'Số lượng', explain: 'Số lượng nhân sự tham gia xử lý công việc.', signal: 'normal' },
-                tiendohientai: { semantic: 'KPI', explain: 'Tiến độ hiện tại của công việc tại thời điểm chốt dữ liệu.', signal: 'normal' },
-                songayconlai: { semantic: 'Thời lượng', explain: 'Số ngày còn lại trước hạn hoàn thành công việc.', signal: 'normal' },
-                estimateddayslate: { semantic: 'Thời lượng', explain: 'Số ngày trễ ước tính do model dự báo.', signal: 'risk' },
-                risklevel: { semantic: 'Rủi ro', explain: 'Mức rủi ro do model phân loại cho bản ghi dự báo.', signal: 'risk' },
-                socongviechoanthanh: { semantic: 'Số lượng', explain: 'Số công việc đã hoàn thành của nhân sự trong kỳ thống kê.', signal: 'normal' },
-                socongviectrehan: { semantic: 'Số lượng', explain: 'Số công việc trễ hạn của nhân sự trong kỳ thống kê.', signal: 'risk' },
-                thoigiantrungbinh: { semantic: 'Thời lượng', explain: 'Thời gian xử lý trung bình cho mỗi công việc.', signal: 'normal' },
-                kpitrungbinh: { semantic: 'KPI', explain: 'Điểm KPI trung bình dùng trong mô hình hiệu suất nhân sự.', signal: 'normal' },
-                confidence: { semantic: 'Điểm', explain: 'Mức độ tự tin của model với dự báo hiện tại.', signal: 'normal' },
-                label: { semantic: 'KPI', explain: 'Nhãn phân loại đầu ra phục vụ quyết định vận hành.', signal: 'normal' }
-            };
+<script>
+(() => {
+    const state = {
+        model: 'task-delay',
+        page: 1,
+        pageSize: 50,
+        lastRows: [],
+        lastColumns: [],
+        totalRows: 0
+    };
 
-            const state = {
-                rows: [],
-                filteredRows: []
-            };
+    const els = {
+        tabs: document.querySelectorAll('#trainingTabs .nav-link'),
+        fromDate: document.getElementById('fromDate'),
+        toDate: document.getElementById('toDate'),
+        employeeId: document.getElementById('employeeId'),
+        projectId: document.getElementById('projectId'),
+        keyword: document.getElementById('keyword'),
+        btnApply: document.getElementById('btnApply'),
+        btnReset: document.getElementById('btnReset'),
+        btnExport: document.getElementById('btnExport'),
+        btnPrev: document.getElementById('btnPrev'),
+        btnNext: document.getElementById('btnNext'),
+        statusText: document.getElementById('statusText'),
+        pageText: document.getElementById('pageText'),
+        warningBox: document.getElementById('warningBox'),
+        metaBox: document.getElementById('metaBox'),
+        tableHead: document.getElementById('tableHead'),
+        tableBody: document.getElementById('tableBody')
+    };
 
-            const els = {
-                project: document.getElementById('fsProject'),
-                employee: document.getElementById('fsEmployee'),
-                model: document.getElementById('fsModel'),
-                from: document.getElementById('fsFrom'),
-                to: document.getElementById('fsTo'),
-                reset: document.getElementById('btnFsReset'),
-                export: document.getElementById('btnFsExport'),
-                status: document.getElementById('fsStatus'),
-                hint: document.getElementById('fsHint'),
-                body: document.getElementById('fsBody'),
-                statRecords: document.getElementById('statRecords'),
-                statProjects: document.getElementById('statProjects'),
-                statEmployees: document.getElementById('statEmployees'),
-                statModels: document.getElementById('statModels'),
-                statFreshness: document.getElementById('statFreshness'),
-                statFreshnessSub: document.getElementById('statFreshnessSub'),
-                statReview: document.getElementById('statReview'),
-                statReviewSub: document.getElementById('statReviewSub')
-            };
+    function esc(v){ return String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
 
-            function escapeHtml(value) {
-                return String(value ?? '')
-                    .replaceAll('&', '&amp;')
-                    .replaceAll('<', '&lt;')
-                    .replaceAll('>', '&gt;')
-                    .replaceAll('"', '&quot;')
-                    .replaceAll("'", '&#39;');
+    const columnLabels = {
+        assignmentId: { label: 'Mã phân công', hint: 'Định danh bản ghi phân công nhân viên - công việc' },
+        employeeId: { label: 'Mã nhân viên', hint: 'Mã nhân viên trong hệ thống' },
+        employeeName: { label: 'Nhân viên', hint: 'Họ tên nhân viên' },
+        taskId: { label: 'Mã công việc', hint: 'Mã công việc liên quan' },
+        taskName: { label: 'Công việc', hint: 'Tên công việc' },
+        projectId: { label: 'Mã dự án', hint: 'Mã dự án liên quan' },
+        projectName: { label: 'Dự án', hint: 'Tên dự án liên quan' },
+        plannedStartDate: { label: 'Bắt đầu dự kiến', hint: 'Ngày bắt đầu dự kiến theo phân công' },
+        plannedEndDate: { label: 'Kết thúc dự kiến', hint: 'Ngày kết thúc dự kiến theo phân công' },
+        actualStartDate: { label: 'Bắt đầu thực tế', hint: 'Ngày bắt đầu thực tế' },
+        actualEndDate: { label: 'Kết thúc thực tế', hint: 'Ngày kết thúc thực tế' },
+        deadline: { label: 'Hạn hoàn thành', hint: 'Hạn chót hoàn thành công việc' },
+        estimatedHours: { label: 'Giờ ước tính', hint: 'Tính từ ngày bắt đầu đến hạn hoàn thành' },
+        spentHours: { label: 'Giờ đã dùng', hint: 'Thời gian thực tế đã tiêu tốn' },
+        progressPercent: { label: 'Tiến độ (%)', hint: 'Phần trăm hoàn thành mới nhất' },
+        priorityWeight: { label: 'Trọng số ưu tiên', hint: 'Độ ưu tiên dùng làm đặc trưng đầu vào' },
+        difficultyWeight: { label: 'Trọng số độ khó', hint: 'Độ khó dùng làm đặc trưng đầu vào' },
+        daysUntilDeadline: { label: 'Số ngày còn hạn', hint: 'Giá trị âm nghĩa là đã quá hạn' },
+        lateDays: { label: 'Số ngày trễ', hint: 'Biến mục tiêu của mô hình dự báo trễ hạn' },
+        lateLabel: { label: 'Nhãn trễ hạn', hint: 'LATE / ON_TIME' },
+        month: { label: 'Tháng', hint: 'Kỳ đánh giá theo tháng' },
+        year: { label: 'Năm', hint: 'Kỳ đánh giá theo năm' },
+        taskCount: { label: 'Tổng công việc', hint: 'Số công việc dùng để tính tỷ lệ' },
+        completedTaskCount: { label: 'CV hoàn thành', hint: 'Số công việc đã hoàn thành' },
+        lateTaskCount: { label: 'CV trễ hạn', hint: 'Số công việc trễ hạn' },
+        completionRate: { label: 'Tỷ lệ hoàn thành', hint: 'completed/taskCount' },
+        lateRate: { label: 'Tỷ lệ trễ hạn', hint: 'late/taskCount' },
+        avgWorkHours: { label: 'TG TB (giờ)', hint: 'Thời gian xử lý trung bình' },
+        kpiAverage: { label: 'KPI trung bình', hint: 'Điểm KPI trung bình đầu vào' },
+        totalKpiScore: { label: 'Điểm KPI tổng', hint: 'Ưu tiên từ KETQUAKPI_TONG nếu có' },
+        projectCount: { label: 'Số dự án tham gia', hint: 'Số dự án khác nhau của nhân viên' },
+        avgProgress: { label: 'Tiến độ TB (%)', hint: 'Biến đầu vào cho mô hình hiệu suất' },
+        label: { label: 'Nhãn hiệu suất', hint: 'Biến mục tiêu của mô hình Random Forest' },
+        labelSource: { label: 'Nguồn nhãn', hint: 'KETQUAKPI_TONG hoặc RULE_FALLBACK' }
+    };
+
+    function getColumnMeta(columnKey) {
+        return columnLabels[columnKey] || { label: columnKey, hint: `Tên kỹ thuật: ${columnKey}` };
+    }
+
+    function buildQuery() {
+        const p = new URLSearchParams();
+        p.set('model', state.model);
+        p.set('page', String(state.page));
+        p.set('pageSize', String(state.pageSize));
+        if (els.fromDate.value) p.set('fromDate', els.fromDate.value);
+        if (els.toDate.value) p.set('toDate', els.toDate.value);
+        if (els.employeeId.value) p.set('employeeId', els.employeeId.value);
+        if (els.projectId.value) p.set('projectId', els.projectId.value);
+        if (els.keyword.value.trim()) p.set('keyword', els.keyword.value.trim());
+        return p.toString();
+    }
+
+    function mapDataset(payload) {
+        return state.model === 'task-delay' ? payload?.taskDelay : payload?.performance;
+    }
+
+    function renderMeta(ds) {
+        if (!ds) {
+            els.metaBox.innerHTML = '<div class="train-empty">Không có metadata.</div>';
+            return;
+        }
+
+        const sourceTables = (ds.sourceTables || []).map(x => `<span class="train-chip" title="Bảng nguồn dữ liệu">${esc(x)}</span>`).join('');
+        const features = (ds.features || []).map(x => `<span class="train-chip" title="Đặc trưng đầu vào">${esc(x)}</span>`).join('');
+        const modelVn = state.model === 'task-delay' ? 'Dự báo trễ hạn công việc' : 'Phân loại hiệu suất nhân sự';
+        const algorithmVn = String(ds.algorithm || '').toLowerCase().includes('linear')
+            ? 'Hồi quy tuyến tính (Linear Regression)'
+            : 'Rừng ngẫu nhiên (Random Forest)';
+        const targetVn = state.model === 'task-delay'
+            ? 'Số ngày trễ (late_days)'
+            : 'Nhãn hiệu suất (performance_label)';
+
+        els.metaBox.innerHTML = `
+            <div class="train-meta-compact">
+                <div class="train-meta-card">
+                    <div class="train-meta-title">Mô hình</div>
+                    <div class="train-meta-main">
+                        <strong>${esc(modelVn)}</strong><br/>
+                        Thuật toán: ${esc(algorithmVn)}<br/>
+                        Biến mục tiêu: ${esc(targetVn)}
+                    </div>
+                </div>
+                <div class="train-meta-card">
+                    <div class="train-meta-title">Nguồn dữ liệu</div>
+                    <div class="train-chip-wrap">${sourceTables || '<span class="text-muted">—</span>'}</div>
+                </div>
+                <div class="train-meta-card">
+                    <div class="train-meta-title">Đặc trưng đầu vào AI</div>
+                    <div class="train-chip-wrap">${features || '<span class="text-muted">—</span>'}</div>
+                </div>
+            </div>`;
+
+        const dq = ds.dataQuality;
+        if (dq && dq.isLowData) {
+            els.warningBox.textContent = dq.warningMessage || 'Dữ liệu huấn luyện hiện còn ít.';
+            els.warningBox.classList.add('show');
+        } else {
+            els.warningBox.classList.remove('show');
+            els.warningBox.textContent = '';
+        }
+    }
+
+    function renderTable(rows) {
+        if (!Array.isArray(rows) || rows.length === 0) {
+            els.tableHead.innerHTML = '';
+            els.tableBody.innerHTML = '<tr><td class="train-empty">Chưa có dữ liệu huấn luyện phù hợp với bộ lọc hiện tại. Hãy đổi khoảng thời gian hoặc kiểm tra dữ liệu công việc/KPI.</td></tr>';
+            state.lastRows = [];
+            state.lastColumns = [];
+            return;
+        }
+
+        const cols = Object.keys(rows[0].values || {});
+        state.lastRows = rows;
+        state.lastColumns = cols;
+
+        els.tableHead.innerHTML = `<tr>${cols.map(c => {
+            const meta = getColumnMeta(c);
+            return `<th title="${esc(meta.hint)}">${esc(meta.label)}</th>`;
+        }).join('')}</tr>`;
+        els.tableBody.innerHTML = rows.map(r => {
+            const vals = r.values || {};
+            return `<tr>${cols.map(c => `<td>${esc(vals[c] ?? '—')}</td>`).join('')}</tr>`;
+        }).join('');
+    }
+
+    async function loadData() {
+        els.statusText.textContent = 'Đang tải dữ liệu huấn luyện AI...';
+        try {
+            const resp = await fetch(`/ai/training-data?${buildQuery()}`, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+            const raw = await resp.text();
+            let payload = null;
+            try {
+                payload = raw ? JSON.parse(raw) : null;
+            } catch {
+                payload = null;
             }
 
-            function normalizeKey(value) {
-                return String(value ?? '').trim().toLowerCase();
+            if (!resp.ok || !payload?.success) {
+                const fallbackMessage = raw && raw.length < 500 ? raw : `Lỗi tải dữ liệu (${resp.status})`;
+                throw new Error(payload?.message || fallbackMessage);
             }
 
-            function toSafeText(value) {
-                if (value === null || value === undefined || value === '') {
-                    return fallbackSymbol;
-                }
-
-                return String(value);
+            const ds = mapDataset(payload.data);
+            if (!ds) {
+                renderMeta(null);
+                renderTable([]);
+                state.totalRows = 0;
+                els.statusText.textContent = 'Không có dataset theo model đã chọn.';
+                els.pageText.textContent = `Trang ${state.page}`;
+                return;
             }
 
-            function formatDateTime(value) {
-                if (!value) {
-                    return fallbackSymbol;
-                }
-
-                const date = new Date(value);
-                if (Number.isNaN(date.getTime())) {
-                    return fallbackSymbol;
-                }
-
-                return date.toLocaleString('vi-VN');
-            }
-
-            function getHoursSince(value) {
-                const date = value ? new Date(value) : null;
-                if (!date || Number.isNaN(date.getTime())) {
-                    return null;
-                }
-
-                return (Date.now() - date.getTime()) / (1000 * 60 * 60);
-            }
-
-            function getFreshnessLabel(hoursSince) {
-                if (hoursSince === null) {
-                    return { label: fallbackSymbol, className: 'outdated' };
-                }
-
-                if (hoursSince < 6) {
-                    return { label: 'Mới', className: '' };
-                }
-
-                if (hoursSince <= 24) {
-                    return { label: 'Chậm cập nhật', className: 'delayed' };
-                }
-
-                return { label: 'Quá hạn', className: 'outdated' };
-            }
-
-            function getRelativeText(value) {
-                const date = value ? new Date(value) : null;
-                if (!date || Number.isNaN(date.getTime())) {
-                    return 'Không xác định';
-                }
-
-                const diffMs = Date.now() - date.getTime();
-                const diffMin = Math.floor(diffMs / 60000);
-                if (!Number.isFinite(diffMin) || diffMin < 0) {
-                    return 'Không xác định';
-                }
-
-                if (diffMin < 1) {
-                    return 'Đồng bộ gần đây';
-                }
-
-                if (diffMin < 60) {
-                    return `${diffMin} phút trước`;
-                }
-
-                const diffHour = Math.floor(diffMin / 60);
-                if (diffHour < 24) {
-                    return `${diffHour} giờ trước`;
-                }
-
-                const diffDay = Math.floor(diffHour / 24);
-                return `${diffDay} ngày trước`;
-            }
-
-            function parseRunId(sourceKey) {
-                const safe = toSafeText(sourceKey);
-                if (safe === fallbackSymbol) {
-                    return fallbackSymbol;
-                }
-
-                const raw = String(sourceKey).trim();
-                if (!raw) {
-                    return fallbackSymbol;
-                }
-
-                if (raw.includes(':')) {
-                    const pieces = raw.split(':').filter(Boolean);
-                    const candidate = pieces[pieces.length - 1]?.trim();
-                    return candidate || fallbackSymbol;
-                }
-
-                if (raw.includes('/')) {
-                    const pieces = raw.split('/').filter(Boolean);
-                    const candidate = pieces[pieces.length - 1]?.trim();
-                    return candidate || fallbackSymbol;
-                }
-
-                return raw || fallbackSymbol;
-            }
-
-            function getSemanticTooltip(semantic) {
-                const key = normalizeKey(semantic);
-                const map = {
-                    'biến động': 'Đặc trưng dùng để theo dõi sự thay đổi dữ liệu theo thời gian.',
-                    'rủi ro': 'Đặc trưng liên quan đến nguy cơ hoặc cảnh báo hiệu suất cần theo dõi.',
-                    'điểm': 'Giá trị điểm được AI sử dụng để đánh giá hoặc so sánh dữ liệu.',
-                    'tỷ lệ': 'Đặc trưng biểu diễn mức độ theo phần trăm hoặc tỷ trọng.',
-                    'số lượng': 'Đặc trưng biểu diễn số lượng bản ghi hoặc đối tượng liên quan.',
-                    'thời lượng': 'Đặc trưng phản ánh thời gian xử lý hoặc thời gian còn lại.',
-                    'kpi': 'Chỉ số KPI được dùng để theo dõi hiệu quả vận hành.'
-                };
-
-                return map[key] || '';
-            }
-
-            function resolveFeatureMeta(row) {
-                const key = normalizeKey(row.featureName);
-                const mapped = featureMeta[key] || null;
-
-                let semantic = mapped?.semantic;
-                if (!semantic) {
-                    const rawType = normalizeKey(row.featureType);
-                    if (rawType === 'number') {
-                        semantic = 'Điểm';
-                    } else if (rawType === 'string') {
-                        semantic = 'KPI';
-                    } else {
-                        semantic = fallbackSymbol;
-                    }
-                }
-
-                const explain = mapped?.explain || genericExplain;
-                const signal = mapped?.signal || 'normal';
-
-                return {
-                    semantic,
-                    explain,
-                    signal,
-                    isGenericExplain: explain === genericExplain,
-                    rawType: toSafeText(row.featureType)
-                };
-            }
-
-            function formatValue(value) {
-                if (value === null || value === undefined || value === '') {
-                    return `<span class="text-muted">${fallbackSymbol}</span>`;
-                }
-
-                return `<span class="aifs-pill aifs-value-badge">${escapeHtml(value)}</span>`;
-            }
-
-            function setStatus(message, tone = 'muted') {
-                if (!els.status) {
-                    return;
-                }
-
-                els.status.classList.toggle('error', tone === 'error');
-                els.status.textContent = message;
-            }
-
-            function setInnerHtml(element, html) {
-                if (!element) {
-                    return false;
-                }
-
-                element.innerHTML = html;
-                return true;
-            }
-
-            function uniqueSorted(rows, selector) {
-                return [...new Map(rows
-                    .filter((row) => selector(row))
-                    .map((row) => {
-                        const key = String(selector(row));
-                        return [key, row];
-                    }))
-                    .values()]
-                    .sort((a, b) => String(selector(a)).localeCompare(String(selector(b)), 'vi'));
-            }
-
-            function populateSelect(select, rows, valueSelector, labelSelector, placeholder) {
-                if (!select) {
-                    return;
-                }
-
-                const currentValue = select.value;
-                const options = rows.map((row) => {
-                    const value = valueSelector(row);
-                    const label = labelSelector(row);
-                    return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
-                }).join('');
-
-                setInnerHtml(select, `<option value="">${escapeHtml(placeholder)}</option>${options}`);
-
-                try {
-                    const parent = select.parentElement;
-                    if (select.options.length <= 1) {
-                        parent.style.display = 'none';
-                    } else {
-                        parent.style.display = '';
-                    }
-                } catch {
-                    // ignore DOM issues
-                }
-
-                if (currentValue && [...select.options].some((option) => option.value === currentValue)) {
-                    select.value = currentValue;
-                }
-            }
-
-            function renderSummary(rows) {
-                const projectSet = new Set();
-                const employeeSet = new Set();
-                const modelSet = new Set();
-
-                let latestTime = null;
-                let missingCount = 0;
-                let outdatedCount = 0;
-                let watchCount = 0;
-
-                for (const row of rows) {
-                    if (row.maDuAn) {
-                        projectSet.add(String(row.maDuAn));
-                    }
-
-                    if (row.maNhanVien) {
-                        employeeSet.add(String(row.maNhanVien));
-                    }
-
-                    if (row.maModel) {
-                        modelSet.add(String(row.maModel));
-                    }
-
-                    const rowDate = row.dongChot ? new Date(row.dongChot) : null;
-                    if (rowDate && !Number.isNaN(rowDate.getTime())) {
-                        if (!latestTime || rowDate > latestTime) {
-                            latestTime = rowDate;
-                        }
-
-                        const hoursSince = getHoursSince(row.dongChot);
-                        if (hoursSince !== null && hoursSince > 24) {
-                            outdatedCount += 1;
-                        }
-                    } else {
-                        outdatedCount += 1;
-                    }
-
-                    if (row.featureValue === null || row.featureValue === undefined || row.featureValue === '') {
-                        missingCount += 1;
-                    }
-
-                    const meta = resolveFeatureMeta(row);
-                    if (meta.signal === 'risk' || meta.signal === 'drift') {
-                        watchCount += 1;
-                    }
-                }
-
-                const latestIso = latestTime ? latestTime.toISOString() : null;
-                const freshness = getFreshnessLabel(getHoursSince(latestIso));
-                const reviewTotal = missingCount + outdatedCount + watchCount;
-
-                if (els.statRecords) {
-                    els.statRecords.textContent = rows.length.toLocaleString('vi-VN');
-                }
-
-                if (els.statProjects) {
-                    els.statProjects.textContent = projectSet.size.toLocaleString('vi-VN');
-                }
-
-                if (els.statEmployees) {
-                    els.statEmployees.textContent = employeeSet.size.toLocaleString('vi-VN');
-                }
-
-                if (els.statModels) {
-                    els.statModels.textContent = modelSet.size.toLocaleString('vi-VN');
-                }
-
-                if (els.statFreshness) {
-                    setInnerHtml(els.statFreshness, `<span class="aifs-pill aifs-pill-freshness ${freshness.className}">${escapeHtml(freshness.label)}</span>`);
-                }
-
-                if (els.statFreshnessSub) {
-                    els.statFreshnessSub.textContent = latestTime
-                        ? `${getRelativeText(latestIso)}. Cập nhật lúc ${latestTime.toLocaleString('vi-VN')}`
-                        : 'Không có dữ liệu sau khi lọc';
-                }
-
-                if (els.statReview) {
-                    els.statReview.textContent = reviewTotal.toLocaleString('vi-VN');
-                }
-
-                if (els.statReviewSub) {
-                    els.statReviewSub.textContent = `${reviewTotal.toLocaleString('vi-VN')} feature có biến động cần theo dõi thêm`;
-                }
-
-                if (els.hint) {
-                    els.hint.classList.toggle('show', watchCount > 0);
-                }
-
-                setStatus(rows.length
-                    ? `Đang hiển thị ${rows.length.toLocaleString('vi-VN')} bản ghi feature theo bộ lọc hiện tại.`
-                    : 'Không có feature phù hợp với bộ lọc hiện tại.');
-            }
-
-            function renderEmptyState() {
-                if (!els.body) {
-                    return;
-                }
-
-                setInnerHtml(els.body, `
-                    <tr>
-                        <td colspan="8" class="aifs-empty">
-                            <div><i class="bi bi-database" aria-hidden="true"></i></div>
-                            <div class="mt-1">Không có feature phù hợp với bộ lọc hiện tại.</div>
-                            <div class="aifs-empty-actions">
-                                <button type="button" class="btn btn-outline-secondary btn-sm" data-action="reset-filters">
-                                    <i class="bi bi-arrow-counterclockwise"></i> ↺ Xóa bộ lọc
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`
-                );
-            }
-
-            function renderTable(rows) {
-                if (!els.body) {
-                    return;
-                }
-
-                if (!rows.length) {
-                    renderEmptyState();
-                    return;
-                }
-
-                setInnerHtml(els.body, rows.map((row) => {
-                    const projectText = row.tenDuAn || (row.maDuAn ? `Dự án #${row.maDuAn}` : 'Chưa gán dự án');
-                    const taskText = row.tenCongViec || (row.maCongViec ? `Công việc #${row.maCongViec}` : 'Chưa gắn công việc');
-                    const employeeText = row.hoTenNhanVien || (row.maNhanVien ? `Nhân viên #${row.maNhanVien}` : 'Chưa gán nhân viên');
-                    const modelText = row.tenModel || (row.maModel ? `Model #${row.maModel}` : 'Chưa gắn model');
-                    const meta = resolveFeatureMeta(row);
-                    const runId = parseRunId(row.sourceKey);
-                    const signalClass = meta.signal === 'drift'
-                        ? 'aifs-row-drift'
-                        : meta.signal === 'risk'
-                            ? 'aifs-row-risk'
-                            : '';
-                    const signalBadge = meta.signal === 'drift'
-                        ? '<span class="aifs-pill aifs-pill-drift"><i class="bi bi-exclamation-triangle"></i> Biến động</span>'
-                        : meta.signal === 'risk'
-                            ? '<span class="aifs-pill aifs-pill-risk"><i class="bi bi-exclamation-circle"></i> Rủi ro</span>'
-                            : '';
-                    const explainClass = meta.isGenericExplain ? 'aifs-explain aifs-explain-generic aifs-tip' : 'aifs-explain aifs-tip';
-                    const semanticTip = getSemanticTooltip(meta.semantic);
-                    const semanticClass = semanticTip ? 'aifs-pill aifs-pill-semantic aifs-tip' : 'aifs-pill aifs-pill-semantic';
-                    const snapshotText = formatDateTime(row.dongChot);
-
-                    return `
-                        <tr class="aifs-row ${signalClass}">
-                            <td class="text-nowrap">${escapeHtml(toSafeText(row.maFeature))}</td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(projectText)}</div>
-                                <div class="aifs-cell-sub">${escapeHtml(taskText)}</div>
-                            </td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(employeeText)}</div>
-                                <div class="aifs-cell-sub">Mã NV: ${escapeHtml(toSafeText(row.maNhanVien))}</div>
-                            </td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(modelText)}</div>
-                                <div class="aifs-cell-sub">${escapeHtml(toSafeText(row.versionTag || row.sourceTable))}</div>
-                            </td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(toSafeText(row.featureName))}</div>
-                                <div class="aifs-cell-sub d-flex flex-wrap gap-1 align-items-center">
-                                    <span class="${semanticClass}" data-tip="${escapeHtml(semanticTip)}" title="${escapeHtml(semanticTip)}">${escapeHtml(meta.semantic)}</span>
-                                    ${signalBadge}
-                                </div>
-                                <div class="aifs-cell-sub">
-                                    <span class="${explainClass}" data-tip="${escapeHtml(meta.explain)}" title="${escapeHtml(meta.explain)}">${escapeHtml(meta.explain)}</span>
-                                </div>
-                            </td>
-                            <td class="aifs-value-cell">${formatValue(row.featureValue)}</td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(snapshotText)}</div>
-                            </td>
-                            <td>
-                                <div class="aifs-cell-main">${escapeHtml(runId)}</div>
-                            </td>
-                        </tr>`;
-                }).join(''));
-            }
-
-            function applyFilters() {
-                const projectValue = els.project?.value || '';
-                const employeeValue = els.employee?.value || '';
-                const modelValue = els.model?.value || '';
-                const fromValue = els.from?.value ? new Date(`${els.from.value}T00:00:00`) : null;
-                const toValue = els.to?.value ? new Date(`${els.to.value}T23:59:59.999`) : null;
-
-                const filtered = state.rows.filter((row) => {
-                    if (projectValue && String(row.maDuAn ?? '') !== projectValue) {
-                        return false;
-                    }
-
-                    if (employeeValue && String(row.maNhanVien ?? '') !== employeeValue) {
-                        return false;
-                    }
-
-                    if (modelValue && String(row.maModel ?? '') !== modelValue) {
-                        return false;
-                    }
-
-                    if (fromValue) {
-                        const rowDate = row.dongChot ? new Date(row.dongChot) : null;
-                        if (!rowDate || Number.isNaN(rowDate.getTime()) || rowDate < fromValue) {
-                            return false;
-                        }
-                    }
-
-                    if (toValue) {
-                        const rowDate = row.dongChot ? new Date(row.dongChot) : null;
-                        if (!rowDate || Number.isNaN(rowDate.getTime()) || rowDate > toValue) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                });
-
-                state.filteredRows = filtered;
-                renderTable(filtered);
-                renderSummary(filtered);
-            }
-
-            function exportCsv() {
-                const rows = state.filteredRows.length ? state.filteredRows : state.rows;
-
-                if (!rows.length) {
-                    setStatus('Không có dữ liệu để xuất CSV.', 'error');
-                    return;
-                }
-
-                const headers = [
-                    'maFeature',
-                    'maModel',
-                    'tenModel',
-                    'maNhanVien',
-                    'hoTenNhanVien',
-                    'maDuAn',
-                    'tenDuAn',
-                    'maCongViec',
-                    'tenCongViec',
-                    'featureName',
-                    'featureValue',
-                    'featureTypeRaw',
-                    'semanticType',
-                    'explainFeature',
-                    'sourceTable',
-                    'sourceKey',
-                    'runId',
-                    'versionTag',
-                    'snapshotTime'
-                ];
-
-                const labels = [
-                    'Mã feature',
-                    'Mã model',
-                    'Tên model',
-                    'Mã nhân viên',
-                    'Họ tên nhân viên',
-                    'Mã dự án',
-                    'Tên dự án',
-                    'Mã công việc',
-                    'Tên công việc',
-                    'Tên đặc trưng',
-                    'Giá trị',
-                    'Raw Feature Type',
-                    'Semantic Type',
-                    'Giải thích feature',
-                    'Bảng nguồn',
-                    'Khóa nguồn',
-                    'Run ID',
-                    'Phiên bản',
-                    'Snapshot Time'
-                ];
-
-                const separator = ';';
-
-                const csv = [
-                    labels.join(separator),
-                    ...rows.map((row) => {
-                        const meta = resolveFeatureMeta(row);
-                        const exportObj = {
-                            ...row,
-                            featureTypeRaw: meta.rawType,
-                            semanticType: meta.semantic,
-                            explainFeature: meta.explain,
-                            runId: parseRunId(row.sourceKey),
-                            snapshotTime: formatDateTime(row.dongChot)
-                        };
-
-                        return headers.map((key) => {
-                            const value = toSafeText(exportObj[key]);
-                            const safe = String(value)
-                                .replaceAll('"', '""')
-                                .replaceAll('\n', ' ')
-                                .replaceAll('\r', ' ');
-
-                            return `"${safe}"`;
-                        }).join(separator);
-                    })
-                ].join('\n');
-
-                const blob = new Blob(
-                    ['\ufeff' + csv],
-                    { type: 'text/csv;charset=utf-8;' }
-                );
-
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `ai-feature-store-${new Date().toISOString().slice(0, 10)}.csv`;
-
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                URL.revokeObjectURL(url);
-
-                setStatus(`Đã xuất ${rows.length.toLocaleString('vi-VN')} bản ghi CSV.`);
-            }
-
-            function resetFilters() {
-                if (els.project) {
-                    els.project.value = '';
-                }
-
-                if (els.employee) {
-                    els.employee.value = '';
-                }
-
-                if (els.model) {
-                    els.model.value = '';
-                }
-
-                if (els.from) {
-                    els.from.value = '';
-                }
-
-                if (els.to) {
-                    els.to.value = '';
-                }
-
-                applyFilters();
-            }
-
-            async function loadFeatureStore() {
-                try {
-                    setStatus('Đang tải dữ liệu feature store...');
-                    if (els.reset) {
-                        els.reset.disabled = true;
-                    }
-
-                    if (els.export) {
-                        els.export.disabled = true;
-                    }
-
-                    const response = await fetch(`${apiUrl}?top=1000`, {
-                        headers: { 'Accept': 'application/json' },
-                        credentials: 'same-origin'
-                    });
-
-                    const payload = await response.json();
-                    if (!response.ok || !payload.success) {
-                        throw new Error(payload.message || `Không thể tải dữ liệu (${response.status})`);
-                    }
-
-                    state.rows = Array.isArray(payload.data) ? payload.data : [];
-
-                    const employeeRows = uniqueSorted(state.rows, (row) => row.maNhanVien).filter((row) => row.maNhanVien);
-                    const modelRows = uniqueSorted(state.rows, (row) => row.maModel).filter((row) => row.maModel);
-
-                    try {
-                        const resp = await fetch('/duan/list', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
-                        const projectPayload = await resp.json();
-                        if (resp.ok && projectPayload && projectPayload.success && Array.isArray(projectPayload.data)) {
-                            const projects = projectPayload.data.map((p) => ({ maDuAn: p.maDuAn, tenDuAn: p.tenDuAn }));
-                            populateSelect(els.project, projects, (row) => row.maDuAn, (row) => row.tenDuAn || `Dự án #${row.maDuAn}`, 'Tất cả dự án');
-                        } else {
-                            const projectRows = uniqueSorted(state.rows, (row) => row.maDuAn).filter((row) => row.maDuAn);
-                            populateSelect(els.project, projectRows, (row) => row.maDuAn, (row) => row.tenDuAn || `Dự án #${row.maDuAn}`, 'Tất cả dự án');
-                        }
-                    } catch {
-                        const projectRows = uniqueSorted(state.rows, (row) => row.maDuAn).filter((row) => row.maDuAn);
-                        populateSelect(els.project, projectRows, (row) => row.maDuAn, (row) => row.tenDuAn || `Dự án #${row.maDuAn}`, 'Tất cả dự án');
-                    }
-
-                    populateSelect(els.employee, employeeRows, (row) => row.maNhanVien, (row) => row.hoTenNhanVien || `Nhân viên #${row.maNhanVien}`, 'Tất cả nhân viên');
-                    populateSelect(els.model, modelRows, (row) => row.maModel, (row) => row.tenModel || `Model #${row.maModel}`, 'Tất cả mô hình');
-
-                    applyFilters();
-                } catch (error) {
-                    console.error(error);
-                    state.rows = [];
-                    state.filteredRows = [];
-                    renderTable([]);
-                    renderSummary([]);
-                    setStatus(error?.message || 'Không tải được dữ liệu feature store.', 'error');
-                } finally {
-                    if (els.reset) {
-                        els.reset.disabled = false;
-                    }
-
-                    if (els.export) {
-                        els.export.disabled = false;
-                    }
-                }
-            }
-
-            if (window.UiButtonLoading?.bind) {
-                window.UiButtonLoading.bind(els.reset, resetFilters, { profile: 'filter' });
-                window.UiButtonLoading.bind(els.export, exportCsv, { profile: 'export' });
-            } else {
-                els.reset?.addEventListener('click', resetFilters);
-                els.export?.addEventListener('click', exportCsv);
-            }
-
-            [els.project, els.employee, els.model, els.from, els.to].forEach((el) => {
-                el?.addEventListener('change', applyFilters);
-            });
-
-            els.body?.addEventListener('click', (event) => {
-                const target = event.target;
-                if (!(target instanceof HTMLElement)) {
-                    return;
-                }
-
-                const btn = target.closest('[data-action="reset-filters"]');
-                if (btn) {
-                    resetFilters();
-                }
-            });
-
-            loadFeatureStore();
-        })();
-    </script>
+            state.totalRows = ds.totalRows || 0;
+            renderMeta(ds);
+            renderTable(ds.rows || []);
+            els.statusText.textContent = `Đang hiển thị ${(ds.rows || []).length} / ${state.totalRows} dòng dữ liệu.`;
+            const totalPages = Math.max(1, Math.ceil(state.totalRows / state.pageSize));
+            els.pageText.textContent = `Trang ${state.page}/${totalPages}`;
+            els.btnPrev.disabled = state.page <= 1;
+            els.btnNext.disabled = state.page >= totalPages;
+        } catch (e) {
+            console.error(e);
+            renderMeta(null);
+            renderTable([]);
+            els.statusText.textContent = e?.message || 'Không tải được dữ liệu.';
+        }
+    }
+
+    function resetFilters() {
+        els.fromDate.value = '';
+        els.toDate.value = '';
+        els.employeeId.value = '';
+        els.projectId.value = '';
+        els.keyword.value = '';
+        state.page = 1;
+        loadData();
+    }
+
+    function exportCsv() {
+        if (!state.lastRows.length || !state.lastColumns.length) {
+            els.statusText.textContent = 'Không có dữ liệu để xuất CSV.';
+            return;
+        }
+
+        const header = state.lastColumns.join(';');
+        const lines = state.lastRows.map(r => {
+            const values = r.values || {};
+            return state.lastColumns.map(c => {
+                const v = String(values[c] ?? '');
+                return `"${v.replaceAll('"', '""').replaceAll('\n', ' ')}"`;
+            }).join(';');
+        });
+
+        const csv = ['\ufeff' + header, ...lines].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-training-${state.model}-${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        els.statusText.textContent = `Đã xuất ${state.lastRows.length} dòng CSV.`;
+    }
+
+    els.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            els.tabs.forEach(x => x.classList.remove('active'));
+            tab.classList.add('active');
+            state.model = tab.getAttribute('data-model') || 'task-delay';
+            state.page = 1;
+            loadData();
+        });
+    });
+
+    els.btnApply.addEventListener('click', () => { state.page = 1; loadData(); });
+    els.btnReset.addEventListener('click', resetFilters);
+    els.btnExport.addEventListener('click', exportCsv);
+    els.btnPrev.addEventListener('click', () => { if (state.page > 1) { state.page -= 1; loadData(); } });
+    els.btnNext.addEventListener('click', () => { state.page += 1; loadData(); });
+
+    loadData();
+})();
+</script>
 }

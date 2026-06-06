@@ -169,7 +169,7 @@ h5 {
 
 .main-wrap {
   margin-left: 280px;
-  width: calc(100vw - 280px);
+  width: calc(100% - 280px);
   height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -3125,7 +3125,7 @@ a:focus-visible {
 
 .sidebar-collapsed .main-wrap {
   margin-left: 88px;
-  width: calc(100vw - 88px);
+  width: calc(100% - 88px);
 }
 
 .sidebar-collapsed .sidebar-brand p,

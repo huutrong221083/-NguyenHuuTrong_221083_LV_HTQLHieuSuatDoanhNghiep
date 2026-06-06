@@ -30,53 +30,35 @@ public class PhongBanController : ControllerBase
                 .AsNoTracking()
                 .AsQueryable();
 
-        if (User.IsInRole(Roles.Manager) && !User.IsInRole(Roles.Admin))
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId))
+            if (User.IsInRole(Roles.Manager) && !User.IsInRole(Roles.Admin))
             {
-                return Unauthorized(ApiResponse<List<PhongBanDto>>.Fail("Không xác định được tài khoản hiện tại."));
-            }
-
-            var managerProfile = await _dbContext.NhanViens
-                .AsNoTracking()
-                .Where(x => x.AspNetUserId == userId)
-                .Select(x => new
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrWhiteSpace(userId))
                 {
-                    x.MaNhanVien,
-                    x.MaPhongBan
-                })
-                .FirstOrDefaultAsync();
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        ApiResponse<List<PhongBanDto>>.Fail("Tài khoản quản lý chưa được liên kết nhân viên."));
+                }
 
-            if (managerProfile == null)
-            {
-                return Ok(ApiResponse<List<PhongBanDto>>.Ok(new List<PhongBanDto>()));
+                var managerProfile = await _dbContext.NhanViens
+                    .AsNoTracking()
+                    .Where(x => x.AspNetUserId == userId)
+                    .Select(x => new { x.MaNhanVien })
+                    .FirstOrDefaultAsync();
+
+                if (managerProfile == null)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        ApiResponse<List<PhongBanDto>>.Fail("Tài khoản quản lý chưa được liên kết nhân viên."));
+                }
+
+                var managedDepartmentIds = await _dbContext.PhongBans
+                    .AsNoTracking()
+                    .Where(x => x.MaTruongPhong == managerProfile.MaNhanVien)
+                    .Select(x => x.MaPhongBan)
+                    .ToListAsync();
+
+                query = query.Where(x => managedDepartmentIds.Contains(x.MaPhongBan));
             }
-
-            var scopedDeptIds = new HashSet<int>();
-            if (managerProfile.MaPhongBan.HasValue)
-            {
-                scopedDeptIds.Add(managerProfile.MaPhongBan.Value);
-            }
-
-            var ledDeptIds = await _dbContext.PhongBans
-                .AsNoTracking()
-                .Where(x => x.MaTruongPhong == managerProfile.MaNhanVien)
-                .Select(x => x.MaPhongBan)
-                .ToListAsync();
-
-            foreach (var deptId in ledDeptIds)
-            {
-                scopedDeptIds.Add(deptId);
-            }
-
-            if (!scopedDeptIds.Any())
-            {
-                return Ok(ApiResponse<List<PhongBanDto>>.Ok(new List<PhongBanDto>()));
-            }
-
-            query = query.Where(x => scopedDeptIds.Contains(x.MaPhongBan));
-        }
 
             var items = await query
                 .OrderBy(x => x.TenPhongBan)

@@ -125,11 +125,6 @@ public class DuAnController : ControllerBase
     {
         var departmentIds = new HashSet<int>();
 
-        if (actor.MaPhongBan.HasValue)
-        {
-            departmentIds.Add(actor.MaPhongBan.Value);
-        }
-
         var ledDepartmentIds = await _dbContext.PhongBans
             .AsNoTracking()
             .Where(x => x.MaTruongPhong == actor.MaNhanVien)
@@ -144,6 +139,18 @@ public class DuAnController : ControllerBase
         return departmentIds;
     }
 
+    private IQueryable<DuAn> ApplyManagerProjectParticipationScope(IQueryable<DuAn> query, ActorContext actor)
+    {
+        var managerTeamIds = _dbContext.ThanhVienNhoms
+            .AsNoTracking()
+            .Where(x => x.MaNhanVien == actor.MaNhanVien)
+            .Select(x => x.MaNhom);
+
+        return query.Where(x =>
+            x.DuAnNhanViens.Any(nv => nv.MaNhanVien == actor.MaNhanVien && (nv.TrangThai ?? 1) == 1)
+            || x.DuAnNhoms.Any(dn => (dn.TrangThai ?? 1) == 1 && managerTeamIds.Contains(dn.MaNhom)));
+    }
+
     private async Task<bool> CanAccessProjectAsync(ActorContext actor, int maDuAn)
     {
         if (actor.IsAdmin)
@@ -153,19 +160,20 @@ public class DuAnController : ControllerBase
 
         if (actor.IsManager)
         {
-            var managerDepartmentIds = await GetManagerDepartmentIdsAsync(actor);
-            var inDepartmentScope = managerDepartmentIds.Any() && await _dbContext.DuAnPhongBans
+            var managerTeamIds = _dbContext.ThanhVienNhoms
                 .AsNoTracking()
-                .AnyAsync(x => x.MaDuAn == maDuAn && managerDepartmentIds.Contains(x.MaPhongBan) && (x.TrangThai ?? 1) == 1);
+                .Where(x => x.MaNhanVien == actor.MaNhanVien)
+                .Select(x => x.MaNhom);
 
-            if (inDepartmentScope)
-            {
-                return true;
-            }
+            var inTeamScope = await _dbContext.DuAnNhoms
+                .AsNoTracking()
+                .AnyAsync(x => x.MaDuAn == maDuAn && (x.TrangThai ?? 1) == 1 && managerTeamIds.Contains(x.MaNhom));
 
-            return await _dbContext.DuAnNhanViens
+            var inPersonalScope = await _dbContext.DuAnNhanViens
                 .AsNoTracking()
                 .AnyAsync(x => x.MaDuAn == maDuAn && x.MaNhanVien == actor.MaNhanVien && (x.TrangThai ?? 1) == 1);
+
+            return inPersonalScope || inTeamScope;
         }
 
         if (actor.IsEmployee)
@@ -366,7 +374,7 @@ public class DuAnController : ControllerBase
 
             if (!maPhongBan.HasValue)
             {
-                maPhongBan = actor.MaPhongBan ?? managerDepartmentIds.First();
+                maPhongBan = managerDepartmentIds.First();
             }
             else if (!managerDepartmentIds.Contains(maPhongBan.Value))
             {
@@ -521,10 +529,7 @@ public class DuAnController : ControllerBase
 
         if (actor.IsManager && !actor.IsAdmin)
         {
-            var managerDepartmentIds = await GetManagerDepartmentIdsAsync(actor);
-            query = query.Where(x =>
-                (managerDepartmentIds.Any() && x.DuAnPhongBans.Any(pb => managerDepartmentIds.Contains(pb.MaPhongBan) && (pb.TrangThai ?? 1) == 1))
-                || x.DuAnNhanViens.Any(nv => nv.MaNhanVien == actor.MaNhanVien && (nv.TrangThai ?? 1) == 1));
+            query = ApplyManagerProjectParticipationScope(query, actor);
         }
 
         var items = await query
@@ -686,10 +691,7 @@ public class DuAnController : ControllerBase
         {
             if (actor.IsManager)
             {
-                var managerDepartmentIds = await GetManagerDepartmentIdsAsync(actor);
-                query = query.Where(x =>
-                    (managerDepartmentIds.Any() && x.DuAnPhongBans.Any(pb => managerDepartmentIds.Contains(pb.MaPhongBan) && (pb.TrangThai ?? 1) == 1))
-                    || x.DuAnNhanViens.Any(nv => nv.MaNhanVien == actor.MaNhanVien && (nv.TrangThai ?? 1) == 1));
+                query = ApplyManagerProjectParticipationScope(query, actor);
             }
             else
             {
@@ -806,10 +808,7 @@ public class DuAnController : ControllerBase
         {
             if (actor.IsManager)
             {
-                var maPhongBan = actor.MaPhongBan;
-                query = query.Where(x =>
-                    (maPhongBan.HasValue && x.DuAnPhongBans.Any(pb => pb.MaPhongBan == maPhongBan && (pb.TrangThai ?? 1) == 1))
-                    || x.DuAnNhanViens.Any(nv => nv.MaNhanVien == actor.MaNhanVien && (nv.TrangThai ?? 1) == 1));
+                query = ApplyManagerProjectParticipationScope(query, actor);
             }
             else
             {
@@ -1459,7 +1458,16 @@ public class DuAnController : ControllerBase
             return Forbid();
         }
 
-        if (actor.IsManager && actor.MaPhongBan != request.MaPhongBan)
+        if (actor.IsManager)
+        {
+            var managerDepartmentIds = await GetManagerDepartmentIdsAsync(actor);
+            if (!managerDepartmentIds.Contains(request.MaPhongBan))
+            {
+                return Forbid();
+            }
+        }
+
+        if (!actor.IsManager && actor.IsEmployee && actor.MaPhongBan != request.MaPhongBan)
         {
             return Forbid();
         }

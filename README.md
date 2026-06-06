@@ -1,61 +1,64 @@
-# HTQL Hiệu Suất Doanh Nghiệp (LV2026)
+# Hệ thống quản lý hiệu suất doanh nghiệp tích hợp AI
 
-Hệ thống quản lý hiệu suất doanh nghiệp phục vụ luận văn (2026), gồm:
-- Web app ASP.NET Core MVC + Identity (RBAC/claims) để quản lý dự án, công việc, KPI, tiến độ…
-- Python AI service (FastAPI) cung cấp các API dự đoán (ví dụ: dự đoán trễ deadline, phân loại hiệu suất nhân viên).
+Đây là dự án luận văn xây dựng hệ thống web hỗ trợ doanh nghiệp quản lý nhân sự, dự án, công việc, KPI, báo cáo và phân tích hiệu suất bằng AI.
 
-## Công nghệ
-- Backend/Web: ASP.NET Core 8 (MVC), Entity Framework Core, SQL Server
-- Auth: ASP.NET Identity + Cookie Auth + Policy/Claims
-- AI service: FastAPI + scikit-learn (LinearRegression, RandomForest)
+Mục tiêu của hệ thống là giúp người quản lý theo dõi tình hình thực hiện công việc, đánh giá hiệu suất nhân viên, tổng hợp báo cáo và nhận diện sớm các rủi ro như công việc có nguy cơ trễ hạn.
 
-## Cấu trúc thư mục
-- `LuanVan/` : Solution + source chính (ASP.NET Core)
-  - `LuanVan/LuanVan/` : project web (controllers, views, services, migrations…)
-- `python-ai-service/` : dịch vụ AI (FastAPI)
-- `docs/` và các file `*.md` : tài liệu phân tích/thiết kế/usecase/sequence…
-- `*.sql` : script DB/seed dữ liệu
+## Tổng quan chức năng
 
-## Yêu cầu môi trường
-- .NET SDK 8.x
-- SQL Server (khuyến nghị SQL Server Express)
-- Python 3.10+ (khuyến nghị 3.11)
+- Quản lý đăng nhập, vai trò và phân quyền người dùng.
+- Quản lý nhân viên, phòng ban và nhóm làm việc.
+- Quản lý dự án, công việc, tiến độ và deadline.
+- Duyệt tiến độ công việc.
+- Thiết lập, theo dõi và đánh giá KPI.
+- Tạo, quản lý và xuất báo cáo.
+- Dashboard tổng quan tình hình hoạt động.
+- Tích hợp AI để dự đoán nguy cơ trễ hạn và phân loại hiệu suất nhân viên.
 
-## Thiết lập & chạy nhanh
+## Công nghệ chính
 
-### 1) Database (SQL Server)
-- Ứng dụng mặc định dùng database tên **LV2026**.
-- Cấu hình connection string qua một trong các cách sau:
-  - File cấu hình (không nên commit secret): `ConnectionStrings:DefaultConnection`
-  - Biến môi trường: `ConnectionStrings__DefaultConnection`
+- ASP.NET Core 8 MVC.
+- Entity Framework Core.
+- SQL Server.
+- ASP.NET Identity, role/claim-based authorization.
+- Razor View, HTML, CSS, JavaScript.
+- Python FastAPI.
+- scikit-learn.
 
-Một số script tham khảo nằm ở các file `SQL_*.sql`, `Seed_*.sql`, hoặc trong `LuanVan/LuanVan/DataSQL.sql`.
+## Cấu trúc chính
 
-### 2) Chạy Web app (ASP.NET Core)
-Từ thư mục root:
-
-```bash
-dotnet restore
-dotnet run --project LuanVan/LuanVan/LuanVan.csproj
+```text
+Luanvan2026
+├─ LuanVan/                 Source web ASP.NET Core
+├─ python-ai-service/       Dịch vụ AI FastAPI
+├─ docs/                    Tài liệu kỹ thuật và thực nghiệm
+├─ CSDL_SQL_LV.sql        Script cơ sở dữ liệu
+├─ HUONG_DAN_CAI_DAT_DU_AN.md
+└─ README.md
 ```
 
-Mặc định route chính: `/Portal/Dashboard`.
+## Cách bắt đầu
 
-### 3) Chạy Python AI service
+Đọc file hướng dẫn chi tiết:
 
-```bash
-cd python-ai-service
-python -m pip install -r requirements.txt
-set AI_SERVICE_KEY=dev-ai-service-key
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```text
+HUONG_DAN_CAI_DAT_DU_AN.md
 ```
 
-Web app gọi sang AI service theo cấu hình:
-- `AiPython:BaseUrl` (mặc định `http://localhost:8000`)
-- Header: `X-AI-Service-Key` phải trùng với `AI_SERVICE_KEY`
+Tóm tắt các bước chính:
 
-## Lưu ý bảo mật
-- Không commit mật khẩu/secret (SMTP, token, API key production…). Repo này đã cấu hình `.gitignore` để bỏ qua `appsettings.Development.json`.
+1. Cài .NET SDK 8, SQL Server và Python 3.10 trở lên.
+2. Tạo database `LV2026` và chạy script `CSDL_SQL_30_5.sql`.
+3. Chạy web app ASP.NET Core trong thư mục `LuanVan`.
+4. Chạy AI service trong thư mục `python-ai-service`.
+5. Mở hệ thống tại `http://localhost:5231`.
 
-## Tài liệu
-Một số tài liệu nghiệp vụ/kiểm thử nằm trong các file `*.md` ở root, ví dụ: `WORKFLOW_ANALYSIS_REPORT.md`.
+## Tài liệu liên quan
+
+- `HUONG_DAN_CAI_DAT_DU_AN.md`: hướng dẫn cài đặt và sử dụng dự án.
+- `docs/ai-python-contract-v1.md`: mô tả API giữa web app và AI service.
+- `CSDL_SQL_30_5.sql`: script cơ sở dữ liệu chính.
+
+## Ghi chú
+
+Khi nộp source, không cần nộp các thư mục build/cache như `bin/`, `obj/`, `.vs/`, `.venv/`, `artifacts/`, `logs/` và `wwwroot/uploads/`.

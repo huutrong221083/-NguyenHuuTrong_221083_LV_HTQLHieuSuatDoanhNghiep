@@ -241,7 +241,8 @@ public class KpiController : ControllerBase
         [FromQuery] int? thang,
         [FromQuery] int? nam,
         [FromQuery] string? type,
-        [FromQuery] string? roleScope)
+        [FromQuery] string? roleScope,
+        [FromQuery] bool preview = false)
     {
         var scope = await ResolveActorScopeAsync();
         if (!scope.Success)
@@ -482,6 +483,43 @@ public class KpiController : ControllerBase
 
         if (exportType == "overview")
         {
+            if (preview)
+            {
+                var previewRows = overviewRows
+                    .Select(x => new List<string>
+                    {
+                        x.MaKpi.ToString(),
+                        x.TenKpi ?? string.Empty,
+                        x.LoaiKpi ?? string.Empty,
+                        x.TrongSoGoc.ToString("0.##"),
+                        x.TrangThai ?? string.Empty,
+                        x.SoGanNhanVien.ToString(),
+                        x.SoGanNhom.ToString(),
+                        x.SoGanPhongBan.ToString(),
+                        x.SoGanDuAn.ToString(),
+                        x.SoNhanVienCoDiem.ToString(),
+                        x.DiemTrungBinh.ToString("0.##"),
+                        x.DiemCaoNhat.ToString("0.##"),
+                        x.DiemThapNhat.ToString("0.##")
+                    })
+                    .Take(30)
+                    .ToList();
+
+                var previewPayload = new KpiExportPreviewDto
+                {
+                    Headers = new List<string>
+                    {
+                        "Mã KPI", "Tên KPI", "Loại KPI", "Trọng số gốc", "Trạng thái",
+                        "Gán NV", "Gán nhóm", "Gán phòng ban", "Gán dự án",
+                        "Số NV có điểm", "Điểm TB", "Điểm cao nhất", "Điểm thấp nhất"
+                    },
+                    Rows = previewRows,
+                    TotalRows = overviewRows.Count,
+                    SuggestedFileName = $"kpi-overview-{DateTime.Now:yyyyMMdd-HHmm}.xlsx"
+                };
+                return Ok(ApiResponse<KpiExportPreviewDto>.Ok(previewPayload));
+            }
+
             return BuildKpiOverviewExcelFile(overviewRows, targetMonth, targetYear);
         }
 
@@ -582,11 +620,49 @@ public class KpiController : ControllerBase
             }));
         }
 
-        return BuildKpiDetailExcelFile(detailRows
+        var sortedDetailRows = detailRows
             .OrderBy(x => x.MaKpi)
             .ThenBy(x => x.LoaiApDung)
             .ThenBy(x => x.MaDoiTuong)
-            .ToList(), targetMonth, targetYear);
+            .ToList();
+
+        if (preview)
+        {
+            var previewRows = sortedDetailRows
+                .Select(x => new List<string>
+                {
+                    x.MaKpi.ToString(),
+                    x.TenKpi ?? string.Empty,
+                    x.LoaiKpi ?? string.Empty,
+                    x.LoaiApDung,
+                    x.MaDoiTuong.ToString(),
+                    x.TenDoiTuong ?? string.Empty,
+                    x.TrongSoGoc.ToString("0.##"),
+                    x.TrongSoApDung.ToString("0.##"),
+                    x.IsActive ? "Có" : "Không",
+                    x.TuNgay?.ToString("dd/MM/yyyy") ?? string.Empty,
+                    x.DenNgay?.ToString("dd/MM/yyyy") ?? string.Empty,
+                    x.DiemThanhPhan.ToString("0.##"),
+                    x.DongGop.ToString("0.##")
+                })
+                .Take(50)
+                .ToList();
+
+            var previewPayload = new KpiExportPreviewDto
+            {
+                Headers = new List<string>
+                {
+                    "Mã KPI", "Tên KPI", "Loại KPI", "Loại áp dụng", "Mã đối tượng", "Tên đối tượng",
+                    "Trọng số gốc", "Trọng số áp dụng", "Kích hoạt", "Từ ngày", "Đến ngày", "Điểm thành phần", "Đóng góp"
+                },
+                Rows = previewRows,
+                TotalRows = sortedDetailRows.Count,
+                SuggestedFileName = $"kpi-detail-{DateTime.Now:yyyyMMdd-HHmm}.xlsx"
+            };
+            return Ok(ApiResponse<KpiExportPreviewDto>.Ok(previewPayload));
+        }
+
+        return BuildKpiDetailExcelFile(sortedDetailRows, targetMonth, targetYear);
     }
 
     [Authorize(Policy = Permissions.KpiView)]
@@ -2011,148 +2087,162 @@ public class KpiController : ControllerBase
         [FromQuery] int? nam,
         [FromQuery] int? maKpi = null)
     {
-        var employee = await _dbContext.NhanViens.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == id);
-        if (employee == null)
+        try
         {
-            return NotFound(ApiResponse<KpiNhanVienDto>.Fail("Không tìm thấy nhân viên."));
-        }
-
-        var targetMonth = thang is >= 1 and <= 12 ? thang.Value : DateTime.Now.Month;
-        var targetYear = nam is > 2000 and <= 3000 ? nam.Value : DateTime.Now.Year;
-        var useSpecificKpi = maKpi.HasValue && maKpi.Value > 0;
-        var selectedMaKpi = maKpi.GetValueOrDefault();
-
-        List<KpiDiemKyDto> ordered;
-        if (useSpecificKpi)
-        {
-            var rows = _dbContext.KetQuaKpis
-            .AsNoTracking()
-            .Where(x => x.MaNhanVien == id && x.MaKpi == selectedMaKpi);
-
-            if (thang.HasValue)
+            var employee = await _dbContext.NhanViens.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == id);
+            if (employee == null)
             {
-                rows = rows.Where(x => x.thang == targetMonth);
+                return NotFound(ApiResponse<KpiNhanVienDto>.Fail("Không tìm thấy nhân viên."));
             }
 
-            if (nam.HasValue)
-            {
-                rows = rows.Where(x => x.nam == targetYear);
-            }
+            var targetMonth = thang is >= 1 and <= 12 ? thang.Value : DateTime.Now.Month;
+            var targetYear = nam is > 2000 and <= 3000 ? nam.Value : DateTime.Now.Year;
+            var useSpecificKpi = maKpi.HasValue && maKpi.Value > 0;
+            var selectedMaKpi = maKpi.GetValueOrDefault();
 
-            ordered = await rows
-                .OrderByDescending(x => x.nam)
-                .ThenByDescending(x => x.thang)
-                .Take(12)
-                .Select(x => new KpiDiemKyDto
-                {
-                    thang = x.thang ?? 0,
-                    nam = x.nam ?? 0,
-                    Diem = x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0,
-                    XepLoai = Classify(x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0)
-                })
-                .ToListAsync();
-        }
-        else
-        {
-            var rows = _dbContext.KetQuaKpis
+            List<KpiDiemKyDto> ordered;
+            if (useSpecificKpi)
+            {
+                var rows = _dbContext.KetQuaKpis
                 .AsNoTracking()
-                .Where(x => x.MaNhanVien == id);
+                .Where(x => x.MaNhanVien == id && x.MaKpi == selectedMaKpi);
 
-            if (thang.HasValue)
-            {
-                rows = rows.Where(x => x.thang == targetMonth);
-            }
-
-            if (nam.HasValue)
-            {
-                rows = rows.Where(x => x.nam == targetYear);
-            }
-
-            ordered = await rows
-                .GroupBy(x => new { x.nam, x.thang })
-                .Select(g => new
+                if (thang.HasValue)
                 {
-                    Nam = g.Key.nam ?? 0,
-                    Thang = g.Key.thang ?? 0,
-                    Diem = g.Average(x => x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0)
-                })
-                .OrderByDescending(x => x.Nam)
-                .ThenByDescending(x => x.Thang)
-                .Take(12)
-                .Select(x => new KpiDiemKyDto
-                {
-                    thang = x.Thang,
-                    nam = x.Nam,
-                    Diem = Math.Round(x.Diem, 2),
-                    XepLoai = Classify(x.Diem)
-                })
-                .ToListAsync();
+                    rows = rows.Where(x => x.thang == targetMonth);
+                }
 
-            if (ordered.Count == 0)
+                if (nam.HasValue)
+                {
+                    rows = rows.Where(x => x.nam == targetYear);
+                }
+
+                ordered = await rows
+                    .OrderByDescending(x => x.nam)
+                    .ThenByDescending(x => x.thang)
+                    .Take(12)
+                    .Select(x => new KpiDiemKyDto
+                    {
+                        thang = x.thang ?? 0,
+                        nam = x.nam ?? 0,
+                        Diem = x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0,
+                        XepLoai = Classify(x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0)
+                    })
+                    .ToListAsync();
+            }
+            else
             {
-                var fallbackRows = _dbContext.KetQuaKpiTongs
+                var rows = _dbContext.KetQuaKpis
                     .AsNoTracking()
                     .Where(x => x.MaNhanVien == id);
 
                 if (thang.HasValue)
                 {
-                    fallbackRows = fallbackRows.Where(x => x.Thang == targetMonth);
+                    rows = rows.Where(x => x.thang == targetMonth);
                 }
 
                 if (nam.HasValue)
                 {
-                    fallbackRows = fallbackRows.Where(x => x.Nam == targetYear);
+                    rows = rows.Where(x => x.nam == targetYear);
                 }
 
-                ordered = await fallbackRows
+                ordered = await rows
+                    .GroupBy(x => new { x.nam, x.thang })
+                    .Select(g => new
+                    {
+                        Nam = g.Key.nam ?? 0,
+                        Thang = g.Key.thang ?? 0,
+                        Diem = g.Average(x => x.DiemSo.HasValue ? (double)x.DiemSo.Value : 0.0)
+                    })
                     .OrderByDescending(x => x.Nam)
                     .ThenByDescending(x => x.Thang)
+                    .Take(12)
                     .Select(x => new KpiDiemKyDto
                     {
                         thang = x.Thang,
                         nam = x.Nam,
-                        Diem = (double)x.DiemTong,
-                        XepLoai = string.IsNullOrWhiteSpace(x.XepLoai) ? Classify((double)x.DiemTong) : x.XepLoai
+                        Diem = Math.Round(x.Diem, 2),
+                        XepLoai = Classify(x.Diem)
                     })
-                    .Take(12)
                     .ToListAsync();
+
+                if (ordered.Count == 0)
+                {
+                    try
+                    {
+                        var fallbackRows = _dbContext.KetQuaKpiTongs
+                            .AsNoTracking()
+                            .Where(x => x.MaNhanVien == id);
+
+                        if (thang.HasValue)
+                        {
+                            fallbackRows = fallbackRows.Where(x => x.Thang == targetMonth);
+                        }
+
+                        if (nam.HasValue)
+                        {
+                            fallbackRows = fallbackRows.Where(x => x.Nam == targetYear);
+                        }
+
+                        ordered = await fallbackRows
+                            .OrderByDescending(x => x.Nam)
+                            .ThenByDescending(x => x.Thang)
+                            .Select(x => new KpiDiemKyDto
+                            {
+                                thang = x.Thang,
+                                nam = x.Nam,
+                                Diem = (double)x.DiemTong,
+                                XepLoai = string.IsNullOrWhiteSpace(x.XepLoai) ? Classify((double)x.DiemTong) : x.XepLoai
+                            })
+                            .Take(12)
+                            .ToListAsync();
+                    }
+                    catch
+                    {
+                        ordered = new List<KpiDiemKyDto>();
+                    }
+                }
             }
-        }
 
-        ordered = ordered
-            .OrderBy(x => x.nam)
-            .ThenBy(x => x.thang)
-            .ToList();
+            ordered = ordered
+                .OrderBy(x => x.nam)
+                .ThenBy(x => x.thang)
+                .ToList();
 
-        var latest = ordered.Count > 0 ? ordered[^1] : null;
-        var previous = ordered.Count > 1 ? ordered[ordered.Count - 2] : null;
+            var latest = ordered.Count > 0 ? ordered[^1] : null;
+            var previous = ordered.Count > 1 ? ordered[ordered.Count - 2] : null;
 
-        double? trend = null;
-        if (latest != null && previous != null)
-        {
-            if (Math.Abs(previous.Diem) < 0.0001)
+            double? trend = null;
+            if (latest != null && previous != null)
             {
-                trend = latest.Diem > 0 ? 100 : 0;
+                if (Math.Abs(previous.Diem) < 0.0001)
+                {
+                    trend = latest.Diem > 0 ? 100 : 0;
+                }
+                else
+                {
+                    trend = ((latest.Diem - previous.Diem) / previous.Diem) * 100;
+                }
             }
-            else
+
+            var result = new KpiNhanVienDto
             {
-                trend = ((latest.Diem - previous.Diem) / previous.Diem) * 100;
-            }
+                MaNhanVien = employee.MaNhanVien,
+                HoTen = employee.HoTen,
+                MaKpi = useSpecificKpi ? selectedMaKpi : 0,
+                DiemHienTai = latest?.Diem ?? 0,
+                XepLoai = Classify(latest?.Diem ?? 0),
+                XuHuongPhanTram = trend,
+                LichSu12Thang = ordered,
+                KpiTheoThang = ordered
+            };
+
+            return Ok(ApiResponse<KpiNhanVienDto>.Ok(result));
         }
-
-        var result = new KpiNhanVienDto
+        catch (Exception ex)
         {
-            MaNhanVien = employee.MaNhanVien,
-            HoTen = employee.HoTen,
-            MaKpi = useSpecificKpi ? selectedMaKpi : 0,
-            DiemHienTai = latest?.Diem ?? 0,
-            XepLoai = Classify(latest?.Diem ?? 0),
-            XuHuongPhanTram = trend,
-            LichSu12Thang = ordered,
-            KpiTheoThang = ordered
-        };
-
-        return Ok(ApiResponse<KpiNhanVienDto>.Ok(result));
+            return Ok(ApiResponse<KpiNhanVienDto>.Fail($"Không thể tải KPI nhân viên: {ex.Message}"));
+        }
     }
 
     [Authorize(Policy = "KpiView")]
@@ -2169,14 +2259,23 @@ public class KpiController : ControllerBase
             return StatusCode(scope.StatusCode, ApiResponse<KpiPhongBanDto>.Fail(scope.ErrorMessage));
         }
 
-        if (scope.RoleKey == "manager" && scope.MaPhongBan.HasValue && id != scope.MaPhongBan.Value)
+        if (scope.RoleKey == "manager")
         {
-            return Forbid();
+            var canViewDepartment = await _dbContext.PhongBans
+                .AsNoTracking()
+                .AnyAsync(x => x.MaPhongBan == id && x.MaTruongPhong == scope.MaNhanVien);
+
+            if (!canViewDepartment)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<KpiPhongBanDto>.Fail("Bạn không có quyền xem KPI phòng ban này."));
+            }
         }
 
         if (scope.RoleKey == "employee")
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<KpiPhongBanDto>.Fail("Bạn không có quyền xem KPI phòng ban."));
         }
 
         var targetMonth = thang is >= 1 and <= 12 ? thang.Value : DateTime.Now.Month;
@@ -3637,6 +3736,14 @@ public class KpiController : ControllerBase
         public double DongGop { get; set; }
     }
 
+    public class KpiExportPreviewDto
+    {
+        public List<string> Headers { get; set; } = new();
+        public List<List<string>> Rows { get; set; } = new();
+        public int TotalRows { get; set; }
+        public string SuggestedFileName { get; set; } = "kpi-export.xlsx";
+    }
+
     public class KpiTeamOptionDto
     {
         public int MaNhom { get; set; }
@@ -3779,4 +3886,3 @@ public class KpiController : ControllerBase
         public int SoBanGhiCapNhat { get; set; }
     }
 }
-

@@ -199,6 +199,9 @@
                 const monitorNoteEl = document.getElementById('evalMonitoringNote');
                 const recommendationEl = document.getElementById('evalRecommendation');
                 const freshEl = document.getElementById('evalFreshness');
+                if (!activeEl || !avgEl || !lastTrainEl || !monitoringEl || !bestModelEl || !monitorNoteEl || !recommendationEl || !freshEl) {
+                    return;
+                }
 
                 activeEl.textContent = String(items.filter(x => x.displayStatus.key !== 'archived').length);
                 const accVals = items.map(x => x.accuracyNumber).filter(v => Number.isFinite(v));
@@ -242,6 +245,12 @@
                 const data = await apiGet('/ai/models');
                 const items = (data?.data) || [];
                 const tbody = document.getElementById('modelsBody');
+                if (!tbody) {
+                    latestPerfPoints = [];
+                    renderPerfTimeline([], '');
+                    renderPerfChart([], '');
+                    return;
+                }
                 tbody.innerHTML = '';
                 if (items.length === 0){
                     tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Chưa có mô hình.</td></tr>';
@@ -421,8 +430,8 @@
                 const btnViewLogs = document.getElementById('btnViewLogs');
                 const btnRetrain = document.getElementById('btnRetrain');
                 if (window.UiButtonLoading?.bind) {
-                    window.UiButtonLoading.bind(btnTrain, trainModel, { profile: 'heavy' });
-                    window.UiButtonLoading.bind(btnViewLogs, viewLogs, { profile: 'heavy' });
+                    if (btnTrain) window.UiButtonLoading.bind(btnTrain, trainModel, { profile: 'heavy' });
+                    if (btnViewLogs) window.UiButtonLoading.bind(btnViewLogs, viewLogs, { profile: 'heavy' });
                 } else {
                     btnTrain?.addEventListener('click', trainModel);
                     btnViewLogs?.addEventListener('click', viewLogs);

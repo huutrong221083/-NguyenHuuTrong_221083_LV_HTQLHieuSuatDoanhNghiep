@@ -34,13 +34,10 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(string recipientEmail, string recipientName, string resetLink, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.Host)
-            || string.IsNullOrWhiteSpace(_options.FromEmail)
-            || string.IsNullOrWhiteSpace(_options.UserName)
-            || string.IsNullOrWhiteSpace(_options.Password))
+        EnsureSmtpConfigured();
+        if (string.IsNullOrWhiteSpace(recipientEmail))
         {
-            _logger.LogWarning("SMTP chưa được cấu hình đầy đủ. Bỏ qua gửi email reset cho {Email}. Link reset: {ResetLink}", recipientEmail, resetLink);
-            return;
+            throw new ArgumentException("Email người nhận không hợp lệ.", nameof(recipientEmail));
         }
 
         using var message = new MailMessage
@@ -64,14 +61,7 @@ public class EmailService : IEmailService
 
     public async Task SendSystemNotificationEmailAsync(string recipientEmail, string recipientName, string subject, string htmlBody, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.Host)
-            || string.IsNullOrWhiteSpace(_options.FromEmail)
-            || string.IsNullOrWhiteSpace(_options.UserName)
-            || string.IsNullOrWhiteSpace(_options.Password))
-        {
-            _logger.LogWarning("SMTP chưa được cấu hình đầy đủ. Bỏ qua gửi email thông báo hệ thống cho {Email}.", recipientEmail);
-            return;
-        }
+        EnsureSmtpConfigured();
 
         if (string.IsNullOrWhiteSpace(recipientEmail) || string.IsNullOrWhiteSpace(subject))
         {
@@ -95,6 +85,18 @@ public class EmailService : IEmailService
         };
 
         await client.SendMailAsync(message, cancellationToken);
+    }
+
+    private void EnsureSmtpConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_options.Host)
+            || string.IsNullOrWhiteSpace(_options.FromEmail)
+            || string.IsNullOrWhiteSpace(_options.UserName)
+            || string.IsNullOrWhiteSpace(_options.Password))
+        {
+            _logger.LogError("SMTP chưa được cấu hình đầy đủ. Thiếu Host/UserName/Password/FromEmail.");
+            throw new InvalidOperationException("SMTP chưa được cấu hình đầy đủ.");
+        }
     }
 
     private static string BuildResetPasswordBody(string recipientName, string resetLink)

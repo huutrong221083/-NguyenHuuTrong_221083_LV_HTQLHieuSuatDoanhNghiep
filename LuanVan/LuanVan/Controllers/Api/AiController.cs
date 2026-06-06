@@ -1,10 +1,15 @@
-using LuanVan.Contracts;
 using LuanVan.Data;
+using LuanVan.Contracts;
 using LuanVan.Models;
 using LuanVan.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System.Diagnostics;
+using System.Security.Claims;
+using System.Text.Json;
+using System.Threading;
 
 namespace LuanVan.Controllers.Api;
 
@@ -13,14 +18,31 @@ namespace LuanVan.Controllers.Api;
 [Authorize]
 public class AiController : ControllerBase
 {
+    private const int TaskStatusCompleted = 3;
+    private const string SourceAiHistory = "AI_HISTORY";
+    private const string SourceRuleFast = "RULE_FAST";
+    private const string SourceInsufficientData = "INSUFFICIENT_DATA";
+    private static int _performanceSummaryCacheVersion = 1;
+    private static readonly TimeSpan PerformanceSummaryCacheDuration = TimeSpan.FromMinutes(10);
     private readonly AppDbContext _dbContext;
     private readonly IAiPredictionService _aiPredictionService;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<AiController> _logger;
 
-    public AiController(AppDbContext dbContext, IAiPredictionService aiPredictionService)
+    public AiController(
+        AppDbContext dbContext,
+        IAiPredictionService aiPredictionService,
+        IMemoryCache cache,
+        ILogger<AiController> logger)
     {
         _dbContext = dbContext;
         _aiPredictionService = aiPredictionService;
+        _cache = cache;
+        _logger = logger;
     }
+
+    private static void BumpPerformanceSummaryCacheVersion()
+        => Interlocked.Increment(ref _performanceSummaryCacheVersion);
 
     [HttpGet("models")]
     public async Task<ActionResult<ApiResponse<List<AiModelItemDto>>>> GetModels(CancellationToken cancellationToken)
@@ -80,6 +102,7 @@ public class AiController : ControllerBase
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            BumpPerformanceSummaryCacheVersion();
 
             // write a log entry to LOG_AI if table exists
             try
@@ -255,7 +278,7 @@ VALUES (@modelId, N'TRAIN', N'SUCCESS', SYSUTCDATETIME(), @content);";
         {
             if (request == null)
             {
-                return BadRequest(ApiResponse<PredictDelayResultDto>.Fail("Dữ liệu dự báo không hợp lệ."));
+                return Ok(ApiResponse<PredictDelayResultDto>.Fail("Dữ liệu dự báo không hợp lệ."));
             }
 
             var command = new PredictDelayCommand
@@ -276,20 +299,576 @@ VALUES (@modelId, N'TRAIN', N'SUCCESS', SYSUTCDATETIME(), @content);";
             var result = await _aiPredictionService.PredictDelayAsync(command, User?.Identity?.Name, cancellationToken);
             if (!result.Success)
             {
-                return BadRequest(result);
+                return Ok(result);
             }
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return BadRequest(ApiResponse<PredictDelayResultDto>.Fail($"Không thể tạo dự báo AI: {ex.Message}"));
+            return Ok(ApiResponse<PredictDelayResultDto>.Fail($"Không thể tạo dự báo AI: {ex.Message}"));
         }
+    }
+
+    [HttpGet("training-data")]
+    [Authorize(Policy = Permissions.AiViewPerformance)]
+    public async Task<ActionResult<ApiResponse<AiTrainingDataResponseDto>>> GetTrainingData(
+        [FromQuery] string model = "all",
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] int? employeeId = null,
+        [FromQuery] int? projectId = null,
+        [FromQuery] string? keyword = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var safePage = Math.Max(1, page);
+            var safePageSize = Math.Clamp(pageSize, 1, 200);
+            var normalizedModel = (model ?? "all").Trim().ToLowerInvariant();
+            var includeTaskDelay = normalizedModel is "all" or "task-delay";
+            var includePerformance = normalizedModel is "all" or "performance";
+
+            if (!includeTaskDelay && !includePerformance)
+            {
+                return BadRequest(ApiResponse<AiTrainingDataResponseDto>.Fail("model phải là task-delay, performance hoặc all."));
+            }
+
+            var response = new AiTrainingDataResponseDto
+            {
+                GeneratedAt = DateTime.UtcNow
+            };
+
+            if (includeTaskDelay)
+            {
+            var taskDelayRowsQuery =
+                from pc in _dbContext.PhanCongNhanViens.AsNoTracking()
+                join cv in _dbContext.CongViecs.AsNoTracking() on pc.MaCongViec equals cv.MaCongViec
+                join nv in _dbContext.NhanViens.AsNoTracking() on pc.MaNhanVien equals nv.MaNhanVien into nvGroup
+                from nv in nvGroup.DefaultIfEmpty()
+                where cv.HanHoanThanh.HasValue && pc.NgayBatDauThucTe.HasValue
+                select new
+                {
+                    pc.MaPhaCong,
+                    pc.MaNhanVien,
+                    HoTenNhanVien = nv != null ? nv.HoTen : null,
+                    pc.MaCongViec,
+                    cv.TenCongViec,
+                    cv.MaDuAn,
+                    TenDuAn = cv.DuAn != null ? cv.DuAn.TenDuAn : null,
+                    pc.NgayBatDauDuKien,
+                    pc.NgayKetThucdukien,
+                    pc.NgayBatDauThucTe,
+                    pc.NgayKetThucThucTe,
+                    cv.HanHoanThanh,
+                    pc.PhanTramHoanThanh,
+                    cv.MaDoUuTien,
+                    PriorityWeight = cv.DoUuTien != null ? cv.DoUuTien.HeSo : (decimal?)null,
+                    cv.MaDoKho,
+                    DifficultyWeight = cv.DoKho != null ? cv.DoKho.HeSo : (decimal?)null
+                };
+
+            if (employeeId.HasValue)
+            {
+                taskDelayRowsQuery = taskDelayRowsQuery.Where(x => x.MaNhanVien == employeeId.Value);
+            }
+
+            if (projectId.HasValue)
+            {
+                taskDelayRowsQuery = taskDelayRowsQuery.Where(x => x.MaDuAn == projectId.Value);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var from = fromDate.Value.Date;
+                taskDelayRowsQuery = taskDelayRowsQuery.Where(x => x.NgayBatDauThucTe.HasValue && x.NgayBatDauThucTe.Value.Date >= from);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to = toDate.Value.Date.AddDays(1);
+                taskDelayRowsQuery = taskDelayRowsQuery.Where(x => x.NgayBatDauThucTe.HasValue && x.NgayBatDauThucTe.Value < to);
+            }
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim();
+                taskDelayRowsQuery = taskDelayRowsQuery.Where(x =>
+                    (x.HoTenNhanVien != null && EF.Functions.Like(x.HoTenNhanVien, $"%{kw}%")) ||
+                    (x.TenCongViec != null && EF.Functions.Like(x.TenCongViec, $"%{kw}%")) ||
+                    (x.TenDuAn != null && EF.Functions.Like(x.TenDuAn, $"%{kw}%")));
+            }
+
+            var latestProgressMap = await _dbContext.TienDoCongViecs
+                .AsNoTracking()
+                .GroupBy(x => x.MaCongViec)
+                .Select(g => new
+                {
+                    MaCongViec = g.Key,
+                    Progress = g.OrderByDescending(x => x.NgayCapNhat).Select(x => (double?)x.PhanTramHoanThanh).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.MaCongViec, x => x.Progress ?? 0d, cancellationToken);
+
+            var now = DateTime.UtcNow.Date;
+            var taskDelayRowsRaw = await taskDelayRowsQuery
+                .OrderByDescending(x => x.MaPhaCong)
+                .ToListAsync(cancellationToken);
+
+            var taskDelayRows = taskDelayRowsRaw.Select(x =>
+            {
+                var startDate = x.NgayBatDauThucTe!.Value.Date;
+                var dueDate = x.HanHoanThanh!.Value.Date;
+                var finishedDate = x.NgayKetThucThucTe?.Date ?? now;
+                var estimatedHours = Math.Max(1d, (dueDate - startDate).TotalHours);
+                var spentHours = Math.Max(0d, (finishedDate - startDate).TotalHours);
+                var lateDays = Math.Max(0d, (finishedDate - dueDate).TotalDays);
+                var progressPercent = latestProgressMap.GetValueOrDefault(x.MaCongViec, (double)(x.PhanTramHoanThanh ?? 0m));
+                var priorityWeight = (double)(x.PriorityWeight ?? x.MaDoUuTien ?? 1);
+                var difficultyWeight = (double)(x.DifficultyWeight ?? x.MaDoKho ?? 1);
+                var daysUntilDeadline = Math.Max(-30d, (dueDate - now).TotalDays);
+                var isLate = lateDays > 0d;
+
+                return new AiTrainingRowDto
+                {
+                    RowType = "task-delay",
+                    Values = new Dictionary<string, object?>
+                    {
+                        ["assignmentId"] = x.MaPhaCong,
+                        ["employeeId"] = x.MaNhanVien,
+                        ["employeeName"] = x.HoTenNhanVien,
+                        ["taskId"] = x.MaCongViec,
+                        ["taskName"] = x.TenCongViec,
+                        ["projectId"] = x.MaDuAn,
+                        ["projectName"] = x.TenDuAn,
+                        ["plannedStartDate"] = x.NgayBatDauDuKien,
+                        ["plannedEndDate"] = x.NgayKetThucdukien,
+                        ["actualStartDate"] = x.NgayBatDauThucTe,
+                        ["actualEndDate"] = x.NgayKetThucThucTe,
+                        ["deadline"] = x.HanHoanThanh,
+                        ["estimatedHours"] = Math.Round(estimatedHours, 2),
+                        ["spentHours"] = Math.Round(spentHours, 2),
+                        ["progressPercent"] = Math.Round(progressPercent, 2),
+                        ["priorityWeight"] = priorityWeight,
+                        ["difficultyWeight"] = difficultyWeight,
+                        ["daysUntilDeadline"] = Math.Round(daysUntilDeadline, 2),
+                        ["lateDays"] = Math.Round(lateDays, 2),
+                        ["lateLabel"] = isLate ? "LATE" : "ON_TIME"
+                    }
+                };
+            }).ToList();
+
+            var taskDelayPaged = taskDelayRows
+                .Skip((safePage - 1) * safePageSize)
+                .Take(safePageSize)
+                .ToList();
+
+            response.TaskDelay = new AiTrainingDatasetDto
+            {
+                DatasetKey = "task-delay",
+                ModelName = "Task Delay Prediction",
+                Algorithm = "Linear Regression",
+                SourceTables = new List<string> { "PHANCONGNHANVIEN", "CONGVIEC", "TIENDOCONGVIEC" },
+                Features = new List<string> { "estimated_hours", "spent_hours", "progress_percent", "priority_weight", "difficulty_weight", "days_until_deadline" },
+                Target = "late_days",
+                TotalRows = taskDelayRows.Count,
+                DataQuality = BuildDataQuality(taskDelayRows.Count, 100),
+                Rows = taskDelayPaged
+            };
+            }
+
+            if (includePerformance)
+            {
+            var perfBaseQuery =
+                from dl in _dbContext.DuLieuAis.AsNoTracking()
+                join nv in _dbContext.NhanViens.AsNoTracking() on dl.MaNhanVien equals nv.MaNhanVien into nvGroup
+                from nv in nvGroup.DefaultIfEmpty()
+                where dl.SoCongViecHoanThanh.HasValue && dl.SoCongViecTreHan.HasValue && dl.ThoiGianTrungBinh.HasValue && dl.KpiTrungBinh.HasValue
+                select new
+                {
+                    dl.MaDuLieu,
+                    dl.MaNhanVien,
+                    HoTenNhanVien = nv != null ? nv.HoTen : null,
+                    Completed = dl.SoCongViecHoanThanh!.Value,
+                    Late = dl.SoCongViecTreHan!.Value,
+                    AvgTime = (double)dl.ThoiGianTrungBinh!.Value,
+                    KpiAvg = (double)dl.KpiTrungBinh!.Value
+                };
+
+            if (employeeId.HasValue)
+            {
+                perfBaseQuery = perfBaseQuery.Where(x => x.MaNhanVien == employeeId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim();
+                perfBaseQuery = perfBaseQuery.Where(x => x.HoTenNhanVien != null && EF.Functions.Like(x.HoTenNhanVien, $"%{kw}%"));
+            }
+
+            var perfRowsRaw = await perfBaseQuery
+                .OrderByDescending(x => x.MaDuLieu)
+                .ToListAsync(cancellationToken);
+
+            var employeeIds = perfRowsRaw.Select(x => x.MaNhanVien).Distinct().ToList();
+            var kpiTongRows = await _dbContext.KetQuaKpiTongs
+                .AsNoTracking()
+                .Where(x => employeeIds.Contains(x.MaNhanVien))
+                .OrderByDescending(x => x.Nam)
+                .ThenByDescending(x => x.Thang)
+                .ToListAsync(cancellationToken);
+
+            var kpiTongMap = kpiTongRows
+                .GroupBy(x => x.MaNhanVien)
+                .Select(g => g.First())
+                .ToDictionary(
+                    x => x.MaNhanVien,
+                    x => new { x.Thang, x.Nam, x.XepLoai, DiemTong = (double)x.DiemTong, x.NgayTinh });
+
+            var projectCountMap = await (
+                from pc in _dbContext.PhanCongNhanViens.AsNoTracking()
+                join cv in _dbContext.CongViecs.AsNoTracking() on pc.MaCongViec equals cv.MaCongViec
+                where employeeIds.Contains(pc.MaNhanVien)
+                group cv by pc.MaNhanVien into g
+                select new
+                {
+                    MaNhanVien = g.Key,
+                    ProjectCount = g.Select(x => x.MaDuAn).Distinct().Count()
+                })
+                .ToDictionaryAsync(x => x.MaNhanVien, x => x.ProjectCount, cancellationToken);
+
+            var perfRows = perfRowsRaw.Select(x =>
+            {
+                var totalTasks = Math.Max(1, x.Completed + x.Late);
+                var completionRate = x.Completed / (double)totalTasks;
+                var lateRate = x.Late / (double)totalTasks;
+                var projectCount = projectCountMap.GetValueOrDefault(x.MaNhanVien, 0);
+                var score = x.KpiAvg - (lateRate * 30d);
+                var fallbackLabel = score >= 85 ? "EXCELLENT"
+                    : score >= 70 ? "GOOD"
+                    : score >= 50 ? "NORMAL"
+                    : "LOW";
+
+                var hasKpiTong = kpiTongMap.TryGetValue(x.MaNhanVien, out var kpiTong) && !string.IsNullOrWhiteSpace(kpiTong?.XepLoai);
+                var label = hasKpiTong ? NormalizePerformanceLabel(kpiTong!.XepLoai!) : fallbackLabel;
+                var labelSource = hasKpiTong ? "KETQUAKPI_TONG" : "RULE_FALLBACK";
+                var month = hasKpiTong ? kpiTong!.Thang : DateTime.UtcNow.Month;
+                var year = hasKpiTong ? kpiTong!.Nam : DateTime.UtcNow.Year;
+                double? totalKpiScore = hasKpiTong ? kpiTong!.DiemTong : null;
+
+                return new AiTrainingRowDto
+                {
+                    RowType = "performance",
+                    Values = new Dictionary<string, object?>
+                    {
+                        ["employeeId"] = x.MaNhanVien,
+                        ["employeeName"] = x.HoTenNhanVien,
+                        ["month"] = month,
+                        ["year"] = year,
+                        ["taskCount"] = totalTasks,
+                        ["completedTaskCount"] = x.Completed,
+                        ["lateTaskCount"] = x.Late,
+                        ["completionRate"] = Math.Round(completionRate, 4),
+                        ["lateRate"] = Math.Round(lateRate, 4),
+                        ["avgWorkHours"] = Math.Round(x.AvgTime, 2),
+                        ["kpiAverage"] = Math.Round(x.KpiAvg, 2),
+                        ["totalKpiScore"] = totalKpiScore is null ? null : Math.Round(totalKpiScore.Value, 2),
+                        ["projectCount"] = projectCount,
+                        ["avgProgress"] = Math.Max(0d, Math.Min(100d, x.KpiAvg)),
+                        ["label"] = label,
+                        ["labelSource"] = labelSource
+                    }
+                };
+            }).ToList();
+
+            if (fromDate.HasValue || toDate.HasValue)
+            {
+                var fromBoundary = fromDate?.Date;
+                var toBoundary = toDate?.Date;
+                perfRows = perfRows.Where(x =>
+                {
+                    var rowYear = Convert.ToInt32(x.Values.GetValueOrDefault("year") ?? DateTime.UtcNow.Year);
+                    var rowMonth = Convert.ToInt32(x.Values.GetValueOrDefault("month") ?? DateTime.UtcNow.Month);
+                    var rowDate = new DateTime(rowYear, Math.Clamp(rowMonth, 1, 12), 1);
+                    if (fromBoundary.HasValue && rowDate < new DateTime(fromBoundary.Value.Year, fromBoundary.Value.Month, 1))
+                    {
+                        return false;
+                    }
+
+                    if (toBoundary.HasValue && rowDate > new DateTime(toBoundary.Value.Year, toBoundary.Value.Month, 1))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }).ToList();
+            }
+
+            var perfPaged = perfRows
+                .Skip((safePage - 1) * safePageSize)
+                .Take(safePageSize)
+                .ToList();
+
+            response.Performance = new AiTrainingDatasetDto
+            {
+                DatasetKey = "performance",
+                ModelName = "Performance Classification",
+                Algorithm = "Random Forest",
+                SourceTables = new List<string> { "DULIEUAI", "KETQUAKPI_TONG", "PHANCONGNHANVIEN", "CONGVIEC" },
+                Features = new List<string> { "kpi_average", "completion_rate", "late_task_count", "avg_progress", "task_count", "project_count" },
+                Target = "performance_label",
+                TotalRows = perfRows.Count(),
+                DataQuality = BuildDataQuality(perfRows.Count(), 100),
+                Rows = perfPaged
+            };
+            }
+
+            return Ok(ApiResponse<AiTrainingDataResponseDto>.Ok(response));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                ApiResponse<AiTrainingDataResponseDto>.Fail($"Không thể tải dữ liệu huấn luyện AI: {ex.Message}", "TRAINING_DATA_ERROR"));
+        }
+    }
+
+    [HttpGet("performance-summary")]
+    [Authorize(Policy = Permissions.AiViewPerformance)]
+    public async Task<ActionResult<ApiResponse<AiPerformanceSummaryResponseDto>>> GetPerformanceSummary(
+        [FromQuery] int? thang = null,
+        [FromQuery] int? nam = null,
+        [FromQuery] int? maPhongBan = null,
+        [FromQuery] int? maNhanVien = null,
+        [FromQuery] int? top = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var roleKey = User.IsInRole(Roles.Admin) ? Roles.Admin : (User.IsInRole(Roles.Manager) ? Roles.Manager : Roles.Employee);
+        var month = thang is >= 1 and <= 12 ? thang.Value : DateTime.Now.Month;
+        var year = nam is > 0 ? nam.Value : DateTime.Now.Year;
+        var safeTop = Math.Clamp(top ?? 5, 1, 20);
+        var selectedDepartmentId = maPhongBan is > 0 ? maPhongBan.Value : (int?)null;
+        var selectedEmployeeId = maNhanVien is > 0 ? maNhanVien.Value : (int?)null;
+        var cacheVersion = Volatile.Read(ref _performanceSummaryCacheVersion);
+        var cacheKey = $"ai:performance-summary:v{cacheVersion}:user:{userId}:role:{roleKey}:m:{month}:y:{year}:pb:{selectedDepartmentId?.ToString() ?? "all"}:nv:{selectedEmployeeId?.ToString() ?? "all"}:top:{safeTop}";
+
+        if (_cache.TryGetValue(cacheKey, out AiPerformanceSummaryResponseDto? cached) && cached != null)
+        {
+            cached.CacheHit = true;
+            _logger.LogInformation(
+                "AI performance-summary completed in {ElapsedMs}ms | employees={EmployeeCount} | cacheHit={CacheHit}",
+                stopwatch.ElapsedMilliseconds,
+                cached.Summary.TotalEmployees,
+                true);
+            return Ok(ApiResponse<AiPerformanceSummaryResponseDto>.Ok(cached));
+        }
+
+        var actor = string.IsNullOrWhiteSpace(userId)
+            ? null
+            : await _dbContext.NhanViens.AsNoTracking()
+                .Where(x => x.AspNetUserId == userId)
+                .Select(x => new { x.MaNhanVien, x.MaPhongBan })
+                .FirstOrDefaultAsync(cancellationToken);
+
+        if (actor == null)
+        {
+            return Forbid();
+        }
+
+        var employeeScopeIds = await GetAiPerformanceEmployeeScopeIdsAsync(actor.MaNhanVien, roleKey, cancellationToken);
+        if (selectedEmployeeId.HasValue)
+        {
+            if (!employeeScopeIds.Contains(selectedEmployeeId.Value))
+            {
+                return Forbid();
+            }
+
+            employeeScopeIds = new List<int> { selectedEmployeeId.Value };
+        }
+
+        var employeesQuery = _dbContext.NhanViens.AsNoTracking()
+            .Where(x => x.TrangThai == 1 && employeeScopeIds.Contains(x.MaNhanVien));
+
+        if (selectedDepartmentId.HasValue)
+        {
+            employeesQuery = employeesQuery.Where(x => x.MaPhongBan == selectedDepartmentId.Value);
+        }
+
+        var employees = await employeesQuery
+            .Select(x => new
+            {
+                x.MaNhanVien,
+                x.HoTen,
+                x.MaPhongBan,
+                TenPhongBan = x.PhongBanQuanLy != null ? x.PhongBanQuanLy.TenPhongBan : null
+            })
+            .OrderBy(x => x.HoTen)
+            .ToListAsync(cancellationToken);
+
+        var employeeIds = employees.Select(x => x.MaNhanVien).ToList();
+
+        var kpiTotalRows = employeeIds.Count == 0
+            ? new List<KpiScoreRaw>()
+            : await _dbContext.KetQuaKpiTongs.AsNoTracking()
+                .Where(x => x.Thang == month && x.Nam == year && employeeIds.Contains(x.MaNhanVien))
+                .Select(x => new KpiScoreRaw { MaNhanVien = x.MaNhanVien, Score = x.DiemTong })
+                .ToListAsync(cancellationToken);
+
+        var kpiByEmployee = kpiTotalRows
+            .GroupBy(x => x.MaNhanVien)
+            .ToDictionary(x => x.Key, x => (decimal?)x.Average(v => v.Score));
+
+        var missingKpiEmployeeIds = employeeIds.Where(x => !kpiByEmployee.ContainsKey(x)).ToList();
+        if (missingKpiEmployeeIds.Count > 0)
+        {
+            var fallbackRows = await _dbContext.KetQuaKpis.AsNoTracking()
+                .Where(x => x.thang == month
+                    && x.nam == year
+                    && x.DiemSo.HasValue
+                    && missingKpiEmployeeIds.Contains(x.MaNhanVien))
+                .GroupBy(x => x.MaNhanVien)
+                .Select(g => new { MaNhanVien = g.Key, Score = g.Average(x => x.DiemSo ?? 0m) })
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in fallbackRows)
+            {
+                kpiByEmployee[row.MaNhanVien] = row.Score;
+            }
+        }
+
+        var today = DateTime.Now.Date;
+        var taskRows = employeeIds.Count == 0
+            ? new List<EmployeeTaskStatsRaw>()
+            : await (
+                from pc in _dbContext.PhanCongNhanViens.AsNoTracking()
+                join cv in _dbContext.CongViecs.AsNoTracking() on pc.MaCongViec equals cv.MaCongViec
+                where employeeIds.Contains(pc.MaNhanVien)
+                    && (pc.TrangThai ?? 1) == 1
+                    && (cv.DaXoa ?? false) == false
+                group cv by pc.MaNhanVien into g
+                select new EmployeeTaskStatsRaw
+                {
+                    MaNhanVien = g.Key,
+                    TotalTasks = g.Select(x => x.MaCongViec).Distinct().Count(),
+                    CompletedTasks = g.Where(x => x.MaTrangThai == TaskStatusCompleted).Select(x => x.MaCongViec).Distinct().Count(),
+                    LateTasks = g.Where(x => x.MaTrangThai != TaskStatusCompleted && x.HanHoanThanh.HasValue && x.HanHoanThanh.Value.Date < today).Select(x => x.MaCongViec).Distinct().Count()
+                })
+                .ToListAsync(cancellationToken);
+
+        var taskStatsByEmployee = taskRows.ToDictionary(x => x.MaNhanVien);
+
+        var historyRows = employeeIds.Count == 0
+            ? new List<DuDoanAi>()
+            : await _dbContext.DuDoanAis.AsNoTracking()
+                .Where(x => x.thang == month
+                    && x.nam == year
+                    && employeeIds.Contains(x.MaNhanVien)
+                    && x.ModelName != null
+                    && x.ModelName.Contains("performance"))
+                .OrderByDescending(x => x.ThoiGianDuDoan)
+                .ToListAsync(cancellationToken);
+
+        var latestHistoryByEmployee = historyRows
+            .GroupBy(x => x.MaNhanVien)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        var rows = employees.Select(employee =>
+        {
+            kpiByEmployee.TryGetValue(employee.MaNhanVien, out var kpi);
+            taskStatsByEmployee.TryGetValue(employee.MaNhanVien, out var taskStats);
+            latestHistoryByEmployee.TryGetValue(employee.MaNhanVien, out var history);
+
+            var totalTasks = taskStats?.TotalTasks ?? 0;
+            var completedTasks = taskStats?.CompletedTasks ?? 0;
+            var lateTasks = taskStats?.LateTasks ?? 0;
+            var lateRate = totalTasks == 0 ? 0m : Math.Round((decimal)lateTasks / totalTasks, 4);
+            var classification = ResolveFastPerformanceClassification(kpi, totalTasks, lateRate, history);
+
+            return new AiPerformanceEmployeeSummaryDto
+            {
+                MaNhanVien = employee.MaNhanVien,
+                HoTen = employee.HoTen,
+                MaPhongBan = employee.MaPhongBan,
+                TenPhongBan = employee.TenPhongBan,
+                Kpi = kpi.HasValue ? Math.Round(kpi.Value, 2) : null,
+                TotalTasks = totalTasks,
+                CompletedTasks = completedTasks,
+                LateTasks = lateTasks,
+                LateRate = lateRate,
+                PerformanceLabel = classification.Label,
+                Confidence = classification.Confidence,
+                Source = classification.Source
+            };
+        }).ToList();
+
+        var topPerformers = rows
+            .Where(x => x.PerformanceLabel is "Xuất sắc" or "Tốt")
+            .OrderByDescending(x => x.Kpi ?? 0m)
+            .ThenBy(x => x.LateRate)
+            .Take(safeTop)
+            .ToList();
+
+        var needSupport = rows
+            .Where(x => x.PerformanceLabel is "Cần hỗ trợ" or "Cần cải thiện")
+            .OrderByDescending(x => x.PerformanceLabel == "Cần hỗ trợ")
+            .ThenByDescending(x => x.LateTasks)
+            .ThenBy(x => x.Kpi ?? 999m)
+            .Take(safeTop)
+            .ToList();
+
+        var labelDistribution = new[] { "Xuất sắc", "Tốt", "Cần cải thiện", "Cần hỗ trợ", "Chưa đủ dữ liệu" }
+            .Select(label => new AiPerformanceLabelDistributionDto
+            {
+                Label = label,
+                Count = rows.Count(x => x.PerformanceLabel == label)
+            })
+            .ToList();
+
+        var averageKpi = rows.Where(x => x.Kpi.HasValue).Select(x => x.Kpi!.Value).DefaultIfEmpty(0m).Average();
+        var totalTaskCount = rows.Sum(x => x.TotalTasks);
+        var totalLateTasks = rows.Sum(x => x.LateTasks);
+        var summary = new AiPerformanceSummaryDto
+        {
+            TotalEmployees = rows.Count,
+            ExcellentCount = rows.Count(x => x.PerformanceLabel == "Xuất sắc"),
+            GoodCount = rows.Count(x => x.PerformanceLabel == "Tốt"),
+            NeedImproveCount = rows.Count(x => x.PerformanceLabel == "Cần cải thiện"),
+            NeedSupportCount = rows.Count(x => x.PerformanceLabel == "Cần hỗ trợ"),
+            InsufficientDataCount = rows.Count(x => x.PerformanceLabel == "Chưa đủ dữ liệu"),
+            AverageKpi = Math.Round(averageKpi, 2),
+            LateTaskRate = totalTaskCount == 0 ? 0m : Math.Round((decimal)totalLateTasks / totalTaskCount, 4)
+        };
+
+        var response = new AiPerformanceSummaryResponseDto
+        {
+            Period = new AiPerformancePeriodDto { Thang = month, Nam = year },
+            GeneratedAt = DateTime.UtcNow,
+            CacheHit = false,
+            Summary = summary,
+            LabelDistribution = labelDistribution,
+            Employees = rows,
+            TopPerformers = topPerformers,
+            NeedSupport = needSupport,
+            Insights = BuildPerformanceSummaryInsights(summary, rows)
+        };
+
+        _cache.Set(cacheKey, response, PerformanceSummaryCacheDuration);
+
+        _logger.LogInformation(
+            "AI performance-summary completed in {ElapsedMs}ms | employees={EmployeeCount} | cacheHit={CacheHit}",
+            stopwatch.ElapsedMilliseconds,
+            rows.Count,
+            false);
+
+        return Ok(ApiResponse<AiPerformanceSummaryResponseDto>.Ok(response));
     }
 
     [HttpPost("classify-performance")]
     public async Task<ActionResult<ApiResponse<ClassifyPerformanceResultDto>>> ClassifyPerformance([FromBody] ClassifyPerformanceRequest request, CancellationToken cancellationToken)
     {
+        BumpPerformanceSummaryCacheVersion();
         var command = new ClassifyPerformanceCommand
         {
             MaNhanVien = request.MaNhanVien,
@@ -780,6 +1359,300 @@ VALUES (@modelId, N'TRAIN', N'SUCCESS', SYSUTCDATETIME(), @content);";
         Response.Headers.Append("Sunset", "2026-12-31");
         Response.Headers.Append("Link", "</ai/intervention-log>; rel=\"successor-version\"");
         return CreateInterventionLog(request, cancellationToken);
+    }
+
+    private async Task<List<int>> GetAiPerformanceEmployeeScopeIdsAsync(int actorEmployeeId, string roleKey, CancellationToken cancellationToken)
+    {
+        if (roleKey == Roles.Admin)
+        {
+            return await _dbContext.NhanViens.AsNoTracking()
+                .Where(x => x.TrangThai == 1)
+                .Select(x => x.MaNhanVien)
+                .ToListAsync(cancellationToken);
+        }
+
+        if (roleKey == Roles.Manager)
+        {
+            var managedDepartmentIds = await _dbContext.PhongBans.AsNoTracking()
+                .Where(x => x.MaTruongPhong == actorEmployeeId)
+                .Select(x => x.MaPhongBan)
+                .ToListAsync(cancellationToken);
+
+            var departmentEmployeeIds = managedDepartmentIds.Count == 0
+                ? new List<int>()
+                : await _dbContext.NhanViens.AsNoTracking()
+                    .Where(x => x.TrangThai == 1 && x.MaPhongBan.HasValue && managedDepartmentIds.Contains(x.MaPhongBan.Value))
+                    .Select(x => x.MaNhanVien)
+                    .ToListAsync(cancellationToken);
+
+            var teamIds = await _dbContext.ThanhVienNhoms.AsNoTracking()
+                .Where(x => x.MaNhanVien == actorEmployeeId)
+                .Select(x => x.MaNhom)
+                .ToListAsync(cancellationToken);
+
+            var ledTeamIds = await _dbContext.Nhoms.AsNoTracking()
+                .Where(x => x.TruongNhom == actorEmployeeId)
+                .Select(x => x.MaNhom)
+                .ToListAsync(cancellationToken);
+
+            var visibleTeamIds = teamIds.Concat(ledTeamIds).Distinct().ToList();
+            var teamEmployeeIds = visibleTeamIds.Count == 0
+                ? new List<int>()
+                : await _dbContext.ThanhVienNhoms.AsNoTracking()
+                    .Where(x => visibleTeamIds.Contains(x.MaNhom))
+                    .Select(x => x.MaNhanVien)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+            return departmentEmployeeIds
+                .Concat(teamEmployeeIds)
+                .Append(actorEmployeeId)
+                .Distinct()
+                .ToList();
+        }
+
+        return new List<int> { actorEmployeeId };
+    }
+
+    private static (string Label, decimal Confidence, string Source) ResolveFastPerformanceClassification(
+        decimal? kpi,
+        int totalTasks,
+        decimal lateRate,
+        DuDoanAi? history)
+    {
+        if (history != null)
+        {
+            var parsed = TryParsePerformanceHistory(history);
+            if (parsed.HasValue)
+            {
+                return (parsed.Value.Label, parsed.Value.Confidence, SourceAiHistory);
+            }
+        }
+
+        if (!kpi.HasValue && totalTasks == 0)
+        {
+            return ("Chưa đủ dữ liệu", 0m, SourceInsufficientData);
+        }
+
+        var confidence = kpi.HasValue && totalTasks > 0 ? 0.70m : 0.55m;
+        if ((kpi.HasValue && kpi.Value < 65m) || lateRate > 0.40m)
+        {
+            return ("Cần hỗ trợ", confidence, SourceRuleFast);
+        }
+
+        if ((kpi.HasValue && kpi.Value < 70m) || lateRate > 0.25m)
+        {
+            return ("Cần cải thiện", confidence, SourceRuleFast);
+        }
+
+        if (kpi.HasValue && kpi.Value >= 85m && lateRate <= 0.10m)
+        {
+            return ("Xuất sắc", confidence, SourceRuleFast);
+        }
+
+        if (kpi.HasValue && kpi.Value >= 70m && lateRate <= 0.25m)
+        {
+            return ("Tốt", confidence, SourceRuleFast);
+        }
+
+        return ("Cần cải thiện", confidence, SourceRuleFast);
+    }
+
+    private static (string Label, decimal Confidence)? TryParsePerformanceHistory(DuDoanAi history)
+    {
+        string? label = null;
+        decimal? confidence = null;
+
+        if (!string.IsNullOrWhiteSpace(history.OutputData))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(history.OutputData);
+                var root = document.RootElement;
+                if (root.TryGetProperty("labelDisplay", out var labelDisplayProperty))
+                {
+                    label = labelDisplayProperty.GetString();
+                }
+                else if (root.TryGetProperty("label", out var labelProperty))
+                {
+                    label = ToVietnamesePerformanceLabel(labelProperty.GetString());
+                }
+
+                if (root.TryGetProperty("confidence", out var confidenceProperty) && confidenceProperty.TryGetDecimal(out var parsedConfidence))
+                {
+                    confidence = parsedConfidence <= 1m ? parsedConfidence : parsedConfidence / 100m;
+                }
+            }
+            catch
+            {
+                label = null;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(label) && history.DiemDuDoan.HasValue)
+        {
+            label = history.DiemDuDoan.Value >= 85m ? "Xuất sắc"
+                : history.DiemDuDoan.Value >= 70m ? "Tốt"
+                : history.DiemDuDoan.Value >= 50m ? "Cần cải thiện"
+                : "Cần hỗ trợ";
+        }
+
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return null;
+        }
+
+        return (label, Math.Clamp(confidence ?? 0.75m, 0m, 1m));
+    }
+
+    private static string ToVietnamesePerformanceLabel(string? label)
+    {
+        var normalized = NormalizePerformanceLabel(label ?? string.Empty);
+        return normalized switch
+        {
+            "EXCELLENT" => "Xuất sắc",
+            "GOOD" => "Tốt",
+            "LOW" => "Cần hỗ trợ",
+            _ => "Cần cải thiện"
+        };
+    }
+
+    private static List<string> BuildPerformanceSummaryInsights(AiPerformanceSummaryDto summary, List<AiPerformanceEmployeeSummaryDto> employees)
+    {
+        var insights = new List<string>
+        {
+            $"Phân tích {summary.TotalEmployees} nhân sự trong kỳ {DateTime.Now:MM/yyyy}.",
+            $"KPI trung bình {summary.AverageKpi:F1}%, tỷ lệ task trễ {summary.LateTaskRate:P0}."
+        };
+
+        if (summary.NeedSupportCount > 0)
+        {
+            insights.Add($"Có {summary.NeedSupportCount} nhân sự cần hỗ trợ, nên ưu tiên mentoring hoặc điều chỉnh phân công.");
+        }
+        else if (summary.ExcellentCount + summary.GoodCount > summary.TotalEmployees / 2)
+        {
+            insights.Add("Phần lớn nhân sự đang ở nhóm hiệu suất tốt, có thể duy trì nhịp theo dõi định kỳ.");
+        }
+
+        var topLateDepartment = employees
+            .Where(x => x.LateTasks > 0 && !string.IsNullOrWhiteSpace(x.TenPhongBan))
+            .GroupBy(x => x.TenPhongBan!)
+            .Select(g => new { Department = g.Key, LateTasks = g.Sum(x => x.LateTasks) })
+            .OrderByDescending(x => x.LateTasks)
+            .FirstOrDefault();
+        if (topLateDepartment != null)
+        {
+            insights.Add($"Task trễ tập trung nhiều nhất ở {topLateDepartment.Department} ({topLateDepartment.LateTasks} task).");
+        }
+
+        return insights;
+    }
+
+    private static AiTrainingDataQualityDto BuildDataQuality(int actualRows, int minRequiredRows)
+    {
+        var isLowData = actualRows < minRequiredRows;
+        return new AiTrainingDataQualityDto
+        {
+            IsLowData = isLowData,
+            MinRequiredRows = minRequiredRows,
+            ActualRows = actualRows,
+            WarningMessage = isLowData
+                ? "Dữ liệu huấn luyện hiện còn ít, kết quả AI chủ yếu phục vụ minh họa quy trình phân tích và cần thêm dữ liệu thực tế để tăng độ tin cậy."
+                : string.Empty
+        };
+    }
+
+    private static string NormalizePerformanceLabel(string rawLabel)
+    {
+        var normalized = (rawLabel ?? string.Empty).Trim().ToUpperInvariant();
+        if (normalized.Contains("XUAT") || normalized.Contains("EXCELLENT"))
+        {
+            return "EXCELLENT";
+        }
+
+        if (normalized.Contains("TOT") || normalized.Contains("GOOD"))
+        {
+            return "GOOD";
+        }
+
+        if (normalized.Contains("TRUNG") || normalized.Contains("AVERAGE") || normalized.Contains("NORMAL"))
+        {
+            return "NORMAL";
+        }
+
+        if (normalized.Contains("KEM") || normalized.Contains("YEU") || normalized.Contains("POOR") || normalized.Contains("LOW"))
+        {
+            return "LOW";
+        }
+
+        return "NORMAL";
+    }
+
+    private sealed class EmployeeTaskStatsRaw
+    {
+        public int MaNhanVien { get; set; }
+        public int TotalTasks { get; set; }
+        public int CompletedTasks { get; set; }
+        public int LateTasks { get; set; }
+    }
+
+    private sealed class KpiScoreRaw
+    {
+        public int MaNhanVien { get; set; }
+        public decimal Score { get; set; }
+    }
+
+    public sealed class AiPerformanceSummaryResponseDto
+    {
+        public AiPerformancePeriodDto Period { get; set; } = new();
+        public DateTime GeneratedAt { get; set; }
+        public bool CacheHit { get; set; }
+        public AiPerformanceSummaryDto Summary { get; set; } = new();
+        public List<AiPerformanceLabelDistributionDto> LabelDistribution { get; set; } = new();
+        public List<AiPerformanceEmployeeSummaryDto> Employees { get; set; } = new();
+        public List<AiPerformanceEmployeeSummaryDto> TopPerformers { get; set; } = new();
+        public List<AiPerformanceEmployeeSummaryDto> NeedSupport { get; set; } = new();
+        public List<string> Insights { get; set; } = new();
+    }
+
+    public sealed class AiPerformancePeriodDto
+    {
+        public int Thang { get; set; }
+        public int Nam { get; set; }
+    }
+
+    public sealed class AiPerformanceSummaryDto
+    {
+        public int TotalEmployees { get; set; }
+        public int ExcellentCount { get; set; }
+        public int GoodCount { get; set; }
+        public int NeedImproveCount { get; set; }
+        public int NeedSupportCount { get; set; }
+        public int InsufficientDataCount { get; set; }
+        public decimal AverageKpi { get; set; }
+        public decimal LateTaskRate { get; set; }
+    }
+
+    public sealed class AiPerformanceLabelDistributionDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public sealed class AiPerformanceEmployeeSummaryDto
+    {
+        public int MaNhanVien { get; set; }
+        public string? HoTen { get; set; }
+        public int? MaPhongBan { get; set; }
+        public string? TenPhongBan { get; set; }
+        public decimal? Kpi { get; set; }
+        public int TotalTasks { get; set; }
+        public int CompletedTasks { get; set; }
+        public int LateTasks { get; set; }
+        public decimal LateRate { get; set; }
+        public string PerformanceLabel { get; set; } = string.Empty;
+        public decimal Confidence { get; set; }
+        public string Source { get; set; } = string.Empty;
     }
 
     public class PredictDelayRequest

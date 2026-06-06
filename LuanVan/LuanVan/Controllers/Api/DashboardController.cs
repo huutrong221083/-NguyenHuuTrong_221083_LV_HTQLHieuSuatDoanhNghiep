@@ -131,10 +131,15 @@ public class DashboardController : ControllerBase
             .Where(x => x.TruongNhom == actor.MaNhanVien)
             .Select(x => x.MaNhom)
             .ToListAsync();
+        var memberTeamIds = await _dbContext.ThanhVienNhoms.AsNoTracking()
+            .Where(x => x.MaNhanVien == actor.MaNhanVien)
+            .Select(x => x.MaNhom)
+            .ToListAsync();
+        var visibleTeamIds = ledTeamIds.Concat(memberTeamIds).Distinct().ToList();
 
         var managerType = managedDepartmentIds.Count > 0
             ? "department_manager"
-            : (ledTeamIds.Count > 0 ? "team_lead" : (isEmployeeDashboard ? "employee" : "manager"));
+            : (visibleTeamIds.Count > 0 ? "team_lead" : (isEmployeeDashboard ? "employee" : "manager"));
 
         var selectedDepartmentId = maPhongBan is > 0 ? maPhongBan.Value : (int?)null;
         var selectedTeamId = maNhom is > 0 ? maNhom.Value : (int?)null;
@@ -142,29 +147,52 @@ public class DashboardController : ControllerBase
 
         if (!isAdmin)
         {
-            if (managerType == "department_manager")
+            if (isManagerRole)
             {
-                selectedDepartmentId ??= managedDepartmentIds.FirstOrDefault();
                 if (selectedDepartmentId.HasValue && !managedDepartmentIds.Contains(selectedDepartmentId.Value))
                 {
-                    selectedDepartmentId = managedDepartmentIds.FirstOrDefault();
+                    return Forbid();
                 }
-            }
-            else if (managerType == "team_lead")
-            {
-                selectedTeamId ??= ledTeamIds.FirstOrDefault();
-                if (selectedTeamId.HasValue && !ledTeamIds.Contains(selectedTeamId.Value))
+
+                if (selectedTeamId.HasValue && !visibleTeamIds.Contains(selectedTeamId.Value))
                 {
-                    selectedTeamId = ledTeamIds.FirstOrDefault();
+                    return Forbid();
                 }
             }
-            else
+            else if (isEmployeeDashboard)
             {
                 selectedDepartmentId = actor.MaPhongBan;
             }
         }
 
         var employeesQuery = _dbContext.NhanViens.AsNoTracking().Where(x => x.TrangThai == 1);
+        var managerScopedEmployeeIds = new List<int>();
+        if (!isAdmin && isManagerRole)
+        {
+            var departmentEmployeeIds = managedDepartmentIds.Count == 0
+                ? new List<int>()
+                : await _dbContext.NhanViens.AsNoTracking()
+                    .Where(x => x.TrangThai == 1 && x.MaPhongBan.HasValue && managedDepartmentIds.Contains(x.MaPhongBan.Value))
+                    .Select(x => x.MaNhanVien)
+                    .ToListAsync();
+
+            var visibleTeamMemberIds = visibleTeamIds.Count == 0
+                ? new List<int>()
+                : await _dbContext.ThanhVienNhoms.AsNoTracking()
+                    .Where(x => visibleTeamIds.Contains(x.MaNhom))
+                    .Select(x => x.MaNhanVien)
+                    .Distinct()
+                    .ToListAsync();
+
+            managerScopedEmployeeIds = departmentEmployeeIds
+                .Concat(visibleTeamMemberIds)
+                .Append(actor.MaNhanVien)
+                .Distinct()
+                .ToList();
+
+            employeesQuery = employeesQuery.Where(x => managerScopedEmployeeIds.Contains(x.MaNhanVien));
+        }
+
         if (selectedDepartmentId.HasValue)
         {
             employeesQuery = employeesQuery.Where(x => x.MaPhongBan == selectedDepartmentId.Value);
@@ -194,11 +222,18 @@ public class DashboardController : ControllerBase
             .ToListAsync();
         var employeeIds = employees.Select(x => x.MaNhanVien).ToList();
 
-        var departmentProjectIds = selectedDepartmentId.HasValue
-            ? await _dbContext.DuAnPhongBans.AsNoTracking().Where(x => x.MaPhongBan == selectedDepartmentId.Value && (x.TrangThai ?? 1) == 1).Select(x => x.MaDuAn).Distinct().ToListAsync()
+        var projectDepartmentIds = selectedDepartmentId.HasValue
+            ? new List<int> { selectedDepartmentId.Value }
+            : (!isAdmin && isManagerRole ? managedDepartmentIds : new List<int>());
+        var projectTeamIds = selectedTeamId.HasValue
+            ? new List<int> { selectedTeamId.Value }
+            : (!isAdmin && isManagerRole ? visibleTeamIds : new List<int>());
+
+        var departmentProjectIds = projectDepartmentIds.Count > 0
+            ? await _dbContext.DuAnPhongBans.AsNoTracking().Where(x => projectDepartmentIds.Contains(x.MaPhongBan) && (x.TrangThai ?? 1) == 1).Select(x => x.MaDuAn).Distinct().ToListAsync()
             : new List<int>();
-        var teamProjectIds = selectedTeamId.HasValue
-            ? await _dbContext.DuAnNhoms.AsNoTracking().Where(x => x.MaNhom == selectedTeamId.Value && (x.TrangThai ?? 1) == 1).Select(x => x.MaDuAn).Distinct().ToListAsync()
+        var teamProjectIds = projectTeamIds.Count > 0
+            ? await _dbContext.DuAnNhoms.AsNoTracking().Where(x => projectTeamIds.Contains(x.MaNhom) && (x.TrangThai ?? 1) == 1).Select(x => x.MaDuAn).Distinct().ToListAsync()
             : new List<int>();
         var employeeProjectIds = employeeIds.Count > 0
             ? await _dbContext.DuAnNhanViens.AsNoTracking().Where(x => employeeIds.Contains(x.MaNhanVien) && (x.TrangThai ?? 1) == 1).Select(x => x.MaDuAn).Distinct().ToListAsync()
@@ -207,6 +242,11 @@ public class DashboardController : ControllerBase
         var scopedProjectIds = departmentProjectIds.Concat(teamProjectIds).Concat(employeeProjectIds).Distinct().ToList();
         if (selectedProjectId.HasValue)
         {
+            if (!isAdmin && isManagerRole && !scopedProjectIds.Contains(selectedProjectId.Value))
+            {
+                return Forbid();
+            }
+
             scopedProjectIds = scopedProjectIds.Where(x => x == selectedProjectId.Value).ToList();
         }
 
@@ -217,11 +257,11 @@ public class DashboardController : ControllerBase
                 .Distinct()
                 .ToListAsync()
             : new List<int>();
-        var taskByTeamIds = selectedTeamId.HasValue
-            ? await _dbContext.PhanCongNhoms.AsNoTracking().Where(x => x.MaNhom == selectedTeamId.Value && (x.TrangThai ?? 1) == 1).Select(x => x.MaCongViec).Distinct().ToListAsync()
+        var taskByTeamIds = projectTeamIds.Count > 0
+            ? await _dbContext.PhanCongNhoms.AsNoTracking().Where(x => projectTeamIds.Contains(x.MaNhom) && (x.TrangThai ?? 1) == 1).Select(x => x.MaCongViec).Distinct().ToListAsync()
             : new List<int>();
-        var taskByDepartmentIds = selectedDepartmentId.HasValue
-            ? await _dbContext.PhanCongPhongBans.AsNoTracking().Where(x => x.MaPhongBan == selectedDepartmentId.Value && (x.TrangThai ?? 1) == 1).Select(x => x.MaCongViec).Distinct().ToListAsync()
+        var taskByDepartmentIds = projectDepartmentIds.Count > 0
+            ? await _dbContext.PhanCongPhongBans.AsNoTracking().Where(x => projectDepartmentIds.Contains(x.MaPhongBan) && (x.TrangThai ?? 1) == 1).Select(x => x.MaCongViec).Distinct().ToListAsync()
             : new List<int>();
         var taskByProjectIds = scopedProjectIds.Count > 0
             ? await _dbContext.CongViecs.AsNoTracking().Where(x => scopedProjectIds.Contains(x.MaDuAn) && (x.DaXoa ?? false) == false).Select(x => x.MaCongViec).Distinct().ToListAsync()
@@ -511,7 +551,10 @@ public class DashboardController : ControllerBase
 
         var aiFeedbackRows = hasAiRisk
             ? await _dbContext.AiFeedbacks.AsNoTracking()
-                .Where(x => x.NgayPhanHoi.HasValue && x.NgayPhanHoi.Value >= DateTime.Now.AddDays(-30))
+                .Where(x => x.NgayPhanHoi.HasValue
+                    && x.NgayPhanHoi.Value >= DateTime.Now.AddDays(-30)
+                    && x.MaNhanVien.HasValue
+                    && employeeIds.Contains(x.MaNhanVien.Value))
                 .OrderByDescending(x => x.NgayPhanHoi)
                 .Take(50)
                 .ToListAsync()
@@ -523,7 +566,10 @@ public class DashboardController : ControllerBase
             try
             {
                 aiInterventionCount30d = await _dbContext.AiNhatKyCanThieps.AsNoTracking()
-                    .CountAsync(x => x.NgayCanThiep.HasValue && x.NgayCanThiep.Value >= DateTime.UtcNow.AddDays(-30));
+                    .CountAsync(x => x.NgayCanThiep.HasValue
+                        && x.NgayCanThiep.Value >= DateTime.UtcNow.AddDays(-30)
+                        && x.MaNhanVien.HasValue
+                        && employeeIds.Contains(x.MaNhanVien.Value));
             }
             catch (SqlException ex) when (IsMissingAiInterventionTable(ex))
             {
@@ -593,7 +639,9 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var kpiTheoPhongBan = await _dbContext.PhongBans.AsNoTracking()
-            .Where(x => !selectedDepartmentId.HasValue || x.MaPhongBan == selectedDepartmentId.Value)
+            .Where(x => selectedDepartmentId.HasValue
+                ? x.MaPhongBan == selectedDepartmentId.Value
+                : (isAdmin || managedDepartmentIds.Contains(x.MaPhongBan)))
             .Select(x => new { x.MaPhongBan, x.TenPhongBan })
             .ToListAsync();
         var kpiByDept = kpiTheoPhongBan.Select(pb =>
@@ -617,7 +665,7 @@ public class DashboardController : ControllerBase
             .Select(x => new DashboardFilterItemDto { Id = x.MaPhongBan, Label = x.TenPhongBan ?? $"Phòng {x.MaPhongBan}" })
             .ToListAsync();
         var teams = await _dbContext.Nhoms.AsNoTracking()
-            .Where(x => isAdmin || ledTeamIds.Contains(x.MaNhom))
+            .Where(x => isAdmin || visibleTeamIds.Contains(x.MaNhom))
             .Select(x => new DashboardFilterItemDto { Id = x.MaNhom, Label = x.TenNhom ?? $"Nhóm {x.MaNhom}" })
             .ToListAsync();
         var projects = scopedProjectIds.Count == 0

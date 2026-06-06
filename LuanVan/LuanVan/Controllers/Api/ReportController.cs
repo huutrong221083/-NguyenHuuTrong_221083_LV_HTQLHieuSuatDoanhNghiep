@@ -87,7 +87,31 @@ public class ReportController : ControllerBase
         }
 
         List<EmployeeTaskDto> myTasks;
-        if (actor.IsManager && !actor.IsAdmin)
+        if (actor.IsAdmin)
+        {
+            myTasks = await _dbContext.CongViecs
+                .AsNoTracking()
+                .Where(x => !(x.DaXoa ?? false))
+                .OrderBy(x => x.MaTrangThai == 3 ? 1 : 0) // Chưa hoàn thành trước
+                .ThenBy(x => x.HanHoanThanh ?? DateTime.MaxValue) // Gần hạn trước
+                .ThenByDescending(x => x.MaCongViec) // Mới cập nhật/tạo gần nhất fallback
+                .Select(x => new EmployeeTaskDto
+                {
+                    MaCongViec = x.MaCongViec,
+                    TenCongViec = x.TenCongViec,
+                    MoTa = x.MoTa,
+                    MaDuAn = x.MaDuAn,
+                    TenDuAn = x.DuAn != null ? x.DuAn.TenDuAn : null,
+                    NgayBatDau = x.NgayBatDau,
+                    HanHoanThanh = x.HanHoanThanh,
+                    TienDoPhanTram = x.PhanTramHoanThanh ?? 0,
+                    TenTrangThai = x.MaTrangThai == 3 ? "Hoàn thành" : (x.MaTrangThai == 2 ? "Đang thực hiện" : "Chưa bắt đầu"),
+                    TenDoUuTien = x.DoUuTien != null ? x.DoUuTien.TenDoUuTien : null
+                })
+                .Take(200)
+                .ToListAsync(cancellationToken);
+        }
+        else if (actor.IsManager && !actor.IsAdmin)
         {
             // Quản lý cần xem công việc theo phạm vi phòng ban/dự án để tạo báo cáo tổng hợp.
             var taskQuery = _dbContext.CongViecs
@@ -164,7 +188,25 @@ public class ReportController : ControllerBase
             .ToListAsync(cancellationToken);
 
         List<EmployeeDto> managers;
-        if (actor.IsManager && !actor.IsAdmin)
+        if (actor.IsAdmin)
+        {
+            managers = await _dbContext.NhanViens
+                .AsNoTracking()
+                .Where(x => x.AspNetUserId != null && x.AspNetUserId != actor.UserId)
+                .Where(x => _dbContext.UserRoles.Any(ur =>
+                    ur.UserId == x.AspNetUserId &&
+                    _dbContext.Roles.Any(r => r.Id == ur.RoleId && (r.Name == Roles.Admin || r.Name == Roles.Manager))))
+                .Select(x => new EmployeeDto
+                {
+                    MaNhanVien = x.MaNhanVien,
+                    HoTen = x.HoTen,
+                    AspNetUserId = x.AspNetUserId
+                })
+                .Distinct()
+                .Take(200)
+                .ToListAsync(cancellationToken);
+        }
+        else if (actor.IsManager && !actor.IsAdmin)
         {
             // Manager gửi báo cáo lên Admin.
             managers = await _dbContext.NhanViens
@@ -292,8 +334,11 @@ public class ReportController : ControllerBase
             return Conflict(ApiResponse<object>.Fail("Tên báo cáo đã tồn tại."));
         }
 
+        var reportType = request.LoaiBaoCao?.Trim().ToLowerInvariant();
+        var allowEmptyRecipient = actor.IsAdmin && string.Equals(reportType, "all", StringComparison.OrdinalIgnoreCase);
+
         var recipientLabel = await ResolveRecipientLabelAsync(request.NguoiNhanUserId, request.NguoiNhanBaoCao, cancellationToken);
-        if (string.IsNullOrWhiteSpace(recipientLabel))
+        if (string.IsNullOrWhiteSpace(recipientLabel) && !allowEmptyRecipient)
         {
             return BadRequest(ApiResponse<object>.Fail("Vui lòng chọn người nhận báo cáo."));
         }
@@ -317,7 +362,10 @@ public class ReportController : ControllerBase
         _dbContext.BaoCaos.Add(report);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await TrySaveRecipientMetadataAsync(report.MaBaoCao, recipientLabel, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(recipientLabel))
+        {
+            await TrySaveRecipientMetadataAsync(report.MaBaoCao, recipientLabel, cancellationToken);
+        }
 
         return Ok(ApiResponse<object>.Ok(new { report.MaBaoCao, report.TrangThai }, "Lưu nháp thành công."));
     }
@@ -352,9 +400,15 @@ public class ReportController : ControllerBase
             return Conflict(ApiResponse<object>.Fail("Tên báo cáo đã tồn tại."));
         }
 
+        var reportType = request.LoaiBaoCao?.Trim().ToLowerInvariant();
         var recipientLabel = await ResolveRecipientLabelAsync(request.NguoiNhanUserId, request.NguoiNhanBaoCao, cancellationToken);
         if (string.IsNullOrWhiteSpace(recipientLabel))
         {
+            if (actor.IsAdmin && string.Equals(reportType, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(ApiResponse<object>.Fail("Vui lòng chọn người nhận để gửi báo cáo nội bộ."));
+            }
+
             return BadRequest(ApiResponse<object>.Fail("Vui lòng chọn người nhận báo cáo."));
         }
 
@@ -619,6 +673,7 @@ public class ReportController : ControllerBase
 
         var items = itemsRaw.Select(x =>
         {
+            x.LoaiBaoCaoLabel = ToVietnameseReportType(x.LoaiBaoCao);
             x.NguoiNhanBaoCao = recipients.TryGetValue(x.MaBaoCao, out var nguoiNhan) && !string.IsNullOrWhiteSpace(nguoiNhan)
                 ? nguoiNhan
                 : ExtractRecipientFromNoiDung(x.NoiDungPlaceholder);
@@ -866,7 +921,7 @@ public class ReportController : ControllerBase
             NgayKetThuc = report.NgayKetThuc,
                 DefinDang = report.DinhDang,
                 TrangThai = report.TrangThai,
-                LoaiBaoCaoLabel = report.LoaiBaoCao,
+                LoaiBaoCaoLabel = ToVietnameseReportType(report.LoaiBaoCao),
                 TrangThaiLabel = report.TrangThai,
                 NoiDung = report.NoiDung
         }));
@@ -1110,6 +1165,7 @@ public class ReportController : ControllerBase
             "monthly" => "Báo cáo hằng tháng",
             "quarterly" => "Báo cáo hằng quý",
             "yearly" => "Báo cáo hằng năm",
+            "all" => "Báo cáo tổng hợp",
             _ => string.IsNullOrWhiteSpace(type) ? "-" : type.Trim()
         };
     }

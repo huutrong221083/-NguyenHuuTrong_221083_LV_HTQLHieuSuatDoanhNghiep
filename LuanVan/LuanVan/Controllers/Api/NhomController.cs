@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace LuanVan.Controllers.Api;
 
@@ -55,11 +56,94 @@ public class NhomController : ControllerBase
         }
     }
 
+    private sealed class ManagerTeamScope
+    {
+        public int MaNhanVien { get; set; }
+        public HashSet<int> VisibleTeamIds { get; set; } = new();
+    }
+
+    private async Task<ManagerTeamScope?> GetManagerTeamScopeAsync()
+    {
+        if (User.IsInRole(Roles.Admin) || !User.IsInRole(Roles.Manager))
+        {
+            return null;
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new ManagerTeamScope { MaNhanVien = 0 };
+        }
+
+        var manager = await _dbContext.NhanViens
+            .AsNoTracking()
+            .Where(x => x.AspNetUserId == userId)
+            .Select(x => new { x.MaNhanVien })
+            .FirstOrDefaultAsync();
+
+        if (manager == null)
+        {
+            return new ManagerTeamScope { MaNhanVien = 0 };
+        }
+
+        var ledTeamIds = await _dbContext.Nhoms
+            .AsNoTracking()
+            .Where(x => x.TruongNhom == manager.MaNhanVien)
+            .Select(x => x.MaNhom)
+            .ToListAsync();
+
+        var memberTeamIds = await _dbContext.ThanhVienNhoms
+            .AsNoTracking()
+            .Where(x => x.MaNhanVien == manager.MaNhanVien)
+            .Select(x => x.MaNhom)
+            .ToListAsync();
+
+        return new ManagerTeamScope
+        {
+            MaNhanVien = manager.MaNhanVien,
+            VisibleTeamIds = ledTeamIds.Union(memberTeamIds).Distinct().ToHashSet()
+        };
+    }
+
+    private async Task<bool> IsTeamInScopeAsync(int maNhom)
+    {
+        var scope = await GetManagerTeamScopeAsync();
+        return scope == null || (scope.MaNhanVien != 0 && scope.VisibleTeamIds.Contains(maNhom));
+    }
+
+    private async Task<bool> CanManagerMutateTeamAsync(int maNhom)
+    {
+        var scope = await GetManagerTeamScopeAsync();
+        if (scope == null)
+        {
+            return true;
+        }
+
+        if (scope.MaNhanVien == 0)
+        {
+            return false;
+        }
+
+        var team = await _dbContext.Nhoms
+            .AsNoTracking()
+            .Where(x => x.MaNhom == maNhom)
+            .Select(x => new { x.TruongNhom })
+            .FirstOrDefaultAsync();
+
+        return team != null && team.TruongNhom == scope.MaNhanVien;
+    }
+
     [Authorize(Policy = Permissions.EmployeesCreate)]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<object>>> CreateNhom([FromBody] CreateNhomRequest request)
     {
         EnsureDbConnectionStringInitialized();
+
+        if (User.IsInRole(Roles.Manager) && !User.IsInRole(Roles.Admin))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Manager không được tạo nhóm trong phiên bản V1."));
+        }
 
         if (string.IsNullOrWhiteSpace(request.TenNhom))
         {
@@ -118,6 +202,12 @@ public class NhomController : ControllerBase
         if (nhom == null)
         {
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy nhóm."));
+        }
+
+        if (!await CanManagerMutateTeamAsync(id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Bạn không có quyền cập nhật nhóm này."));
         }
 
         var tenNhom = request.TenNhom.Trim();
@@ -183,6 +273,12 @@ public class NhomController : ControllerBase
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy nhóm."));
         }
 
+        if (!await CanManagerMutateTeamAsync(id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Bạn không có quyền xóa nhóm này."));
+        }
+
         var hasProject = await _dbContext.DuAnNhoms.AnyAsync(x => x.MaNhom == id && (x.TrangThai ?? 1) != 0);
         var hasTask = await _dbContext.PhanCongNhoms.AnyAsync(x => x.MaNhom == id && (x.TrangThai ?? 1) != 0);
         var hasKpi = await _dbContext.KpiNhoms.AnyAsync(x => x.MaNhom == id && (x.TrangThai ?? 1) != 0);
@@ -212,6 +308,12 @@ public class NhomController : ControllerBase
         if (!nhomExists)
         {
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy nhóm."));
+        }
+
+        if (!await CanManagerMutateTeamAsync(request.MaNhom))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Bạn không có quyền thêm thành viên vào nhóm này."));
         }
 
         var employee = await _dbContext.NhanViens.FirstOrDefaultAsync(x => x.MaNhanVien == request.MaNhanVien);
@@ -255,6 +357,12 @@ public class NhomController : ControllerBase
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy nhóm."));
         }
 
+        if (!await CanManagerMutateTeamAsync(maNhom))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Bạn không có quyền xóa thành viên khỏi nhóm này."));
+        }
+
         if (nhom.TruongNhom == maNhanVien)
         {
             return Conflict(ApiResponse<object>.Fail("Không thể xóa trưởng nhóm khỏi nhóm. Hãy gán trưởng nhóm mới trước."));
@@ -292,6 +400,12 @@ public class NhomController : ControllerBase
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy thành viên trong nhóm."));
         }
 
+        if (!await CanManagerMutateTeamAsync(maNhom))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Bạn không có quyền cập nhật vai trò thành viên nhóm này."));
+        }
+
         item.VaiTroTrongNhom = vaiTro;
         if (item.Nhom?.TruongNhom == maNhanVien)
         {
@@ -308,8 +422,20 @@ public class NhomController : ControllerBase
     {
         EnsureDbConnectionStringInitialized();
 
-        var items = await _dbContext.Nhoms
-            .AsNoTracking()
+        var query = _dbContext.Nhoms.AsNoTracking().AsQueryable();
+        var scope = await GetManagerTeamScopeAsync();
+        if (scope is { MaNhanVien: 0 })
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<List<NhomDto>>.Fail("Tài khoản quản lý chưa được liên kết nhân viên."));
+        }
+
+        if (scope != null)
+        {
+            query = query.Where(x => scope.VisibleTeamIds.Contains(x.MaNhom));
+        }
+
+        var items = await query
             .OrderByDescending(x => x.NgayTao)
             .Select(x => new NhomDto
             {
@@ -330,6 +456,12 @@ public class NhomController : ControllerBase
     public async Task<ActionResult<ApiResponse<NhomDetailDto>>> GetNhomById(int id)
     {
         EnsureDbConnectionStringInitialized();
+
+        if (!await IsTeamInScopeAsync(id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<NhomDetailDto>.Fail("Bạn không có quyền truy cập nhóm này."));
+        }
 
         var item = await _dbContext.Nhoms
             .AsNoTracking()
@@ -366,6 +498,12 @@ public class NhomController : ControllerBase
     {
         EnsureDbConnectionStringInitialized();
 
+        if (!await IsTeamInScopeAsync(id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<List<NhomDuAnDto>>.Fail("Bạn không có quyền xem dự án của nhóm này."));
+        }
+
         var projects = await _dbContext.DuAnNhoms
             .AsNoTracking()
             .Where(x => x.MaNhom == id && (x.TrangThai ?? 1) == 1)
@@ -387,6 +525,12 @@ public class NhomController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<NhomKpiDto>>>> GetKpiByNhom(int id)
     {
         EnsureDbConnectionStringInitialized();
+
+        if (!await IsTeamInScopeAsync(id))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<List<NhomKpiDto>>.Fail("Bạn không có quyền xem KPI của nhóm này."));
+        }
 
         var memberIds = await _dbContext.ThanhVienNhoms
             .AsNoTracking()

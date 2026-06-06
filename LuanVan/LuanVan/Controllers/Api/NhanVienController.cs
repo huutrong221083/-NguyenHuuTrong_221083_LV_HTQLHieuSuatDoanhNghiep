@@ -73,6 +73,7 @@ public class NhanVienController : ControllerBase
         public string UserId { get; set; } = string.Empty;
         public int MaNhanVien { get; set; }
         public int? MaPhongBan { get; set; }
+        public HashSet<int> ManagedDepartmentIds { get; set; } = new();
         public bool IsAdmin { get; set; }
         public bool IsManager { get; set; }
         public bool IsEmployee { get; set; }
@@ -101,6 +102,17 @@ public class NhanVienController : ControllerBase
             })
             .FirstOrDefaultAsync();
 
+        if (actor?.IsManager == true && !actor.IsAdmin)
+        {
+            var managedDepartmentIds = await _dbContext.PhongBans
+                .AsNoTracking()
+                .Where(x => x.MaTruongPhong == actor.MaNhanVien)
+                .Select(x => x.MaPhongBan)
+                .ToListAsync();
+
+            actor.ManagedDepartmentIds = managedDepartmentIds.ToHashSet();
+        }
+
         return actor;
     }
 
@@ -116,9 +128,8 @@ public class NhanVienController : ControllerBase
             return false;
         }
 
-        return actor.MaPhongBan.HasValue
-            && targetMaPhongBan.HasValue
-            && actor.MaPhongBan.Value == targetMaPhongBan.Value;
+        return targetMaPhongBan.HasValue
+            && actor.ManagedDepartmentIds.Contains(targetMaPhongBan.Value);
     }
 
     private async Task WriteAuditAsync(ActorContext actor, string action)
@@ -208,9 +219,9 @@ public class NhanVienController : ControllerBase
         {
             query = query.Where(x => x.TrangThai == 1);
         }
-        else if (actor.IsManager && actor.MaPhongBan.HasValue)
+        else if (actor.IsManager)
         {
-            query = query.Where(x => x.MaPhongBan == actor.MaPhongBan.Value);
+            query = query.Where(x => x.MaPhongBan.HasValue && actor.ManagedDepartmentIds.Contains(x.MaPhongBan.Value));
         }
 
         if (phongban.HasValue)
@@ -998,6 +1009,11 @@ public class NhanVienController : ControllerBase
         if (nhanVien == null)
         {
             return NotFound(ApiResponse<object>.Fail("Không tìm thấy nhân viên."));
+        }
+
+        if (!IsManagerScopeAllowed(actor, nhanVien.MaPhongBan))
+        {
+            return Forbid();
         }
 
         var blockReason = await GetDeactivateBlockReasonAsync(id);

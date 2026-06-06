@@ -403,6 +403,17 @@
             const statWarning = document.getElementById('fcStatWarning');
             const statWarningHint = document.getElementById('fcStatWarningHint');
 
+            const requiredElements = [
+                fcProject, fcEmployee, fcRange, btnFcReload, forecastBody, fcRoleHint,
+                fcNextSignal, fcRiskFactors, fcRiskSignal, fcSuggestedAction, fcGeneratedAt,
+                fcChartSubtitle, fcChartTag, fcChartWrap, statTasks, statTasksHint,
+                statDelay, statDelayHint, statAccuracy, statAccuracyHint, statWarning, statWarningHint
+            ];
+            if (requiredElements.some(el => !el)) {
+                console.warn('[Forecast] Missing required DOM nodes. Abort initialization.');
+                return;
+            }
+
             const state = {
                 projects: [],
                 employees: [],
@@ -416,6 +427,16 @@
                 generatedAt: null,
                 feedbackByTask: {}
             };
+
+            function setHtml(el, html) {
+                if (!el) return;
+                el.innerHTML = html;
+            }
+
+            function setText(el, text) {
+                if (!el) return;
+                el.textContent = text;
+            }
 
             const escapeHtml = (value) => String(value ?? '')
                 .replaceAll('&', '&amp;')
@@ -550,6 +571,7 @@
             }
 
             function setChartTag(tone, text) {
+                if (!fcChartTag) return;
                 fcChartTag.className = `fc-pill ${tone}`;
                 fcChartTag.textContent = text;
             }
@@ -568,7 +590,7 @@
                 for (const project of state.projects) {
                     options.push(`<option value="${project.maDuAn}">${escapeHtml(project.tenDuAn || `Dự án ${project.maDuAn}`)}</option>`);
                 }
-                fcProject.innerHTML = options.join('');
+                setHtml(fcProject, options.join(''));
             }
 
             function populateEmployeeOptions() {
@@ -576,7 +598,7 @@
                 for (const employee of state.employees) {
                     options.push(`<option value="${employee.maNhanVien}">${escapeHtml(employee.hoTen || `NV ${employee.maNhanVien}`)}</option>`);
                 }
-                fcEmployee.innerHTML = options.join('');
+                setHtml(fcEmployee, options.join(''));
             }
 
             function daysBetween(start, end) {
@@ -721,9 +743,9 @@
                         return { label: mapping[name] || name, severity, count };
                     });
 
-                fcRiskFactors.innerHTML = topFactors.length
+                setHtml(fcRiskFactors, topFactors.length
                     ? topFactors.map(f => `<span class="fc-factor-chip ${f.severity}">${escapeHtml(f.label)} (${severityLabel(f.severity)}) x${f.count}</span>`).join('')
-                    : '<span class="small text-muted">Chưa có dữ liệu nguyên nhân.</span>';
+                    : '<span class="small text-muted">Chưa có dữ liệu nguyên nhân.</span>');
 
                 fcRiskSignal.textContent = `Mức cảnh báo: ${level.text}. Dữ liệu confidence: ${confidence.text}.`;
 
@@ -740,11 +762,11 @@
 
             function renderTable(rows) {
                 if (!rows.length) {
-                    forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Không có công việc phù hợp với bộ lọc hiện tại.</td></tr>';
+                    setHtml(forecastBody, '<tr><td colspan="7" class="fc-empty">Không có công việc phù hợp với bộ lọc hiện tại.</td></tr>');
                     return;
                 }
 
-                forecastBody.innerHTML = rows.map(row => {
+                setHtml(forecastBody, rows.map(row => {
                     const taskName = escapeHtml(row.task.tenCongViec || `Công việc ${row.task.maCongViec}`);
                     const assignees = row.task.nguoiThucHien?.length ? escapeHtml(row.task.nguoiThucHien.join(', ')) : 'Chưa phân công';
                     const taskId = String(row.task.maCongViec);
@@ -791,7 +813,7 @@
                                 </div>` : ''}
                             </td>
                         </tr>`;
-                }).join('');
+                }).join(''));
             }
 
             function renderChart(rows) {
@@ -805,7 +827,7 @@
                     const plannedDate = timelineRow?.deadline ? formatDate(timelineRow.deadline) : 'Chưa có';
                     const forecastDate = timelineRow?.predictedDate ? formatDate(timelineRow.predictedDate) : 'Chưa có';
                     const gap = timelineRow ? `${timelineRow.delayDays >= 0 ? '+' : ''}${timelineRow.delayDays} ngày` : '+0 ngày';
-                    fcChartWrap.innerHTML = `
+                    setHtml(fcChartWrap, `
                         <div class="fc-timeline">
                             <div class="small text-muted">Dữ liệu thời gian còn ít, hiển thị timeline trực quan.</div>
                             <div class="fc-timeline-track">
@@ -815,12 +837,12 @@
                                 <div class="fc-timeline-line"></div>
                                 <span class="fc-timeline-node">Dự báo: ${forecastDate}</span>
                             </div>
-                        </div>`;
+                        </div>`);
                     return;
                 }
 
                 fcChartWrap.classList.remove('timeline-mode');
-                fcChartWrap.innerHTML = '<canvas id="forecastMainChart" height="160"></canvas>';
+                setHtml(fcChartWrap, '<canvas id="forecastMainChart" height="160"></canvas>');
                 const canvas = document.getElementById('forecastMainChart');
 
                 const labels = rows.map(row => row.task.tenCongViec || `Công việc ${row.task.maCongViec}`);
@@ -942,9 +964,9 @@
                 populateEmployeeOptions();
 
                 if (!state.projects.length) {
-                    fcProject.innerHTML = '<option value="">Không có dự án khả dụng</option>';
-                    forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Chưa có dự án nào để dự báo.</td></tr>';
-                    fcChartSubtitle.textContent = 'Chưa có dự án';
+                    setHtml(fcProject, '<option value="">Không có dự án khả dụng</option>');
+                    setHtml(forecastBody, '<tr><td colspan="7" class="fc-empty">Chưa có dự án nào để dự báo.</td></tr>');
+                    setText(fcChartSubtitle, 'Chưa có dự án');
                     setChartTag('warn', 'Chưa có dữ liệu');
                     return false;
                 }
@@ -967,7 +989,7 @@
                 }
 
                     if (!taskRes.success) {
-                    forecastBody.innerHTML = `<tr><td colspan="7" class="fc-empty">${escapeHtml(taskRes.message || 'Không tải được danh sách công việc.')} </td></tr>`;
+                    setHtml(forecastBody, `<tr><td colspan="7" class="fc-empty">${escapeHtml(taskRes.message || 'Không tải được danh sách công việc.')} </td></tr>`);
                 }
 
                 await loadForecastFeedbackStatuses();
@@ -1133,8 +1155,8 @@
             wireEvents();
             initializeForecastPage().catch(error => {
                 console.error('[Forecast] init failed', error);
-                forecastBody.innerHTML = '<tr><td colspan="7" class="fc-empty">Không thể tải dữ liệu dự báo.</td></tr>';
-                fcRiskSignal.textContent = 'Không thể khởi tạo trang dự báo từ API hiện tại.';
+                setHtml(forecastBody, '<tr><td colspan="7" class="fc-empty">Không thể tải dữ liệu dự báo.</td></tr>');
+                setText(fcRiskSignal, 'Không thể khởi tạo trang dự báo từ API hiện tại.');
                 setChartTag('warn', 'Lỗi tải dữ liệu');
             });
         })();

@@ -139,3 +139,37 @@ public sealed class AiInterventionLogDto
     public DateTime? NgayCanThiep { get; set; }
     public int? SoLanChinhSua { get; set; }
 }
+
+public sealed class AiTrainingDataResponseDto
+{
+    public DateTime GeneratedAt { get; set; }
+    public AiTrainingDatasetDto? TaskDelay { get; set; }
+    public AiTrainingDatasetDto? Performance { get; set; }
+}
+
+public sealed class AiTrainingDatasetDto
+{
+    public string DatasetKey { get; set; } = string.Empty;
+    public string ModelName { get; set; } = string.Empty;
+    public string Algorithm { get; set; } = string.Empty;
+    public List<string> SourceTables { get; set; } = new();
+    public List<string> Features { get; set; } = new();
+    public string Target { get; set; } = string.Empty;
+    public int TotalRows { get; set; }
+    public AiTrainingDataQualityDto DataQuality { get; set; } = new();
+    public List<AiTrainingRowDto> Rows { get; set; } = new();
+}
+
+public sealed class AiTrainingDataQualityDto
+{
+    public bool IsLowData { get; set; }
+    public int MinRequiredRows { get; set; }
+    public int ActualRows { get; set; }
+    public string WarningMessage { get; set; } = string.Empty;
+}
+
+public sealed class AiTrainingRowDto
+{
+    public string RowType { get; set; } = string.Empty;
+    public Dictionary<string, object?> Values { get; set; } = new();
+}

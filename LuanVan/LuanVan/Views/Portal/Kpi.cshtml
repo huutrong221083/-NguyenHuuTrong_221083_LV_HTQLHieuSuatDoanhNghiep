@@ -2048,7 +2048,7 @@
                 const blob = await response.blob();
                 const disposition = response.headers.get('content-disposition') || '';
                 const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
-                const filename = match?.[1] || (type === 'detail' ? 'kpi-detail.csv' : 'kpi-overview.csv');
+                const filename = match?.[1] || (type === 'detail' ? 'kpi-detail.xlsx' : 'kpi-overview.xlsx');
                 downloadExportBlob(blob, filename);
 
                 kpiCalcResult.className = 'small mt-2 text-success';
@@ -2062,44 +2062,34 @@
 
         async function previewExportCsv(type = 'overview') {
             const query = buildExportQuery(type);
-            const url = `/kpi/export?${query.toString()}`;
+            query.set('preview', 'true');
+            const url = `/api/kpi/export?${query.toString()}`;
             kpiCalcResult.className = 'small mt-2 text-muted';
             kpiCalcResult.textContent = `Đang tải dữ liệu xem trước ${type === 'detail' ? 'chi tiết' : 'tổng quan'}...`;
 
             try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    const raw = await response.text();
-                    throw new Error(raw || `HTTP ${response.status}`);
+                const result = await fetchJson(url);
+                if (!result.success) {
+                    throw new Error(result.message || 'Không thể tải dữ liệu xem trước.');
                 }
 
-                const blob = await response.blob();
-                const disposition = response.headers.get('content-disposition') || '';
-                const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
-                exportPreviewFilename = match?.[1] || (type === 'detail' ? 'kpi-detail.csv' : 'kpi-overview.csv');
-                exportPreviewBlob = blob;
+                const preview = result.data || {};
+                const headers = Array.isArray(preview.headers) ? preview.headers : [];
+                const rows = Array.isArray(preview.rows) ? preview.rows : [];
+                const totalRows = Number(preview.totalRows || 0);
+                exportPreviewFilename = preview.suggestedFileName || (type === 'detail' ? 'kpi-detail.xlsx' : 'kpi-overview.xlsx');
 
-                const contentText = await blob.text();
-                const matrix = parseSemicolonCsv(contentText);
-                if (!matrix.length) {
+                if (!headers.length) {
                     kpiExportPreviewHead.innerHTML = '';
                     kpiExportPreviewBody.innerHTML = '<tr><td class="text-muted">Không có dữ liệu xem trước.</td></tr>';
                 } else {
-                    let headerIndex = 0;
-                    if (type === 'overview') {
-                        headerIndex = matrix.findIndex(r => (r?.[0] || '').trim() === 'MaKPI');
-                        if (headerIndex < 0) headerIndex = 0;
-                    }
-                    const headers = matrix[headerIndex];
-                    const rowLimit = type === 'detail' ? 50 : 30;
-                    const rows = matrix.slice(headerIndex + 1, headerIndex + 1 + rowLimit);
                     kpiExportPreviewHead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
                     kpiExportPreviewBody.innerHTML = rows.length
                         ? rows.map(r => `<tr>${headers.map((_, idx) => `<td>${escapeHtml(r[idx] ?? '')}</td>`).join('')}</tr>`).join('')
                         : `<tr><td colspan="${headers.length}" class="text-muted">Không có dòng dữ liệu.</td></tr>`;
                 }
                 const showNote = type === 'detail' ? ' | Đang hiển thị 50 dòng đầu tiên.' : '';
-                kpiExportPreviewMeta.textContent = `Tổng số dòng dữ liệu: ${Math.max(0, matrix.length - 1)} | Tệp: ${exportPreviewFilename}${showNote}`;
+                kpiExportPreviewMeta.textContent = `Tổng số dòng dữ liệu: ${Math.max(0, totalRows)} | Tệp: ${exportPreviewFilename}${showNote}`;
 
                 kpiExportPreviewModal.show();
                 kpiCalcResult.className = 'small mt-2 text-success';
@@ -2115,7 +2105,7 @@
         let autoKpiRunning = false;
         let kpiAlertSyncRunning = false;
         let exportPreviewBlob = null;
-        let exportPreviewFilename = 'kpi-overview.csv';
+        let exportPreviewFilename = 'kpi-overview.xlsx';
 
         async function runKpiCalculation(skipReload = false) {
             if (!state.kpis.length) {
@@ -2259,8 +2249,6 @@
         })();
     </script>
 }
-
-
 
 
 

@@ -742,136 +742,277 @@
     .request-panel {
         padding: 12px;
     }
+
+    .report-management-page {
+        max-width: 1480px;
+        margin: 0 auto;
+    }
+
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .quick-stat-card {
+        background: #fff;
+        border: 1px solid #e7eef7;
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .quick-stat-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .quick-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .report-dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .report-main,
+    .report-side {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .report-side {
+        position: sticky;
+        top: 90px;
+    }
+
+    .filter-card,
+    .reports-table-card,
+    .recent-history-card,
+    .request-card {
+        background: #fff;
+        border: 1px solid #e7eef7;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+    }
+
+    .filter-card {
+        padding: 12px;
+    }
+
+    .filter-bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .card-body-compact {
+        padding: 12px;
+    }
+
+    .request-list.expanded {
+        max-height: 420px;
+        overflow-y: auto;
+    }
+
+    .request-item-title {
+        margin: 0 0 4px;
+        font-size: 14px;
+        color: #0f172a;
+    }
+
+    .request-desc {
+        font-size: 12px;
+        color: #334155;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .request-card-footer-link {
+        color: #2563eb;
+        font-size: 12px;
+        font-weight: 600;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .recipient-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-draft { background: #f1f5f9; color: #475569; }
+    .status-submitted { background: #eff6ff; color: #2563eb; }
+    .status-approved { background: #dcfce7; color: #15803d; }
+    .status-rejected { background: #fee2e2; color: #b91c1c; }
+    .status-default { background: #f1f5f9; color: #334155; }
+
+    @@media (max-width: 1200px) {
+        .report-dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .report-side {
+            position: static;
+            top: auto;
+        }
+    }
 </style>
 
-<div class="report-management-container">
-    <section class="report-overview-panel">
-        <div class="report-overview-toolbar">
-            <div class="report-overview-actions">
-                <button class="btn" id="btnMyReports">
-                    <i class="bi bi-card-list"></i>
-                    Báo cáo đã làm
-                </button>
-                <button class="btn-create-report" id="btnCreateReport">
-                    <i class="bi bi-plus-lg"></i>
-                    Tạo mới
-                </button>
-            </div>
-        </div>
-
-        <div class="report-overview-filters">
+<div class="report-management-page">
+    <div class="report-management-container">
+        <section class="page-head">
             <div>
-                <label>Thời gian báo cáo</label>
-                <select id="reportPeriodFilter" class="form-select">
-                    <option value="">Tất cả thời gian</option>
-                    <option value="today">Hôm nay</option>
-                    <option value="this_week">Tuần này</option>
-                    <option value="this_month">Tháng này</option>
-                    <option value="this_quarter">Quý này</option>
-                    <option value="this_year">Năm nay</option>
-                </select>
+                <h2>Quản lý báo cáo</h2>
+                <p>Theo dõi, lọc, xuất và xử lý các báo cáo trong hệ thống.</p>
             </div>
-            <div>
-                <label>Loại báo cáo</label>
-                <select id="reportType" class="form-select">
-                    <option value="">Tất cả loại</option>
-                    <option value="personal">Báo cáo cá nhân</option>
-                    <option value="project">Báo cáo dự án</option>
-                    <option value="department">Báo cáo phòng ban</option>
-                    <option value="ai">Báo cáo AI</option>
-                    @if (roleKey == "admin")
-                    {
-                        <option value="admin">Báo cáo quản trị</option>
-                    }
-                </select>
+            <div class="page-head-actions">
+                <button class="btn" id="btnMyReports"><i class="bi bi-card-list"></i>Báo cáo của tôi</button>
+                <button class="btn btn-create-report" id="btnCreateReport"><i class="bi bi-plus-lg"></i>Tạo mới</button>
             </div>
-            <div>
-                <label>Phòng ban</label>
-                <select id="departmentFilter" class="form-select">
-                    <option value="">Tất cả phòng ban</option>
-                </select>
-            </div>
-            <div>
-                <label>Tìm nhân viên</label>
-                <input type="text" id="employeeSearch" class="form-control" placeholder="Tên / Mã / Email" />
-            </div>
-        </div>
-        <div class="report-filter-actions">
-            <button class="btn" id="btnRefresh">
-                <i class="bi bi-arrow-repeat"></i>
-                Làm mới
-            </button>
-            <button class="btn btn-success" id="btnExportExcel">
-                <i class="bi bi-download"></i>
-                Xuất Excel
-            </button>
-        </div>
-        <div class="status-tabs" id="statusTabs">
-            <button class="status-tab active" data-status="">Tất cả</button>
-            <button class="status-tab" data-status="Approved">Đã duyệt</button>
-            <button class="status-tab" data-status="Rejected">Từ chối</button>
-        </div>
-    </section>
+        </section>
 
-    <!-- Report List Panel -->
-    <section class="report-list-panel">
-        <div class="report-list-header">
-            <h3>Danh sách báo cáo</h3>
-            <span id="reportCount" style="color: #64748b; font-size: 13px;">0 báo cáo</span>
-        </div>
-        <div class="table-responsive">
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">STT</th>
-                        <th style="width: 20%;">Tên báo cáo</th>
-                        <th style="width: 12%;">Loại</th>
-                        <th style="width: 14%;">Người tạo</th>
-                        <th style="width: 14%;">Người nhận</th>
-                        <th style="width: 12%;">Ngày tạo</th>
-                        <th style="width: 8%;">Định dạng</th>
-                        <th style="width: 9%;">Trạng thái</th>
-                        <th style="width: 14%; text-align: center;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody id="reportTableBody">
-                    <tr>
-                        <td colspan="9" class="empty-state">
-                            <div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div>
-                            <p>Chưa có báo cáo nào. Hãy bắt đầu bằng cách tạo báo cáo đầu tiên.</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+        <section class="quick-stats">
+            <article class="quick-stat-card"><div class="quick-stat-label">Tổng báo cáo</div><div class="quick-stat-value" id="statTotalReports">0</div></article>
+            <article class="quick-stat-card"><div class="quick-stat-label">Đã duyệt</div><div class="quick-stat-value" id="statApprovedReports">0</div></article>
+            <article class="quick-stat-card"><div class="quick-stat-label">Chờ duyệt</div><div class="quick-stat-value" id="statSubmittedReports">0</div></article>
+            <article class="quick-stat-card"><div class="quick-stat-label">Yêu cầu mở</div><div class="quick-stat-value" id="statOpenRequests">0</div></article>
+        </section>
 
-    <!-- Recent History Panel -->
-    <section class="report-history-panel">
-        <h3>Lịch sử báo cáo gần đây</h3>
-        <div id="historyList">
-            <p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có lịch sử báo cáo nào.</p>
-        </div>
-    </section>
+        <section class="report-dashboard-layout">
+            <div class="report-main">
+                <section class="filter-card">
+                    <div class="report-overview-filters">
+                        <div>
+                            <label>Thời gian báo cáo</label>
+                            <select id="reportPeriodFilter" class="form-select">
+                                <option value="">Tất cả thời gian</option>
+                                <option value="today">Hôm nay</option>
+                                <option value="this_week">Tuần này</option>
+                                <option value="this_month">Tháng này</option>
+                                <option value="this_quarter">Quý này</option>
+                                <option value="this_year">Năm nay</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Loại báo cáo</label>
+                            <select id="reportType" class="form-select">
+                                <option value="">Tất cả loại</option>
+                                <option value="personal">Báo cáo cá nhân</option>
+                                <option value="project">Báo cáo dự án</option>
+                                <option value="department">Báo cáo phòng ban</option>
+                                <option value="ai">Báo cáo AI</option>
+                                @if (roleKey == "admin")
+                                {
+                                    <option value="admin">Báo cáo quản trị</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label>Phòng ban</label>
+                            <select id="departmentFilter" class="form-select">
+                                <option value="">Tất cả phòng ban</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Tìm nhân viên</label>
+                            <input type="text" id="employeeSearch" class="form-control" placeholder="Tên / Mã / Email" />
+                        </div>
+                    </div>
+                    <div class="filter-bottom-row">
+                        <div class="status-tabs" id="statusTabs">
+                            <button class="status-tab active" data-status="">Tất cả</button>
+                            <button class="status-tab" data-status="Draft">Nháp</button>
+                            <button class="status-tab" data-status="Submitted">Chờ duyệt</button>
+                            <button class="status-tab" data-status="Approved">Đã duyệt</button>
+                            <button class="status-tab" data-status="Rejected">Từ chối</button>
+                        </div>
+                        <div class="report-filter-actions">
+                            <button class="btn" id="btnRefresh"><i class="bi bi-arrow-repeat"></i>Làm mới</button>
+                            <button class="btn btn-success" id="btnExportExcel"><i class="bi bi-download"></i>Xuất Excel</button>
+                        </div>
+                    </div>
+                </section>
 
-    <section class="request-panel">
-        <div class="report-list-header" style="padding: 0 0 12px;border-bottom:none;">
-            <h3>Yêu cầu báo cáo</h3>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span id="requestCount" style="color: #64748b; font-size: 13px;">0 yêu cầu</span>
-                @if (roleKey == "manager" || roleKey == "admin")
-                {
-                    <button class="btn btn-primary" id="btnCreateRequest">
-                        <i class="bi bi-send-plus"></i>
-                        Gửi yêu cầu báo cáo
-                    </button>
-                }
+                <section class="reports-table-card">
+                    <div class="report-list-header">
+                        <h3>Danh sách báo cáo</h3>
+                        <span id="reportCount" style="color: #64748b; font-size: 13px;">0 báo cáo</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">STT</th>
+                                    <th style="width: 20%;">Tên báo cáo</th>
+                                    <th style="width: 12%;">Loại</th>
+                                    <th style="width: 14%;">Người tạo</th>
+                                    <th style="width: 14%;">Người nhận</th>
+                                    <th style="width: 12%;">Ngày tạo</th>
+                                    <th style="width: 8%;">Định dạng</th>
+                                    <th style="width: 9%;">Trạng thái</th>
+                                    <th style="width: 14%; text-align: center;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <tr>
+                                    <td colspan="9" class="empty-state">
+                                        <div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div>
+                                        <p>Chưa có báo cáo nào. Hãy bắt đầu bằng cách tạo báo cáo đầu tiên.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-        </div>
-        <div id="requestList">
-            <p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có yêu cầu báo cáo.</p>
-        </div>
-    </section>
+
+            <aside class="report-side">
+                <section class="recent-history-card">
+                    <div class="report-list-header"><h3>Lịch sử gần đây</h3></div>
+                    <div class="card-body-compact" id="historyList">
+                        <p style="color: #94a3b8; font-size: 13px; margin: 0;">Chưa có lịch sử báo cáo gần đây.</p>
+                    </div>
+                </section>
+
+                <section class="request-card">
+                    <div class="report-list-header" style="border-bottom:none; padding-bottom:10px;">
+                        <h3>Yêu cầu báo cáo</h3>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span id="requestCount" style="color: #64748b; font-size: 13px;">0 yêu cầu</span>
+                            @if (roleKey == "manager" || roleKey == "admin")
+                            {
+                                <button class="btn btn-primary" id="btnCreateRequest"><i class="bi bi-send-plus"></i>Gửi yêu cầu</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body-compact">
+                        <div id="requestList" class="request-list">
+                            <p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có yêu cầu báo cáo đang mở.</p>
+                        </div>
+                        <button id="toggleRequestExpand" class="request-card-footer-link" style="display:none; margin-top:8px;">Xem tất cả yêu cầu</button>
+                    </div>
+                </section>
+            </aside>
+        </section>
+    </div>
 </div>
 
 <!-- Modal: View Report Details -->
@@ -1123,12 +1264,11 @@
     let allReports = [];
     let allRequests = [];
     let teamEmployees = [];
-    let scopeStats = null;
-    let kpiReportStats = null;
     let currentStatusFilter = '';
     let currentReportIdForDelete = null;
     let currentReportIdForReview = null;
     let currentReportIdForView = null;
+    let requestExpanded = false;
     const mineOnlyView = new URLSearchParams(window.location.search).get('mine') === '1';
 
     function getDateRangeFromPeriod(periodKey) {
@@ -1222,39 +1362,39 @@
         })
     );
 
-    function normalizeReportStatus(status) {
+    function normalizeStatus(status) {
         const raw = String(status || '').trim().toLowerCase();
         if (!raw) return '';
         if (raw.includes('approved') || raw.includes('đã duyệt') || raw.includes('da duyet') || raw === 'duyet') return 'approved';
         if (raw.includes('rejected') || raw.includes('từ chối') || raw.includes('tu choi') || raw === 'reject') return 'rejected';
-        if (raw.includes('submitted') || raw.includes('đã gửi') || raw.includes('da gui') || raw === 'gui') return 'submitted';
+        if (raw.includes('submitted') || raw.includes('chờ duyệt') || raw.includes('cho duyet') || raw.includes('đã gửi') || raw.includes('da gui') || raw === 'gui') return 'submitted';
         if (raw.includes('draft') || raw.includes('nháp') || raw.includes('nhap')) return 'draft';
         if (raw.includes('cancel')) return 'cancelled';
-        if (raw.includes('overdue') || raw.includes('quá hạn') || raw.includes('qua han')) return 'overdue';
         return raw;
     }
 
     function getReportStatusLabel(status) {
-        const normalized = normalizeReportStatus(status);
+        const normalized = normalizeStatus(status);
         const labels = {
             draft: 'Nháp',
-            submitted: 'Đã gửi',
+            submitted: 'Chờ duyệt',
             approved: 'Đã duyệt',
             rejected: 'Từ chối',
-            cancelled: 'Đã hủy',
-            overdue: 'Quá hạn'
+            cancelled: 'Đã hủy'
         };
         return labels[normalized] || (status || '-');
     }
 
     function getStatusBadgeClass(status) {
-        const s = normalizeReportStatus(status);
-        if (s === 'approved') return 'status-completed';
-        if (s === 'rejected') return 'status-error';
-        return 'status-processing';
+        const s = normalizeStatus(status);
+        if (s === 'draft') return 'status-draft';
+        if (s === 'submitted') return 'status-submitted';
+        if (s === 'approved') return 'status-approved';
+        if (s === 'rejected') return 'status-rejected';
+        return 'status-default';
     }
 
-    function toVietnameseReportType(type) {
+    function getReportTypeLabel(type) {
         const key = String(type || '').trim().toLowerCase();
         const map = {
             personal: 'Báo cáo cá nhân',
@@ -1262,6 +1402,7 @@
             department: 'Báo cáo phòng ban',
             ai: 'Báo cáo AI',
             admin: 'Báo cáo quản trị',
+            all: 'Báo cáo tổng hợp',
             daily: 'Báo cáo hằng ngày',
             weekly: 'Báo cáo hằng tuần',
             monthly: 'Báo cáo hằng tháng',
@@ -1269,6 +1410,27 @@
             yearly: 'Báo cáo hằng năm'
         };
         return map[key] || (type || '-');
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '-';
+        const dt = new Date(value);
+        if (Number.isNaN(dt.getTime())) return '-';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    }
+
+    function normalizeRequestStatus(status) {
+        const raw = String(status || '').trim().toLowerCase();
+        if (!raw) return '';
+        if (raw.includes('open')) return 'open';
+        if (raw.includes('inprogress') || raw.includes('in progress') || raw.includes('đang xử lý') || raw.includes('dang xu ly')) return 'inprogress';
+        if (raw.includes('pending')) return 'pending';
+        if (raw.includes('completed') || raw.includes('done')) return 'completed';
+        if (raw.includes('closed')) return 'closed';
+        if (raw.includes('rejected')) return 'rejected';
+        if (raw.includes('cancelled') || raw.includes('canceled')) return 'cancelled';
+        return raw;
     }
 
     async function fetchReports(filters = {}) {
@@ -1283,59 +1445,29 @@
         const response = await fetch(`/api/baocao/list?${params.toString()}`);
         const data = response.ok ? await response.json() : { items: [] };
         allReports = (data.items || []).map(b => ({
-            id: b.maBaoCao, name: b.tenBaoCao, typeLabel: toVietnameseReportType(b.loaiBaoCaoLabel || b.loaiBaoCao),
+            id: b.maBaoCao, name: b.tenBaoCao, typeLabel: getReportTypeLabel(b.loaiBaoCaoLabel || b.loaiBaoCao),
             creator: b.nguoiTao || '-', format: b.definDang || 'PDF',
-            recipient: b.nguoiNhanBaoCao || '-',
-            createdDate: b.ngayTao ? new Date(b.ngayTao).toLocaleString('vi-VN') : '-',
+            recipient: b.nguoiNhanBaoCao || 'Lưu nội bộ',
+            createdDate: formatDateTime(b.ngayTao),
             period: (b.ngayBatDau && b.ngayKetThuc) ? `${new Date(b.ngayBatDau).toLocaleDateString('vi-VN')} - ${new Date(b.ngayKetThuc).toLocaleDateString('vi-VN')}` : '-',
-            status: normalizeReportStatus(b.trangThai || b.trangThaiLabel),
+            status: normalizeStatus(b.trangThai || b.trangThaiLabel),
             statusLabel: getReportStatusLabel(b.trangThaiLabel || b.trangThai)
         }));
         teamEmployees = data.teamEmployees || [];
-        scopeStats = data.scopeStats || null;
-        renderScopeStats();
-        await fetchKpiReportSummary(filters);
+        renderQuickStats();
     }
 
-    async function fetchKpiReportSummary(filters = {}) {
-        try {
-            const params = new URLSearchParams();
-            if (filters.fromDate) params.append('NgayBatDau', filters.fromDate);
-            if (filters.toDate) params.append('NgayKetThuc', filters.toDate);
-            if (filters.maPhongBan) params.append('MaPhongBan', filters.maPhongBan);
-
-            const response = await fetch(`/api/report/kpi-summary?${params.toString()}`);
-            const payload = response.ok ? await response.json() : null;
-            kpiReportStats = payload?.data || null;
-        } catch {
-            kpiReportStats = null;
-        }
-        renderKpiReportStats();
-    }
-
-    function renderScopeStats() {
-        const el = document.getElementById('scopeStats');
-        if (!el) return;
-        if (!scopeStats) {
-            el.textContent = 'Scope: -';
-            return;
-        }
-        if (mineOnlyView) {
-            el.textContent = `Scope: Báo cáo của tôi • Tổng ${scopeStats.total || 0} • Đã duyệt ${scopeStats.approved || 0} • Từ chối ${scopeStats.rejected || 0}`;
-            return;
-        }
-        const teamSize = teamEmployees?.length || 0;
-        el.textContent = `Scope: Tổng ${scopeStats.total || 0} • Đã duyệt ${scopeStats.approved || 0} • Từ chối ${scopeStats.rejected || 0} • NV phạm vi ${teamSize}`;
-    }
-
-    function renderKpiReportStats() {
-        const el = document.getElementById('kpiReportStats');
-        if (!el) return;
-        if (!kpiReportStats) {
-            el.textContent = 'KPI Report: -';
-            return;
-        }
-        el.textContent = `KPI Report: KPI TB ${Number(kpiReportStats.kpiTrungBinh || 0).toFixed(2)} • Đạt KPI ${Number(kpiReportStats.tyLeDatKpi || 0).toFixed(1)}% • Đúng hạn ${kpiReportStats.taskDungHan || 0} • Trễ hạn ${kpiReportStats.taskTreHan || 0}`;
+    function renderQuickStats() {
+        const reports = Array.isArray(allReports) ? allReports : [];
+        const requests = Array.isArray(allRequests) ? allRequests : [];
+        const openStatuses = new Set(['open', 'inprogress', 'pending']);
+        const approvedCount = reports.filter(r => normalizeStatus(r.status) === 'approved').length;
+        const submittedCount = reports.filter(r => normalizeStatus(r.status) === 'submitted').length;
+        const openRequestCount = requests.filter(r => openStatuses.has(normalizeRequestStatus(r.trangThai))).length;
+        document.getElementById('statTotalReports').textContent = String(reports.length);
+        document.getElementById('statApprovedReports').textContent = String(approvedCount);
+        document.getElementById('statSubmittedReports').textContent = String(submittedCount);
+        document.getElementById('statOpenRequests').textContent = String(openRequestCount);
     }
 
     function buildReportFiltersFromUi() {
@@ -1361,6 +1493,7 @@
         const response = await fetch('/api/report/request/list');
         const data = response.ok ? await response.json() : null;
         allRequests = data?.data || [];
+        renderQuickStats();
     }
 
     async function loadDepartments() {
@@ -1472,7 +1605,7 @@
     }
 
     function exportVisibleReportsToExcel() {
-        const scoped = allReports.filter(r => !currentStatusFilter || normalizeReportStatus(r.status) === normalizeReportStatus(currentStatusFilter));
+        const scoped = allReports.filter(r => !currentStatusFilter || normalizeStatus(r.status) === normalizeStatus(currentStatusFilter));
         if (!scoped.length) {
             alert('Không có dữ liệu để xuất.');
             return;
@@ -1501,25 +1634,25 @@
 
     function renderReportTable() {
         const tbody = document.getElementById('reportTableBody');
-        const scoped = allReports.filter(r => !currentStatusFilter || normalizeReportStatus(r.status) === normalizeReportStatus(currentStatusFilter));
+        const scoped = allReports.filter(r => !currentStatusFilter || normalizeStatus(r.status) === normalizeStatus(currentStatusFilter));
         document.getElementById('reportCount').textContent = `${scoped.length} báo cáo`;
-        if (!scoped.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div><p>Không có báo cáo phù hợp.</p></td></tr>`; return; }
+        if (!scoped.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div><p>Không tìm thấy báo cáo phù hợp. Thử thay đổi bộ lọc hoặc làm mới dữ liệu.</p></td></tr>`; return; }
         tbody.innerHTML = scoped.map((r, i) => `
             <tr>
                 <td>${i + 1}</td>
                 <td><span class="report-name" data-id="${r.id}">${r.name}</span></td>
                 <td>${r.typeLabel || '-'}</td>
                 <td>${r.creator}</td>
-                <td>${r.recipient || '-'}</td>
+                <td>${r.recipient === 'Lưu nội bộ' ? `<span class="recipient-badge">Lưu nội bộ</span>` : escapeHtml(r.recipient || 'Lưu nội bộ')}</td>
                 <td>${r.createdDate}</td>
-                <td>${r.format}</td>
+                <td><span class="format-badge">${escapeHtml(r.format || 'PDF')}</span></td>
                 <td><span class="status-badge ${getStatusBadgeClass(r.status)}">${r.statusLabel}</span></td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn btn-view" data-id="${r.id}" title="Xem"><i class="bi bi-eye"></i></button>
+                        <button class="action-btn btn-view" data-id="${r.id}" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
                         <button class="action-btn btn-download" data-id="${r.id}" title="Tải xuống"><i class="bi bi-download"></i></button>
-                        <button class="action-btn delete btn-delete" data-id="${r.id}" title="Xóa"><i class="bi bi-trash"></i></button>
-                        ${(roleKey === 'manager' || roleKey === 'admin') && normalizeReportStatus(r.status) === 'submitted' ? `<button class="action-btn btn-view" data-review-id="${r.id}" title="Duyệt/Từ chối"><i class="bi bi-check2-square"></i></button>` : ''}
+                        <button class="action-btn delete btn-delete" data-id="${r.id}" title="Xóa báo cáo"><i class="bi bi-trash"></i></button>
+                        ${(roleKey === 'manager' || roleKey === 'admin') && normalizeStatus(r.status) === 'submitted' ? `<button class="action-btn btn-view" data-review-id="${r.id}" title="Duyệt/Từ chối"><i class="bi bi-check2-square"></i></button>` : ''}
                     </div>
                 </td>
             </tr>`).join('');
@@ -1547,15 +1680,51 @@
 
     function renderRequestList() {
         const container = document.getElementById('requestList');
-        document.getElementById('requestCount').textContent = `${allRequests.length} yêu cầu`;
-        if (!allRequests.length) { container.innerHTML = '<p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có yêu cầu báo cáo.</p>'; return; }
-        container.innerHTML = allRequests.map(r => `
+        const toggleBtn = document.getElementById('toggleRequestExpand');
+        const all = Array.isArray(allRequests) ? allRequests : [];
+
+        const priorityScore = (priority) => {
+            const key = String(priority || '').trim().toLowerCase();
+            if (key === 'high' || key === 'urgent' || key === 'cao' || key === 'khẩn cấp' || key === 'khan cap') return 3;
+            if (key === 'medium' || key === 'normal' || key === 'trung bình' || key === 'trung binh' || key === 'binh thuong') return 2;
+            if (key === 'low' || key === 'thấp' || key === 'thap') return 1;
+            return 0;
+        };
+        const openStatuses = new Set(['open', 'inprogress', 'pending']);
+        const openRequests = all.filter(r => openStatuses.has(normalizeRequestStatus(r.trangThai)));
+        document.getElementById('requestCount').textContent = `${openRequests.length} yêu cầu`;
+        const sorted = [...openRequests].sort((a, b) => {
+            const p = priorityScore(b.priority) - priorityScore(a.priority);
+            if (p !== 0) return p;
+            const dA = a.hanChot ? new Date(a.hanChot).getTime() : Number.MAX_SAFE_INTEGER;
+            const dB = b.hanChot ? new Date(b.hanChot).getTime() : Number.MAX_SAFE_INTEGER;
+            if (dA !== dB) return dA - dB;
+            const cA = a.ngayTao ? new Date(a.ngayTao).getTime() : 0;
+            const cB = b.ngayTao ? new Date(b.ngayTao).getTime() : 0;
+            return cB - cA;
+        });
+
+        if (!sorted.length) {
+            container.classList.remove('expanded');
+            if (toggleBtn) toggleBtn.style.display = 'none';
+            container.innerHTML = '<p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có yêu cầu báo cáo đang mở.</p>';
+            return;
+        }
+
+        const visible = requestExpanded ? sorted : sorted.slice(0, 3);
+        container.classList.toggle('expanded', requestExpanded);
+        if (toggleBtn) {
+            toggleBtn.style.display = sorted.length > 3 ? 'inline-flex' : 'none';
+            toggleBtn.textContent = requestExpanded ? 'Thu gọn' : 'Xem tất cả yêu cầu';
+        }
+
+        container.innerHTML = visible.map(r => `
             <div class="request-item">
-                <h4>${r.tieuDe || 'Yêu cầu báo cáo'}</h4>
+                <h4 class="request-item-title">${r.tieuDe || 'Yêu cầu báo cáo'}</h4>
                 <div class="request-meta">Ưu tiên: ${r.priority || '-'} • Hạn: ${r.hanChot ? new Date(r.hanChot).toLocaleDateString('vi-VN') : '-'} • Trạng thái: ${r.trangThai || '-'}</div>
-                <div>${r.moTa || ''}</div>
+                <div class="request-desc">${escapeHtml(r.moTa || '-')}</div>
                 <div class="request-actions" style="margin-top:8px;">
-                    <button class="btn btn-primary btn-create-from-request" data-request-id="${r.maYeuCau}">Tạo báo cáo từ yêu cầu</button>
+                    <button class="btn btn-primary btn-create-from-request" data-request-id="${r.maYeuCau}">Tạo báo cáo</button>
                 </div>
             </div>`).join('');
         document.querySelectorAll('.btn-create-from-request').forEach(btn => btn.addEventListener('click', () => {
@@ -1577,7 +1746,7 @@
     function renderHistory() {
         const historyList = document.getElementById('historyList');
         const recent = allReports.slice(0, 5);
-        if (!recent.length) { historyList.innerHTML = '<p style="color: #94a3b8; font-size: 13px; margin: 0;">Không có lịch sử báo cáo nào.</p>'; return; }
+        if (!recent.length) { historyList.innerHTML = '<p style="color: #94a3b8; font-size: 13px; margin: 0;">Chưa có lịch sử báo cáo gần đây.</p>'; return; }
         historyList.innerHTML = recent.map(r => `<div class="history-item"><div class="history-item-info"><div class="history-item-name">${r.name}</div><div class="history-item-meta">${r.creator} • ${r.createdDate}</div></div><span class="history-item-format">${r.format}</span></div>`).join('');
     }
 
@@ -1771,14 +1940,20 @@
         document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
         document.querySelector('.status-tab[data-status=""]').classList.add('active');
         await fetchReports();
+        await fetchRequests();
         renderReportTable();
         renderHistory();
+        renderRequestList();
     });
     document.getElementById('btnCreateReport').addEventListener('click', () => {
         const target = roleKey === 'admin' ? '/Portal/CreateReport?manual=1' : '/Portal/CreateReport';
         window.location.href = target;
     });
-    document.getElementById('btnMyReports')?.addEventListener('click', () => window.location.href = '/Portal/ReportManagement?mine=1');
+    document.getElementById('btnMyReports')?.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('mine', '1');
+        window.location.href = `/Portal/ReportManagement?${params.toString()}`;
+    });
     document.getElementById('btnExportExcel').addEventListener('click', () => exportVisibleReportsToExcel());
     document.getElementById('btnDownloadFromDetail').addEventListener('click', async () => {
         if (!currentReportIdForView) {
@@ -1835,14 +2010,21 @@
             document.getElementById('requestDescription').value = '';
             await fetchRequests();
             renderRequestList();
+            renderQuickStats();
             alert('Đã gửi yêu cầu báo cáo.');
         });
     }
+
+    document.getElementById('toggleRequestExpand')?.addEventListener('click', () => {
+        requestExpanded = !requestExpanded;
+        renderRequestList();
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
         await loadDepartments();
         await fetchReports();
         await fetchRequests();
+        renderQuickStats();
         renderRequestRecipientOptions();
         renderReportTable();
         renderRequestList();

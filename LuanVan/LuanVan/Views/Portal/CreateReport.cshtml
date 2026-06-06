@@ -1052,9 +1052,437 @@
         padding: 9px 10px;
         margin-bottom: 6px;
     }
+
+    .report-page {
+        padding-top: 8px;
+    }
+
+    .request-notification-card {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .request-notification-header {
+        margin-bottom: 10px;
+    }
+
+    .request-notification-header h3 {
+        font-size: 14px;
+    }
+
+    .request-count {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    .request-list {
+        gap: 10px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .request-item {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .request-item-header {
+        margin-bottom: 8px;
+    }
+
+    .request-meta h4 {
+        font-size: 13px;
+        margin-bottom: 2px;
+    }
+
+    .request-item-content p {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .request-item-actions {
+        margin-top: 8px;
+    }
+
+    .form-row {
+        gap: 10px;
+    }
+
+    .work-items-container {
+        margin-top: 10px;
+        max-height: 220px;
+    }
+
+    .work-item-name {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+
+    .work-item-details {
+        font-size: 11px;
+        gap: 8px;
+    }
+
+    .editor-toolbar {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    .editor-content {
+        min-height: 110px;
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .kpi-grid {
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .kpi-card {
+        padding: 10px;
+    }
+
+    .kpi-card-value {
+        font-size: 22px;
+        margin-bottom: 4px;
+    }
+
+    .form-actions {
+        margin-top: 14px;
+        padding-top: 12px;
+        gap: 8px;
+    }
+
+    .btn-action {
+        padding: 9px 12px;
+        font-size: 12px;
+    }
+
+    .report-page {
+        padding: 12px 0 24px;
+    }
+
+    .report-container {
+        width: calc(100% - 24px);
+        max-width: none;
+        margin: 0 12px;
+    }
+
+    .report-layout {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .report-main-col,
+    .report-side-col {
+        min-width: 0;
+    }
+
+    .report-side-col {
+        position: sticky;
+        top: 90px;
+    }
+
+    .request-notification-card {
+        margin-bottom: 14px;
+    }
+
+    .request-list {
+        grid-template-columns: 1fr;
+        max-height: 260px;
+        overflow-y: auto;
+        gap: 10px;
+        padding-right: 2px;
+    }
+
+    .work-items-container {
+        max-height: 260px;
+    }
+
+    .task-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .task-toolbar .task-search {
+        flex: 1;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    .task-empty {
+        min-height: 90px;
+        height: 90px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        border: 1px dashed #d7e1ee;
+        border-radius: 10px;
+        background: #f8fbff;
+        gap: 4px;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .task-filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin-top: 0;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+
+    .task-filter-tabs button {
+        border: 1px solid #dbe3ec;
+        background: #f8fafc;
+        color: #475569;
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .task-filter-tabs button.active {
+        background: #0d6efd;
+        color: #fff;
+        border-color: #0d6efd;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .content-grid .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-textarea {
+        min-height: 100px;
+        height: 100px;
+        max-height: 220px;
+    }
+
+    .report-action-bar {
+        position: static;
+        left: auto;
+        transform: none;
+        width: 100%;
+        bottom: auto;
+        z-index: auto;
+        margin-top: 14px;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .report-action-bar .action-left {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .report-action-bar .btn-action.primary {
+        flex: 0 0 auto;
+        min-width: 180px;
+    }
+
+    .report-action-bar .right-actions {
+        margin-left: auto;
+    }
+
+    .summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .summary-list div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 11px;
+        background: #f8fafc;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .summary-warning {
+        font-size: 12px;
+        color: #92400e;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 10px;
+        padding: 8px 10px;
+    }
+
+    .request-toggle-card {
+        background: var(--bg-white);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .request-toggle-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .request-mini-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .request-mini-item {
+        border: 1px solid #e5e7eb;
+        border-left: 4px solid #f59e0b;
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #fff;
+    }
+
+    .request-mini-title {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 14px;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .request-mini-meta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 6px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .request-mini-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .request-mini-more {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #0d6efd;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .request-mini-item .btn-small {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: #334155;
+    }
+
+    .kpi-grid-compact {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .kpi-mini-item {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px 6px;
+        text-align: center;
+    }
+
+    .kpi-mini-item strong {
+        display: block;
+        font-size: 17px;
+        font-weight: 800;
+        color: #0d6efd;
+        line-height: 1.2;
+    }
+
+    .kpi-mini-item span {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 1200px) {
+        .report-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .report-side-col {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .task-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .report-action-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .report-action-bar .left-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .report-action-bar .right-actions {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .report-action-bar .btn-submit {
+            width: 100%;
+        }
+    }
 </style>
 
-<div class="report-page @((roleKey == "employee" || roleKey == "manager") ? "compact-mode" : string.Empty)">
+<div class="report-page">
 <div class="report-header">
     <div class="report-header-content">
         <h1><i class="bi bi-file-earmark-text"></i> Tạo báo cáo công việc</h1>
@@ -1064,40 +1492,17 @@
         <a class="btn-report btn-history" href="/Portal/ReportManagement">
             <i class="bi bi-card-list"></i> Xem báo cáo đã làm
         </a>
-        <button class="btn-report btn-draft" id="btnSaveDraft">
-            <i class="bi bi-cloud-check"></i> Lưu nháp
-        </button>
-        <button class="btn-report btn-preview" id="btnPreview">
-            <i class="bi bi-eye"></i> Xem trước
-        </button>
-        <button class="btn-report btn-send" id="btnSendReport">
-            <i class="bi bi-send"></i> Gửi báo cáo
-        </button>
         <span class="status-badge draft" id="statusBadge">Nháp</span>
     </div>
 </div>
 
-<div class="create-report-container">
+<div class="create-report-container report-layout report-container">
     <!-- MAIN FORM -->
-    <div class="report-form-wrapper">
-
-        <!-- REQUEST NOTIFICATION -->
-        <div class="request-notification-card" id="requestNotificationCard">
-            <div class="request-notification-header">
-                <i class="bi bi-bell-fill"></i>
-                <h3>Yêu cầu báo cáo từ cấp trên</h3>
-                <div class="request-count" id="requestCountBadge">0</div>
-            </div>
-            <div class="request-list" id="requestList">
-                <div class="request-item-empty">
-                    <p>Chưa có yêu cầu báo cáo nào. Bạn có thể tạo báo cáo tự nguyện.</p>
-                </div>
-            </div>
-        </div>
+    <div class="report-form-wrapper report-main report-main-col">
 
         <!-- BASIC INFO SECTION -->
         <div class="form-section">
-            <h3 class="form-section-title"><i class="bi bi-info-circle"></i> Thông tin cơ bản</h3>
+            <h3 class="form-section-title"><i class="bi bi-info-circle"></i> Thông tin báo cáo</h3>
 
             <div class="form-group">
                 <label class="form-label required">Tiêu đề báo cáo</label>
@@ -1109,6 +1514,7 @@
                     <label class="form-label required">Loại báo cáo</label>
                     <select class="form-select" id="reportType">
                         <option value="">-- Chọn loại báo cáo --</option>
+                        <option value="all">Báo cáo tổng hợp</option>
                         <option value="daily">Báo cáo ngày</option>
                         <option value="weekly">Báo cáo tuần</option>
                         <option value="monthly">Báo cáo tháng</option>
@@ -1120,14 +1526,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label required">@(roleKey == "manager" ? "Người nhận báo cáo (Admin)" : "Người nhận báo cáo")</label>
+                    <label class="form-label required" id="reportRecipientLabel">@(roleKey == "manager" ? "Người nhận báo cáo (Admin)" : "Người nhận báo cáo")</label>
                     <select class="form-select" id="reportRecipient">
                         <option value="">-- Chọn người nhận --</option>
                     </select>
+                    <div id="recipientHelperText" style="display:none; margin-top:6px; font-size:12px; color:#64748b;">
+                        Có thể để trống khi lưu/xuất. Bắt buộc chọn người nhận khi gửi nội bộ.
+                    </div>
                 </div>
             </div>
 
-            <div class="form-row full">
+            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Thời gian báo cáo</label>
                     <select class="form-select" id="reportPeriod">
@@ -1138,31 +1547,32 @@
                         <option value="this_year">Năm nay</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Phạm vi báo cáo</label>
+                    <select class="form-select" id="projectFilterSelectBasic">
+                        <option value="">-- Tất cả dự án --</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         <!-- WORK ITEMS SECTION -->
         <div class="form-section">
-            <h3 class="form-section-title"><i class="bi bi-list-check"></i> Công việc thực hiện</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">Chọn công việc để đưa vào báo cáo:</p>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Nguồn chọn</label>
-                    <select class="form-select" id="taskSourceType">
-                        <option value="task">Theo công việc</option>
-                        <option value="project">Theo dự án</option>
-                    </select>
+            <h3 class="form-section-title"><i class="bi bi-list-check"></i> Công việc đưa vào báo cáo</h3>
+            @if (roleKey == "admin")
+            {
+                <p style="font-size:12px; color:#64748b; margin:0 0 10px 0;">Admin đang xem dữ liệu toàn hệ thống. Danh sách công việc được tổng hợp từ nhiều dự án/phòng ban.</p>
+            }
+            <div class="task-toolbar">
+                <div class="form-group task-search">
+                    <input type="text" class="form-control" id="taskKeywordFilter" placeholder="Nhập tên công việc để lọc..." />
                 </div>
-                <div class="form-group" id="projectFilterWrap" style="display: none;">
-                    <label class="form-label">Chọn dự án</label>
-                    <select class="form-select" id="projectFilterSelect">
-                        <option value="">-- Chọn dự án --</option>
-                    </select>
+                <div class="task-filter-tabs">
+                    <button type="button" class="active" data-filter="all">Tất cả</button>
+                    <button type="button" data-filter="doing">Đang làm</button>
+                    <button type="button" data-filter="done">Hoàn thành</button>
+                    <button type="button" data-filter="overdue">Trễ hạn</button>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Lọc công việc</label>
-                <input type="text" class="form-control" id="taskKeywordFilter" placeholder="Nhập tên công việc để lọc..." />
             </div>
 
             <div class="work-items-container" id="workItemsList">
@@ -1170,81 +1580,83 @@
             </div>
         </div>
 
-        <!-- KPI SECTION -->
-        <div class="form-section">
-            <h3 class="form-section-title"><i class="bi bi-graph-up"></i> KPI cá nhân</h3>
-            <div class="kpi-grid" id="kpiGrid">
-                <div class="kpi-card">
-                    <div class="kpi-card-label">Chưa cập nhật</div>
-                    <div class="kpi-card-value">--</div>
-                    <div class="kpi-card-progress">
-                        <div class="kpi-card-progress" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI ASSISTANT SECTION -->
-        <div class="ai-assistant-card">
-            <h3><i class="bi bi-stars"></i> AI hỗ trợ tạo nội dung</h3>
-            <p>Hệ thống AI sẽ tự động phân tích công việc, tiến độ và KPI của bạn để tạo ra nội dung báo cáo chuyên nghiệp.</p>
-            <button class="btn-ai" id="btnAiAssistant">
-                <i class="bi bi-magic"></i> Tạo nội dung với AI
-            </button>
-        </div>
-
         <!-- CONTENT SECTION -->
         <div class="form-section">
-            <h3 class="form-section-title"><i class="bi bi-pencil-square"></i> Nội dung báo cáo chi tiết</h3>
-
-            <div class="form-group">
-                <label class="form-label required">Công việc đã hoàn thành</label>
-                <div class="editor-toolbar">
-                    <button type="button" title="In đậm"><i class="bi bi-type-bold"></i></button>
-                    <button type="button" title="Nghiêng"><i class="bi bi-type-italic"></i></button>
-                    <button type="button" title="Gạch chân"><i class="bi bi-type-underline"></i></button>
-                    <span style="flex: 1;"></span>
-                    <button type="button" title="Danh sách"><i class="bi bi-list-ul"></i></button>
-                    <button type="button" title="Bảng"><i class="bi bi-table"></i></button>
-                    <button type="button" title="Hình ảnh"><i class="bi bi-image"></i></button>
+            <h3 class="form-section-title"><i class="bi bi-pencil-square"></i> Nội dung báo cáo</h3>
+            <div class="content-grid">
+                <div class="form-group">
+                    <label class="form-label required">Kết quả đã hoàn thành</label>
+                    <textarea class="form-textarea" id="completedWork" placeholder="Mô tả công việc đã hoàn thành..."></textarea>
                 </div>
-                <textarea class="form-textarea editor-content" id="completedWork" placeholder="Mô tả công việc đã hoàn thành..."></textarea>
-            </div>
 
-            <div class="form-group">
-                <label class="form-label">Công việc đang thực hiện</label>
-                <textarea class="form-textarea" id="ongoingWork" placeholder="Mô tả công việc đang thực hiện..."></textarea>
-            </div>
+                <div class="form-group">
+                    <label class="form-label">Công việc đang xử lý</label>
+                    <textarea class="form-textarea" id="ongoingWork" placeholder="Mô tả công việc đang thực hiện..."></textarea>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label">Khó khăn / Vướng mắc</label>
-                <textarea class="form-textarea" id="challenges" placeholder="Liệt kê các khó khăn, vướng mắc như: thiếu tài nguyên, chậm phản hồi, lỗi hệ thống, quá tải công việc..."></textarea>
-            </div>
+                <div class="form-group">
+                    <label class="form-label">Vướng mắc phát sinh</label>
+                    <textarea class="form-textarea" id="challenges" placeholder="Liệt kê các khó khăn, vướng mắc như: thiếu tài nguyên, chậm phản hồi, lỗi hệ thống, quá tải công việc..."></textarea>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label">Đề xuất hỗ trợ</label>
-                <textarea class="form-textarea" id="suggestions" placeholder="Ví dụ: cần thêm nhân sự, gia hạn deadline, hỗ trợ kỹ thuật..."></textarea>
+                <div class="form-group">
+                    <label class="form-label">Kiến nghị / Đề xuất hỗ trợ</label>
+                    <textarea class="form-textarea" id="suggestions" placeholder="Ví dụ: cần thêm nhân sự, gia hạn deadline, hỗ trợ kỹ thuật..."></textarea>
+                </div>
             </div>
         </div>
 
-        <!-- ATTACHMENT SECTION -->
-        <div class="form-section attachment-section">
-            <h3 class="form-section-title"><i class="bi bi-paperclip"></i> Đính kèm tài liệu</h3>
+    </div>
 
-            <label class="attachment-upload" id="attachmentUploadArea">
-                <i class="bi bi-cloud-arrow-up"></i>
-                <p>Kéo thả hoặc bấm để chọn tệp</p>
-                <span>Hỗ trợ: PDF, Excel, Word, Hình ảnh (max 5MB)</span>
-                <input type="file" id="attachmentFileInput" multiple style="display: none;" />
-            </label>
-
-            <div class="attachment-list" id="attachmentList"></div>
+    <!-- SIDEBAR -->
+    <div class="report-sidebar report-side report-side-col">
+        <!-- REQUEST TOGGLE -->
+        <div class="request-toggle-card" id="requestToggleCard">
+            <div class="request-toggle-header">
+                <h4 class="sidebar-card-title" style="margin:0;"><i class="bi bi-bell-fill"></i> Yêu cầu báo cáo</h4>
+                <div class="request-count" id="requestCountBadge">0</div>
+            </div>
+            <div class="request-mini-list" id="requestMiniList">
+                <div class="request-item-empty"><p>Chưa có yêu cầu báo cáo nào.</p></div>
+            </div>
+            <div class="request-mini-more" id="btnViewAllRequests" style="display:none;">Xem tất cả yêu cầu</div>
         </div>
 
-        <!-- ACTION BUTTONS -->
-        <div class="form-actions">
+        <!-- KPI SECTION -->
+        <div class="form-section">
+            <h3 class="form-section-title"><i class="bi bi-graph-up"></i> Chỉ số KPI liên quan</h3>
+            <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-grid-compact">
+                    <div class="kpi-mini-item"><strong>--</strong><span>Điểm KPI</span></div>
+                    <div class="kpi-mini-item"><strong>--</strong><span>Xếp loại</span></div>
+                    <div class="kpi-mini-item"><strong>--</strong><span>Xu hướng</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY CARD -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-card-title"><i class="bi bi-speedometer2"></i> Tóm tắt báo cáo</h4>
+            <div class="summary-list" id="reportSummaryList">
+                <div><span>Trạng thái</span><strong id="summaryStatus">Nháp</strong></div>
+                <div><span>Loại báo cáo</span><strong id="summaryType">Chưa chọn</strong></div>
+                <div><span>Người nhận</span><strong id="summaryRecipient">Chưa chọn</strong></div>
+                <div><span>Công việc đã chọn</span><strong id="summaryTaskCount">0</strong></div>
+            </div>
+            <div class="summary-warning" id="summaryWarning">
+                Cần bổ sung: Tiêu đề, loại báo cáo, người nhận
+            </div>
+        </div>
+    </div>
+</div>
+<div class="report-container">
+    <div class="form-actions report-action-bar">
+        <div class="action-left left-actions">
             <button class="btn-action secondary" id="btnCancel">
                 <i class="bi bi-x-circle"></i> Hủy
+            </button>
+            <button class="btn-action secondary" id="btnSaveDraftBottom">
+                <i class="bi bi-cloud-check"></i> Lưu nháp
             </button>
             <button class="btn-action secondary" id="btnExportPdf">
                 <i class="bi bi-file-pdf"></i> Xuất PDF
@@ -1252,76 +1664,11 @@
             <button class="btn-action secondary" id="btnExportExcel">
                 <i class="bi bi-file-earmark-excel"></i> Xuất Excel
             </button>
-            <button class="btn-action primary" id="btnSubmit">
+        </div>
+        <div class="right-actions">
+            <button class="btn-action primary btn-submit" id="btnSubmit">
                 <i class="bi bi-check-circle"></i> Gửi báo cáo
             </button>
-        </div>
-    </div>
-
-    <!-- SIDEBAR -->
-    <div class="report-sidebar">
-        <!-- PROGRESS CARD -->
-        <div class="sidebar-card">
-            <h4 class="sidebar-card-title"><i class="bi bi-speedometer2"></i> Tiến độ hoàn thành</h4>
-
-            <div class="progress-item">
-                <div class="progress-item-label">
-                    <span>Tiêu đề & loại báo cáo</span>
-                    <span id="progress1">0%</span>
-                </div>
-                <div class="progress-item-bar">
-                    <div class="progress-item-fill" id="progressFill1" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="progress-item">
-                <div class="progress-item-label">
-                    <span>Nội dung chi tiết</span>
-                    <span id="progress2">0%</span>
-                </div>
-                <div class="progress-item-bar">
-                    <div class="progress-item-fill" id="progressFill2" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="progress-item">
-                <div class="progress-item-label">
-                    <span>Công việc được chọn</span>
-                    <span id="progress3">0%</span>
-                </div>
-                <div class="progress-item-bar">
-                    <div class="progress-item-fill" id="progressFill3" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="progress-item">
-                <div class="progress-item-label">
-                    <span>Tài liệu đính kèm</span>
-                    <span id="progress4">0%</span>
-                </div>
-                <div class="progress-item-bar">
-                    <div class="progress-item-fill" id="progressFill4" style="width: 0%"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- COUNTDOWN CARD -->
-        <div class="sidebar-card">
-            <div class="countdown" id="countdownCard" style="display: none;">
-                <div class="countdown-label">⏰ Hạn nộp còn lại</div>
-                <div class="countdown-time" id="countdownTime">--:--</div>
-            </div>
-            <div id="noDeadlineMsg" style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">
-                Báo cáo tự nguyện (không có hạn nộp)
-            </div>
-        </div>
-
-        <!-- HISTORY CARD -->
-        <div class="sidebar-card">
-            <h4 class="sidebar-card-title"><i class="bi bi-clock-history"></i> Báo cáo gần đây</h4>
-            <div id="historyList" style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">
-                Chưa có báo cáo nào
-            </div>
         </div>
     </div>
 </div>
@@ -1346,6 +1693,7 @@
 <script>
     const currentRoleKey = '@roleKey';
     let allTaskPool = [];
+    let currentTaskFilter = 'all';
     const searchParams = new URLSearchParams(window.location.search);
     const requestedReportRequestId = Number(searchParams.get('requestId') || 0);
     const isManualCreateMode = searchParams.get('manual') === '1';
@@ -1391,6 +1739,45 @@
         if (value === null || value === undefined || Number.isNaN(value)) return '--';
         const sign = value > 0 ? '+' : '';
         return `${sign}${value.toFixed(1)}%`;
+    }
+
+    function toVietnameseReportType(type) {
+        const normalized = String(type || '').trim().toLowerCase();
+        const map = {
+            all: 'Báo cáo tổng hợp',
+            daily: 'Báo cáo ngày',
+            weekly: 'Báo cáo tuần',
+            monthly: 'Báo cáo tháng',
+            kpi: 'Báo cáo KPI',
+            project: 'Báo cáo dự án',
+            work: 'Báo cáo công việc',
+            urgent: 'Báo cáo đột xuất'
+        };
+        return map[normalized] || (type || 'Chưa chọn');
+    }
+
+    function isAdminAllReport() {
+        const type = (document.getElementById('reportType')?.value || '').trim().toLowerCase();
+        return currentRoleKey === 'admin' && type === 'all';
+    }
+
+    function isRecipientRequiredForAction(action) {
+        if (action === 'submit') return true;
+        if ((action === 'save' || action === 'export') && isAdminAllReport()) return false;
+        return true;
+    }
+
+    function updateRecipientUiState() {
+        const label = document.getElementById('reportRecipientLabel');
+        const helper = document.getElementById('recipientHelperText');
+        if (!label) return;
+        if (isAdminAllReport()) {
+            label.classList.remove('required');
+            if (helper) helper.style.display = 'block';
+        } else {
+            label.classList.add('required');
+            if (helper) helper.style.display = 'none';
+        }
     }
 
     function getSelectedRecipientName() {
@@ -1479,7 +1866,7 @@
                 <h4>Thông tin chung</h4>
                 <div class="preview-meta">
                     <div class="preview-meta-item"><strong>Tiêu đề</strong>${escapeHtml(payload.tenBaoCao || '--')}</div>
-                    <div class="preview-meta-item"><strong>Loại báo cáo</strong>${escapeHtml(payload.loaiBaoCao || '--')}</div>
+                    <div class="preview-meta-item"><strong>Loại báo cáo</strong>${escapeHtml(toVietnameseReportType(payload.loaiBaoCao || '--'))}</div>
                     <div class="preview-meta-item"><strong>Từ ngày</strong>${escapeHtml(payload.ngayBatDau || '--')}</div>
                     <div class="preview-meta-item"><strong>Đến ngày</strong>${escapeHtml(payload.ngayKetThuc || '--')}</div>
                     <div class="preview-meta-item"><strong>Người nhận</strong>${escapeHtml(payload.nguoiNhanBaoCao || '--')}</div>
@@ -1511,27 +1898,39 @@
     function updateSidebarProgress() {
         const title = document.getElementById('reportTitle').value.trim();
         const type = document.getElementById('reportType').value.trim();
-        const completed = document.getElementById('completedWork').value.trim();
-        const ongoing = document.getElementById('ongoingWork').value.trim();
-        const challenges = document.getElementById('challenges').value.trim();
-        const support = document.getElementById('suggestions').value.trim();
         const selectedTasks = document.querySelectorAll('input[name="workItems"]:checked').length;
-        const totalTasks = document.querySelectorAll('input[name="workItems"]').length;
-        const attachmentCount = document.querySelectorAll('#attachmentList .attachment-item').length;
+        const recipient = getSelectedRecipientName();
+        const status = (document.getElementById('statusBadge')?.textContent || 'Nháp').trim();
 
-        const progress1 = title && type ? 100 : (title || type ? 50 : 0);
-        const progress2 = [completed, ongoing, challenges, support].filter(Boolean).length * 25;
-        const progress3 = totalTasks > 0 ? Math.round((selectedTasks / totalTasks) * 100) : 0;
-        const progress4 = Math.min(attachmentCount * 25, 100);
+        const requiredMissing = [];
+        if (!title) requiredMissing.push('Tiêu đề');
+        if (!type) requiredMissing.push('Loại báo cáo');
+        if (!recipient && !isAdminAllReport()) requiredMissing.push('Người nhận');
 
-        document.getElementById('progress1').textContent = `${progress1}%`;
-        document.getElementById('progressFill1').style.width = `${progress1}%`;
-        document.getElementById('progress2').textContent = `${progress2}%`;
-        document.getElementById('progressFill2').style.width = `${progress2}%`;
-        document.getElementById('progress3').textContent = `${progress3}%`;
-        document.getElementById('progressFill3').style.width = `${progress3}%`;
-        document.getElementById('progress4').textContent = `${progress4}%`;
-        document.getElementById('progressFill4').style.width = `${progress4}%`;
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        setText('summaryStatus', status || 'Nháp');
+        setText('summaryType', toVietnameseReportType(type || ''));
+        setText('summaryRecipient', recipient || 'Chưa chọn');
+        setText('summaryTaskCount', String(selectedTasks));
+
+        const warningEl = document.getElementById('summaryWarning');
+        if (warningEl) {
+            if (requiredMissing.length) {
+                warningEl.textContent = `Cần bổ sung: ${requiredMissing.join(', ')}`;
+                warningEl.style.color = '#92400e';
+                warningEl.style.background = '#fffbeb';
+                warningEl.style.borderColor = '#fde68a';
+            } else {
+                warningEl.textContent = 'Thông tin bắt buộc đã đầy đủ';
+                warningEl.style.color = '#166534';
+                warningEl.style.background = '#ecfdf3';
+                warningEl.style.borderColor = '#86efac';
+            }
+        }
     }
 
     function renderPersonalKpi(kpi) {
@@ -1539,10 +1938,10 @@
 
         if (!kpi) {
             container.innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-card-label">Chưa có KPI</div>
-                    <div class="kpi-card-value">--</div>
-                    <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: 0%"></div></div>
+                <div class="kpi-grid-compact">
+                    <div class="kpi-mini-item"><strong>--</strong><span>Điểm KPI</span></div>
+                    <div class="kpi-mini-item"><strong>--</strong><span>Xếp loại</span></div>
+                    <div class="kpi-mini-item"><strong>--</strong><span>Xu hướng</span></div>
                 </div>
             `;
             return;
@@ -1553,64 +1952,28 @@
         const trend = kpi.xuHuongPhanTram ?? kpi.XuHuongPhanTram;
 
         container.innerHTML = `
-            <div class="kpi-card">
-                <div class="kpi-card-label">Điểm KPI hiện tại</div>
-                <div class="kpi-card-value">${score.toFixed(1)}</div>
-                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${Math.min(score, 100)}%"></div></div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-card-label">Xếp loại</div>
-                <div class="kpi-card-value" style="font-size: 18px;">${escapeHtml(classification)}</div>
-                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${score >= 90 ? 100 : score >= 80 ? 85 : score >= 65 ? 70 : score >= 50 ? 50 : 25}%"></div></div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-card-label">Xu hướng</div>
-                <div class="kpi-card-value" style="font-size: 18px;">${formatTrend(trend)}</div>
-                <div class="kpi-card-progress"><div class="kpi-card-progress" style="width: ${trend > 0 ? 85 : trend < 0 ? 35 : 55}%"></div></div>
+            <div class="kpi-grid-compact">
+                <div class="kpi-mini-item">
+                    <strong>${score.toFixed(1)}</strong>
+                    <span>Điểm KPI</span>
+                </div>
+                <div class="kpi-mini-item">
+                    <strong>${escapeHtml(classification)}</strong>
+                    <span>Xếp loại</span>
+                </div>
+                <div class="kpi-mini-item">
+                    <strong>${formatTrend(trend)}</strong>
+                    <span>Xu hướng</span>
+                </div>
             </div>
         `;
-    }
-
-    async function loadRecentReports() {
-        const container = document.getElementById('historyList');
-        if (!container) return;
-
-        try {
-            const res = await requestJson('/api/baocao/list?LoaiBaoCao=personal&PageNumber=1&PageSize=5');
-            const data = getPayload(res);
-            
-            if (!data || !data.items || data.items.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">Chưa có báo cáo nào</div>';
-                return;
-            }
-
-            container.innerHTML = data.items.map(report => {
-                const ngayTao = new Date(report.ngayTao || report.NgayTao);
-                const tenBaoCao = report.tenBaoCao || report.TenBaoCao || 'Báo cáo không tên';
-                const loaiBaoCao = report.loaiBaoCao || report.LoaiBaoCao || 'Cá nhân';
-                const trangThai = report.trangThai || report.TrangThai || 'Nháp';
-                
-                return `
-                    <div class="history-item">
-                        <div class="history-item-date">${tenBaoCao}</div>
-                        <div class="history-item-status">
-                            ${ngayTao.toLocaleDateString('vi-VN')} • 
-                            <span style="color: ${trangThai === 'Đã gửi' ? '#10b981' : '#f59e0b'}">${trangThai}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (error) {
-            console.error('Error loading recent reports:', error);
-            container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px; font-size: 12px;">Không thể tải báo cáo gần đây</div>';
-        }
     }
 
     function registerStaticEvents() {
         const byId = (id) => document.getElementById(id);
 
-        byId('btnAiAssistant')?.addEventListener('click', aiAssist);
         byId('btnSaveDraft')?.addEventListener('click', saveDraft);
+        byId('btnSaveDraftBottom')?.addEventListener('click', saveDraft);
         byId('btnPreview')?.addEventListener('click', showPreview);
         byId('btnSendReport')?.addEventListener('click', submitReport);
         byId('btnSubmit')?.addEventListener('click', submitReport);
@@ -1624,13 +1987,6 @@
             if (e.target.id === 'reportPreviewModal') closePreview();
         });
 
-        const uploadArea = byId('attachmentUploadArea');
-        if (uploadArea) {
-            uploadArea.addEventListener('click', () => byId('attachmentFileInput')?.click());
-            uploadArea.addEventListener('dragover', (e) => e.preventDefault());
-            uploadArea.addEventListener('drop', handleAttachmentDrop);
-        }
-
         ['reportTitle', 'reportType', 'reportPeriod', 'completedWork', 'ongoingWork', 'challenges', 'suggestions'].forEach(id => {
             const element = byId(id);
             if (element) {
@@ -1638,10 +1994,22 @@
                 element.addEventListener('change', updateSidebarProgress);
             }
         });
+        byId('reportType')?.addEventListener('change', updateRecipientUiState);
 
         byId('taskSourceType')?.addEventListener('change', applyTaskSourceFilter);
         byId('projectFilterSelect')?.addEventListener('change', applyTaskSourceFilter);
+        byId('projectFilterSelectBasic')?.addEventListener('change', applyTaskSourceFilter);
         byId('taskKeywordFilter')?.addEventListener('input', applyTaskSourceFilter);
+        byId('btnViewAllRequests')?.addEventListener('click', () => window.location.href = '/Portal/ReportManagement');
+
+        document.querySelectorAll('.task-filter-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentTaskFilter = btn.dataset.filter || 'all';
+                document.querySelectorAll('.task-filter-tabs button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTaskSourceFilter();
+            });
+        });
     }
 
     async function init() {
@@ -1670,20 +2038,20 @@
             // Render personal KPI sidebar
             renderPersonalKpi(data.personalKpi || data.PersonalKpi || null);
 
-            // Load recent reports into sidebar
-            await loadRecentReports();
-
             // Keep requests available for quick selection/fill
             window.reportRequests = data.myRequests || [];
 
-            if (isManualCreateMode && currentRoleKey === 'admin') {
-                const requestCard = document.getElementById('requestNotificationCard');
+            if (isManualCreateMode) {
+                const requestCard = document.getElementById('requestToggleCard');
                 if (requestCard) requestCard.style.display = 'none';
             }
 
             if (requestedReportRequestId > 0) {
                 selectRequest(requestedReportRequestId);
             }
+
+            updateRecipientUiState();
+            updateSidebarProgress();
 
             document.querySelectorAll('input[name="workItems"]').forEach(input => {
                 input.addEventListener('change', updateSidebarProgress);
@@ -1710,34 +2078,34 @@
     }
 
     function renderReportRequests(requests) {
-        const container = document.getElementById('requestList');
+        const list = document.getElementById('requestMiniList');
+        const viewAll = document.getElementById('btnViewAllRequests');
         if (!requests.length) {
-            container.innerHTML = '<div class="request-item-empty"><p>Chưa có yêu cầu báo cáo nào. Bạn có thể tạo báo cáo tự nguyện.</p></div>';
             document.getElementById('requestCountBadge').textContent = '0';
+            if (list) list.innerHTML = '<div class="request-item-empty"><p>Chưa có yêu cầu báo cáo nào.</p></div>';
+            if (viewAll) viewAll.style.display = 'none';
             return;
         }
 
         const count = requests.length;
         document.getElementById('requestCountBadge').textContent = count;
-
-        container.innerHTML = requests.map(r => `
-            <div class="request-item">
-                <div class="request-item-header">
-                    <div>
-                        <h4>${escapeHtml(r.tieuDe || 'Yêu cầu báo cáo')}</h4>
-                        <p>${escapeHtml(r.moTa || '')}</p>
-                        <p style="margin-top: 4px;">Người yêu cầu: ${escapeHtml(r.nguoiYeuCau || r.NguoiYeuCau || 'Không xác định')}</p>
+        const displayItems = requests.slice(0, 2);
+        if (list) {
+            list.innerHTML = displayItems.map(r => `
+                <div class="request-mini-item">
+                    <div class="request-mini-title">${escapeHtml(r.tieuDe || 'Yêu cầu báo cáo')}</div>
+                    <div class="request-mini-meta">
+                        <span>${escapeHtml(getPriorityLabel(r.priority))}</span>
+                        <span>Hạn: ${escapeHtml(formatDate(r.hanChot))}</span>
                     </div>
-                    <span class="request-priority ${r.priority || 'normal'}">${getPriorityLabel(r.priority)}</span>
-                </div>
-                <div class="request-item-footer">
-                    <span class="request-deadline">Hạn: ${formatDate(r.hanChot)}</span>
-                    <div class="request-actions">
-                        <button class="btn-small" onclick="selectRequest(${r.maYeuCau})">Chọn yêu cầu này</button>
+                    <div class="request-mini-footer">
+                        <span>${escapeHtml(r.nguoiYeuCau || r.NguoiYeuCau || 'Không xác định')}</span>
+                        <button class="btn-small" onclick="selectRequest(${r.maYeuCau})">Chọn</button>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
+        if (viewAll) viewAll.style.display = requests.length > 2 ? 'block' : 'none';
     }
 
     function getPriorityLabel(priority) {
@@ -1783,7 +2151,7 @@
     function renderWorkItems(tasks) {
         const container = document.getElementById('workItemsList');
         if (!tasks.length) {
-            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 24px;">Chưa có công việc nào</p>';
+            container.innerHTML = '<div class="task-empty"><strong>Chưa có công việc phù hợp</strong><span>Thử đổi bộ lọc hoặc kiểm tra phạm vi báo cáo.</span></div>';
             updateSidebarProgress();
             return;
         }
@@ -1818,7 +2186,9 @@
 
         const emptyText = currentRoleKey === 'manager'
             ? '-- Chọn admin nhận báo cáo --'
-            : '-- Chọn người nhận --';
+            : currentRoleKey === 'admin'
+                ? '-- Chọn người nhận nếu muốn gửi nội bộ --'
+                : '-- Chọn người nhận --';
 
         if (!emps || !emps.length) {
             select.innerHTML = `<option value="">${emptyText}</option>`;
@@ -1835,7 +2205,8 @@
 
     function renderProjectFilterOptions(tasks) {
         const select = document.getElementById('projectFilterSelect');
-        if (!select) return;
+        const basicSelect = document.getElementById('projectFilterSelectBasic');
+        if (!select && !basicSelect) return;
 
         const projectMap = new Map();
         for (const t of tasks || []) {
@@ -1848,16 +2219,43 @@
         }
 
         const options = ['<option value="">-- Chọn dự án --</option>'];
+        const basicOptions = ['<option value="">-- Tất cả dự án --</option>'];
         for (const [id, name] of projectMap.entries()) {
             options.push(`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`);
+            basicOptions.push(`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`);
         }
-        select.innerHTML = options.join('');
+        if (select) select.innerHTML = options.join('');
+        if (basicSelect) basicSelect.innerHTML = basicOptions.join('');
+    }
+
+    function resolveTaskDeadline(task) {
+        const raw = task.hanHoanThanh ?? task.HanHoanThanh ?? task.deadline ?? task.Deadline ?? task.ngayKetThucDuKien ?? task.NgayKetThucDuKien ?? null;
+        if (!raw) return null;
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function isTaskCompleted(task) {
+        const status = String(task.tenTrangThai ?? task.TenTrangThai ?? '').toLowerCase();
+        return status.includes('hoàn') || status.includes('xong') || status.includes('complete');
+    }
+
+    function isTaskOverdue(task) {
+        if (isTaskCompleted(task)) return false;
+        const deadline = resolveTaskDeadline(task);
+        if (!deadline) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        deadline.setHours(0, 0, 0, 0);
+        return deadline < today;
     }
 
     function applyTaskSourceFilter() {
         const sourceType = document.getElementById('taskSourceType')?.value || 'task';
         const projectWrap = document.getElementById('projectFilterWrap');
-        const selectedProject = document.getElementById('projectFilterSelect')?.value || '';
+        const selectedProject = document.getElementById('projectFilterSelectBasic')?.value
+            || document.getElementById('projectFilterSelect')?.value
+            || '';
         const keyword = (document.getElementById('taskKeywordFilter')?.value || '').trim().toLowerCase();
 
         if (projectWrap) {
@@ -1865,52 +2263,35 @@
         }
 
         let filtered = allTaskPool || [];
-        if (sourceType === 'project') {
-            filtered = selectedProject
-                ? filtered.filter(t => String(t.maDuAn ?? t.MaDuAn ?? '') === String(selectedProject))
-                : [];
+        if (selectedProject) {
+            filtered = filtered.filter(t => String(t.maDuAn ?? t.MaDuAn ?? '') === String(selectedProject));
         }
 
         if (keyword) {
             filtered = filtered.filter(t => String(t.tenCongViec ?? t.TenCongViec ?? '').toLowerCase().includes(keyword));
         }
 
+        if (currentTaskFilter === 'done') {
+            filtered = filtered.filter(isTaskCompleted);
+        } else if (currentTaskFilter === 'doing') {
+            filtered = filtered.filter(t => !isTaskCompleted(t));
+        } else if (currentTaskFilter === 'overdue') {
+            filtered = filtered.filter(isTaskOverdue);
+        }
+
         renderWorkItems(filtered);
-    }
-
-    function handleAttachmentDrop(e) {
-        e.preventDefault();
-        const files = e.dataTransfer.files;
-        addAttachments(files);
-    }
-
-    function addAttachments(files) {
-        const list = document.getElementById('attachmentList');
-        Array.from(files).forEach(file => {
-            const item = document.createElement('div');
-            item.className = 'attachment-item';
-            item.innerHTML = `
-                <i class="bi bi-file"></i>
-                <div class="attachment-item-name">${escapeHtml(file.name)}</div>
-                <div class="attachment-item-size">${(file.size / 1024).toFixed(1)} KB</div>
-                <button class="attachment-item-remove" type="button" title="Xóa">×</button>
-            `;
-            item.querySelector('.attachment-item-remove').addEventListener('click', () => item.remove());
-            list.appendChild(item);
-        });
-
-        updateSidebarProgress();
-    }
-
-    async function aiAssist() {
-        alert('Tính năng AI sẽ được phát triển');
     }
 
     async function saveDraft() {
         const payload = getReportPayload();
 
-        if (!payload.tenBaoCao || !payload.loaiBaoCao || !payload.nguoiNhanUserId) {
-            alert('Vui lòng điền tiêu đề, loại báo cáo và người nhận báo cáo');
+        if (!payload.tenBaoCao || !payload.loaiBaoCao) {
+            alert('Vui lòng điền tiêu đề và loại báo cáo');
+            return;
+        }
+
+        if (isRecipientRequiredForAction('save') && !payload.nguoiNhanUserId) {
+            alert('Vui lòng chọn người nhận báo cáo');
             return;
         }
 
@@ -1956,8 +2337,17 @@
     async function submitReport() {
         const payload = getReportPayload();
 
-        if (!payload.tenBaoCao || !payload.loaiBaoCao || !payload.nguoiNhanUserId) {
-            alert('Vui lòng nhập Tên báo cáo, Loại báo cáo và Người nhận báo cáo');
+        if (!payload.tenBaoCao || !payload.loaiBaoCao) {
+            alert('Vui lòng nhập Tên báo cáo và Loại báo cáo');
+            return;
+        }
+
+        if (isRecipientRequiredForAction('submit') && !payload.nguoiNhanUserId) {
+            if (isAdminAllReport()) {
+                alert('Vui lòng chọn người nhận để gửi báo cáo nội bộ.');
+            } else {
+                alert('Vui lòng nhập Người nhận báo cáo');
+            }
             return;
         }
 
@@ -1999,14 +2389,14 @@
     }
 
     function collectAttachments() {
-        const items = document.querySelectorAll('#attachmentList .attachment-item');
-        return Array.from(items).map(item => item.querySelector('.attachment-item-name').textContent);
+        return [];
     }
 
     function updateStatusBadge(status) {
         const badge = document.getElementById('statusBadge');
         badge.textContent = status;
         badge.className = 'status-badge ' + (status === 'Nháp' ? 'draft' : status === 'Đã gửi' ? 'sent' : status === 'Đang soạn' ? 'unsent' : 'processing');
+        updateSidebarProgress();
     }
 
     async function downloadReportFile(url, fileName) {
@@ -2037,6 +2427,15 @@
     }
 
     async function exportPdf() {
+        const payload = getReportPayload();
+        if (!payload.tenBaoCao || !payload.loaiBaoCao) {
+            alert('Vui lòng điền tiêu đề và loại báo cáo trước khi xuất PDF');
+            return;
+        }
+        if (isRecipientRequiredForAction('export') && !payload.nguoiNhanUserId) {
+            alert('Vui lòng chọn người nhận báo cáo trước khi xuất PDF');
+            return;
+        }
         try {
             await downloadReportFile('/api/report/export-pdf', `${(document.getElementById('reportTitle').value || 'BaoCao').replace(/[^\w\d_-]+/g, '_')}.pdf`);
         } catch (err) {
@@ -2045,6 +2444,15 @@
     }
 
     async function exportExcel() {
+        const payload = getReportPayload();
+        if (!payload.tenBaoCao || !payload.loaiBaoCao) {
+            alert('Vui lòng điền tiêu đề và loại báo cáo trước khi xuất Excel');
+            return;
+        }
+        if (isRecipientRequiredForAction('export') && !payload.nguoiNhanUserId) {
+            alert('Vui lòng chọn người nhận báo cáo trước khi xuất Excel');
+            return;
+        }
         try {
             await downloadReportFile('/api/report/export-excel', `${(document.getElementById('reportTitle').value || 'BaoCao').replace(/[^\w\d_-]+/g, '_')}.xlsx`);
         } catch (err) {

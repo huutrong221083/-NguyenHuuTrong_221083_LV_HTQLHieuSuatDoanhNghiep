@@ -28,6 +28,9 @@
         <button class="btn btn-outline-secondary btn-sm" type="button" id="btnPageMarkAllRead">
             <i class="bi bi-check2-all"></i> Đánh dấu tất cả đã đọc
         </button>
+        <button class="btn btn-outline-primary btn-sm" type="button" id="btnNotificationSync">
+            <i class="bi bi-arrow-repeat"></i> Đồng bộ cảnh báo KPI
+        </button>
     </div>
 </section>
 
@@ -79,6 +82,7 @@
     const btnPrev = document.getElementById('btnNotificationPrev');
     const btnNext = document.getElementById('btnNotificationNext');
     const typeFilter = document.getElementById('notifyTypeFilter');
+    const btnSync = document.getElementById('btnNotificationSync');
     const tabButtons = [...document.querySelectorAll('.notification-filter-chip[data-tab]')];
 
     function escapeHtml(value) {
@@ -159,9 +163,16 @@
         }
     }
 
+    async function syncKpiAlerts() {
+        return fetchJson('/thongbao/kpi-alerts/sync', {
+            method: 'POST'
+        });
+    }
+
     function render() {
         if (!state.items.length) {
-            body.innerHTML = '<tr><td colspan="5" class="text-muted">Không có thông báo phu hop bộ lọc.</td></tr>';
+            const canSync = role === 'admin' || role === 'manager';
+            body.innerHTML = `<tr><td colspan="5" class="text-muted">Không có thông báo phu hop bộ lọc.${canSync ? ' Hãy thử "Đồng bộ cảnh báo KPI".' : ''}</td></tr>`;
         } else {
             body.innerHTML = state.items.map(item => {
                 const unread = !!item.isUnread;
@@ -270,7 +281,30 @@
         }
     });
 
-    loadData();
+    btnSync?.addEventListener('click', async () => {
+        try {
+            btnSync.disabled = true;
+            await syncKpiAlerts();
+            state.page = 1;
+            await loadData();
+            notify('Đã đồng bộ cảnh báo KPI.', 'success');
+        } catch (error) {
+            notify(`Không thể đồng bộ cảnh báo KPI: ${error.message || error}`, 'error');
+        } finally {
+            btnSync.disabled = false;
+        }
+    });
+
+    (async () => {
+        if (role === 'admin' || role === 'manager') {
+            try {
+                await syncKpiAlerts();
+            } catch {
+                // Không chặn load list nếu sync thất bại.
+            }
+        }
+        await loadData();
+    })();
 })();
 </script>
 }

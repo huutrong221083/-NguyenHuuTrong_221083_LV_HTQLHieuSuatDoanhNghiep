@@ -317,6 +317,52 @@
             }
         }
 
+        function buildPerformanceSummaryQuery(top = 5) {
+            const params = new URLSearchParams();
+            params.set('thang', String(safeNum(perfMonth.value, new Date().getMonth() + 1)));
+            params.set('nam', String(safeNum(perfYear.value, new Date().getFullYear())));
+            params.set('top', String(top));
+            if (perfDepartment.value) params.set('maPhongBan', perfDepartment.value);
+            if (perfEmployee.value) params.set('maNhanVien', perfEmployee.value);
+            return params.toString();
+        }
+
+        function mapSummaryEmployee(row) {
+            const normalized = normalizeLabel(row.performanceLabel || row.label);
+            const kpiScore = row.kpi == null ? 0 : safeNum(row.kpi, 0);
+            const totalTasks = safeNum(row.totalTasks, 0);
+            const completedTasks = safeNum(row.completedTasks, 0);
+            const overdueTasks = safeNum(row.lateTasks, 0);
+            const rawConfidence = clamp(safeNum(row.confidence, 0) * 100, 0, 100);
+            const explain = computeExplainAndAction(kpiScore, completedTasks, overdueTasks, totalTasks);
+            const sourceChip = row.source === 'AI_HISTORY'
+                ? { type: 'data', text: 'AI history' }
+                : row.source === 'INSUFFICIENT_DATA'
+                    ? { type: 'data', text: 'Chưa đủ dữ liệu' }
+                    : { type: 'data', text: 'Rule nhanh' };
+
+            return {
+                maNhanVien: row.maNhanVien,
+                hoTen: row.hoTen,
+                maPhongBan: row.maPhongBan,
+                tenPhongBan: row.tenPhongBan || 'Chưa rõ',
+                rawLabel: row.performanceLabel || 'Cần cải thiện',
+                normalizedLabel: normalized,
+                rawConfidence,
+                displayConfidence: computeDisplayConfidence(rawConfidence, kpiScore, totalTasks, overdueTasks),
+                confidenceBand: confidenceBand(rawConfidence),
+                explainChips: [sourceChip, ...explain.chips],
+                primaryAction: explain.primaryAction,
+                secondaryActionTag: explain.secondaryActionTag,
+                completedTasks,
+                overdueTasks,
+                kpiScore,
+                feedbackStatus: row.source === 'AI_HISTORY'
+                    ? { key: 'ok', text: '🟢 Có AI history' }
+                    : { key: 'wait', text: '🟡 Rule nhanh' }
+            };
+        }
+
         function renderSummary() {
             const excellent = state.performanceResults.filter(x => x.normalizedLabel === 'Xuất sắc').length;
             const good = state.performanceResults.filter(x => x.normalizedLabel === 'Tốt').length;
@@ -565,58 +611,13 @@
 
         async function loadAndRenderPerformance() {
             try {
-                const employees = perfEmployee.value ? state.employees.filter(e => String(e.maNhanVien) === perfEmployee.value) : state.employees;
-                state.performanceResults = [];
-                const deptNames = new Map(state.departments.map(d => [String(d.maPhongBan), d.tenPhongBan || 'Phòng ' + d.maPhongBan]));
-
-                for (const emp of employees) {
-                    if (perfDepartment.value && String(emp.maPhongBan) !== perfDepartment.value) continue;
-                    const empTasks = state.tasks.filter(t => (t.nguoiDuocGiao || []).some(nv => nv.maNhanVien === emp.maNhanVien));
-                    const completedTasks = empTasks.filter(t => t.maTrangThai === 3).length;
-                    const overdueTasks = empTasks.filter(t => t.maTrangThai !== 3 && (new Date(t.hanHoanThanh || '9999-12-31') < new Date())).length;
-                    const kpiScore = state.kpiScores.get(emp.maNhanVien) || 0;
-
-                    const classifyRes = await fetchJson('/ai/classify-performance', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            maNhanVien: emp.maNhanVien,
-                            soCongViecHoanThanh: completedTasks,
-                            soCongViecTreHan: overdueTasks,
-                            thoiGianTrungBinh: empTasks.length || 0,
-                            kpiTrungBinh: kpiScore
-                        })
-                    });
-
-                    if (!classifyRes.success || !classifyRes.data) continue;
-
-                    const normalized = normalizeLabel(classifyRes.data?.label);
-                    const rawConfidence = clamp(safeNum(classifyRes.data?.confidence, 0) * 100, 0, 100);
-                    const explain = computeExplainAndAction(kpiScore, completedTasks, overdueTasks, empTasks.length);
-                    const displayConfidence = computeDisplayConfidence(rawConfidence, kpiScore, empTasks.length, overdueTasks);
-                    const fb = state.feedbackByEmployee.get(emp.maNhanVien) || { key: 'wait', text: '🟡 Chưa phản hồi' };
-
-                    state.performanceResults.push({
-                        maNhanVien: emp.maNhanVien,
-                        hoTen: emp.hoTen,
-                        maPhongBan: emp.maPhongBan,
-                        tenPhongBan: deptNames.get(String(emp.maPhongBan)) || 'Chưa rõ',
-                        rawLabel: classifyRes.data?.label || 'Trung bình',
-                        normalizedLabel: normalized,
-                        rawConfidence,
-                        displayConfidence,
-                        confidenceBand: confidenceBand(rawConfidence),
-                        explainChips: explain.chips,
-                        primaryAction: explain.primaryAction,
-                        secondaryActionTag: explain.secondaryActionTag,
-                        completedTasks,
-                        overdueTasks,
-                        kpiScore,
-                        feedbackStatus: fb
-                    });
+                const res = await fetchJson(`/ai/performance-summary?${buildPerformanceSummaryQuery(10)}`);
+                if (!res.success || !res.data) {
+                    throw new Error(res.message || 'Không tải được dữ liệu hiệu suất.');
                 }
 
-                state.analyzedAt = new Date();
+                state.performanceResults = (res.data.employees || []).map(mapSummaryEmployee);
+                state.analyzedAt = res.data.generatedAt ? new Date(res.data.generatedAt) : new Date();
                 renderSummary();
                 renderInsights();
                 renderTables();
@@ -643,7 +644,6 @@
         }
 
         async function onAutoFilterChanged() {
-            await loadKpiScores();
             await loadAndRenderPerformance();
         }
 
@@ -651,9 +651,6 @@
             el?.addEventListener('change', onAutoFilterChanged);
         });
         btnReloadPerf.addEventListener('click', async () => {
-            await loadTasks();
-            await loadKpiScores();
-            await loadFeedbackSummary();
             await loadAndRenderPerformance();
         });
 
@@ -661,9 +658,6 @@
             initTimeFilters();
             bindTableSearch();
             await loadFilterData();
-            await loadTasks();
-            await loadKpiScores();
-            await loadFeedbackSummary();
             await loadAndRenderPerformance();
         })();
     </script>

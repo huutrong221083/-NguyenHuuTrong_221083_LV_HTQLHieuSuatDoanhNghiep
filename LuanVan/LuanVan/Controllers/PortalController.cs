@@ -243,9 +243,17 @@ public class PortalController : Controller
     public IActionResult AiFeatureStore()
     {
         if (!CanAccessAiInsights()) return RedirectToRoleDashboard();
-        ViewData["Title"] = "AI - Feature Store";
+        ViewData["Title"] = "Dữ liệu huấn luyện AI";
         SetRoleContext();
         return View();
+    }
+
+    public IActionResult AiFeatureStoreLegacy()
+    {
+        if (!CanAccessAiInsights()) return RedirectToRoleDashboard();
+        ViewData["Title"] = "AI - Feature Store (Legacy)";
+        SetRoleContext();
+        return View("AiFeatureStoreLegacy");
     }
 
     public IActionResult AiModels()
